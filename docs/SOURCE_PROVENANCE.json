@@ -1,0 +1,33 @@
+{
+  "product": "PaperVNStudio",
+  "version": "0.3.0",
+  "export_date": "2026-11-15",
+  "source_commit": "6c80092b58e6dde4c15f8f367c292f5a4ea4c10b",
+  "original_source_unchanged": true,
+  "sha256": {
+    "dist/index.html": "caaf85449a80cb0e75b8d5c18ea3cdb8a75c192c30ad64d8cacd5b09de690732",
+    "dist/style.css": "221c5c59e9d8ece5e5c9cb29af4a20db48ccc97f818f997533b73d3fc28eb833",
+    "dist/app.js": "3ea34e25e344b99fc29d8462c74b6a051b75e87695884e6873f30f69bc38fae1",
+    "dist/core.js": "2ed8a984dc0816c6724d6364dbdc69d996b9735f004fce0b901b3cbd1bcb5b95",
+    "dist/effects.js": "cd11198fc6533c58c44fc2c7c960d679ec0df707601136a4580ae73dde97b09c",
+    "dist/player.js": "18de5852689bf363bbf7c4213a7e49ef0f89ae793fee8c6b637c220a2cd7f110",
+    "tests/core.test.cjs": "f68ab5eb1d1bb5748556952c4ad6950a41da4b7bdcd31f8cf7472f10a40a58fb",
+    "tests/effects.test.cjs": "ce7256b7380fa5cb08f9315ee77a545875b205ad887b4402c50009aed2be5c88"
+  },
+  "excluded": [
+    "Cloud hosting configuration",
+    "Source Git history and credentials",
+    "Browser projects and uploaded media"
+  ],
+  "packaging_additions": [
+    "package.json",
+    "scripts/serve.cjs",
+    "scripts/check.cjs",
+    "Start-Web.cmd",
+    "Check-Source.cmd",
+    "README.md",
+    "AGENTS.md",
+    "AI_START_PROMPT.md",
+    "docs/"
+  ]
+}

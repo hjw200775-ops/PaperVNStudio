@@ -1,0 +1,12 @@
+node_modules/
+release/
+out/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+user-projects/
+backups/

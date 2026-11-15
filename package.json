@@ -1,0 +1,12 @@
+{
+  "name": "paper-vn-studio",
+  "version": "0.3.0",
+  "private": true,
+  "description": "纸间 Galgame 制作器 V0.3 网页源码与桌面迁移基线",
+  "scripts": {
+    "start": "node scripts/serve.cjs",
+    "check": "node scripts/check.cjs",
+    "test": "node tests/core.test.cjs && node tests/effects.test.cjs"
+  },
+  "engines": { "node": ">=18" }
+}
