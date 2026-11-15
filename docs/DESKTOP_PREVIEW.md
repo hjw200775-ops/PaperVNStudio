@@ -9,6 +9,7 @@
 | 网页版（保留原入口） | `npm start` 或 `node scripts/serve.cjs --port 4173` |
 | 桌面开发窗口 | `npm run desktop` |
 | 真实窗口自动烟测 | `npm run desktop:smoke` |
+| 工程生命周期验证（新建/保存/重新打开） | `npm run desktop:smoke:project` |
 | 打包产物启动自检 | `npm run desktop:smoke:packaged`；加 `-- --asar` 可验证 `app.asar` 打包形态 |
 | 全部源码检查与测试 | `npm run check`（等价于 `node scripts/check.cjs`） |
 | Windows 便携版 | `npm run build:win:portable` |
@@ -24,7 +25,15 @@
 
 打包配置在 `package.json` 的 `build` 字段：`asar: true`、`directories.output: release`、`win.target: [portable, nsis]`、`artifactName` 分别对应 `...-win-x64-portable.exe` 与 `...-win-x64-setup.exe`。`release/` 已在 `.gitignore` 中，产物不会提交。打包后 `desktop/main.cjs` 通过 `paper://` 协议加载 `dist/` 内的固定白名单文件，不启动任何开发服务器。
 
-构建环境的两点注意（本机实测）：GitHub 工具/运行时下载偶发 `502 Bad Gateway`，可设置 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` 后重试；重复构建时 electron-builder 会清空 `release/win-unpacked`，若本机有批量删除保护，可用 `-c.directories.output=release/<新目录>` 换一个输出目录。两者都只影响构建过程，不改变产物内容。
+构建环境的三点注意（本机实测）：GitHub 工具/运行时下载偶发 `502 Bad Gateway`，可设置 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` 后重试；重复构建时 electron-builder 会清空 `release/win-unpacked`，若本机有批量删除保护，可用 `-c.directories.output=release/<新目录>` 换一个输出目录。第二轮重建时，解包 Electron 后「重命名目录」被本机保护机制拒绝（`EPERM`），改为复用已解包的运行时、只替换 `app.asar` 再打包：
+
+```
+npx asar pack <只含 dist/ desktop/ package.json 的目录> release/app.asar
+# 复制一份 release/v2/win-unpacked 为 release/stage，替换 stage/resources/app.asar
+./node_modules/.bin/electron-builder --win portable nsis --x64 --prepackaged release/stage -c.directories.output=release/v6
+```
+
+三种情况都只影响构建过程，不改变产物内容。
 
 ## 工程目录格式
 
@@ -89,6 +98,8 @@
 | `dist/index.html` | 加入 CSP、桌面专属按钮（另存为 / JSON 备份 / 最近工程）、新脚本引用 |
 | `dist/style.css` | 追加桌面专属控件样式，未改动原有规则 |
 | `scripts/desktop.cjs`、`scripts/desktop-smoke.cjs` | 新增：桌面启动器与真实窗口烟测 |
+| `scripts/desktop-project-smoke.cjs` | 新增：真实主进程的工程生命周期验证（新建 → 编辑 → 保存 → 重新打开），原生对话框用队列应答 |
+| `scripts/packaged-smoke.cjs` | 新增：打包产物启动自检（独立 `--user-data-dir`，避免本机历史工程干扰） |
 | `scripts/check.cjs` | 扩展语法检查与测试列表 |
 | `tests/project-store.test.cjs`、`tests/export.test.cjs`、`tests/desktop-security.test.cjs` | 新增测试 |
 | `package.json`、`package-lock.json` | 固定桌面依赖与构建配置 |
@@ -106,8 +117,9 @@
 | `tests/project-store.test.cjs` | 通过：中文空格路径、目录迁移、同名图片、另存为、备份恢复、异常退出、注入 ENOSPC/EPERM/EACCES、路径校验、V0.1 导入 |
 | `tests/export.test.cjs` | 通过：在 Node VM 中执行导出的游戏脚本，验证共用 core/effects、分支、效果、存取档与自包含 |
 | `tests/desktop-security.test.cjs` | 通过：沙箱/CSP/导航/IPC 通道/资源白名单静态核查 |
-| `npm run desktop:smoke` | 通过：真实 Electron 窗口（隐藏）加载 `paper://`，验证 preload 隔离、剧情编辑/撤销/试玩、图片图层、尺寸修改、效果、TXT 导入、自动保存、显式保存、备份、离线 HTML 导出，且无渲染进程 console 错误 |
-| `npm run desktop:smoke:packaged` | 通过：便携版 EXE 实体启动自检，页面为 `paper://app/index.html`、渲染 7 个示例节点、preload 可用、`require`/`process` 均为 undefined；`--asar` 模式同样通过 |
+| `npm run desktop:smoke` | 通过：真实 Electron 窗口（隐藏）加载 `paper://`，验证 preload 隔离、桥接层异步约定、剧情编辑/撤销/试玩、图片图层、尺寸修改、效果、TXT 导入、自动保存、显式保存、备份、离线 HTML 导出，且无渲染进程 console 错误 |
+| `npm run desktop:smoke:project` | 通过：真实 `desktop/main.cjs` 主进程，用队列应答原生对话框，走通「新建工程 → 添加节点 → 保存 → 未保存时再打开」，并核对磁盘上的 `project.paper.json` 与 UI 一致 |
+| `npm run desktop:smoke:packaged` | 通过：便携版 EXE 实体启动自检，页面为 `paper://app/index.html`、渲染 7 个示例节点、preload 可用、`require`/`process` 均为 undefined；`--asar` 模式同样通过（自检使用独立 `--user-data-dir`，不受本机历史工程影响） |
 | `PAPER_VN_SMOKE=1 npm run desktop` | 通过：正式 `desktop/main.cjs` 入口（非烟测专用主进程）自检通过 |
 | 网页版入口 | 通过：`http://127.0.0.1:4188/` 下 9 个资源全部 200，越界路径 404，POST 405；脚本加载顺序正确 |
 | Windows 构建 | 通过：`npm run build:win:portable` 与 `npm run build:win:installer` 均实际生成 EXE（见下方「Windows 构建结果」）；首次遇到下载 502 与目录清理保护，已用镜像/新输出目录解决 |
@@ -130,9 +142,9 @@
 
 | 产物 | 路径 | 大小 |
 | --- | --- | --- |
-| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,420,778 字节（约 105 MiB） |
-| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,335,236 字节（约 116 MiB） |
-| 免安装目录 | `release/v2/win-unpacked/`（与便携版同版） | 含 `PaperVNStudio.exe` 与 `resources/app.asar` |
+| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,421,378 字节（约 105 MiB） |
+| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,335,783 字节（约 116 MiB） |
+| 免安装目录 | `release/v6/win-unpacked/`（与两个产物同版） | 含 `PaperVNStudio.exe` 与 `resources/app.asar` |
 
 构建日志显示 `electron=45.3.2`、`asar: true`、未配置代码签名。`app.asar` 内 14 个文件（`dist/` 8 个、`desktop/` 3 个、`package.json` 等），入口 `desktop/main.cjs` 已核对。
 
@@ -141,7 +153,21 @@
 2. `scripts/packaged-smoke.cjs`，对便携版 EXE 实体与 `app.asar` 打包形态做启动自检；
 3. `tests/desktop-security.test.cjs` 的防回归静态断言。
 
-修复后两个 EXE 均重新构建，并以 `npm run desktop:smoke:packaged` 验证通过；`release/` 内早期构建目录（`.win-unpacked-*`、旧 `nsis/`、`v2/`、`nsis-v2/` 等）为构建过程留痕，均在忽略目录内，可自行清理。
+修复后两个 EXE 均重新构建，并以 `npm run desktop:smoke:packaged` 验证通过；`release/` 内早期构建目录（`.win-unpacked-*`、旧 `nsis/`、`v2/`、`nsis-v2/`、`v3/`、`v4/`、`v5/` 等）为构建过程留痕，均在忽略目录内，可自行清理。
+
+### 第二轮修复（使用者反馈：启动提示「启动恢复失败」，新建/打开工程无效）
+
+原因：`dist/desktop-bridge.js` 把 `ok()` 直接套在 IPC 返回的 Promise 上（`ok(api.save(p))`），此时 `r.ok` 永远是 `undefined`，于是**所有**保存、另存为、新建、打开、最近工程、启动恢复都会在渲染进程立刻抛「桌面文件操作失败」。主进程其实已经把文件写完了，所以旧烟测只检查磁盘文件存在，没能发现这个错误。
+
+修复与加固：
+
+1. `dist/desktop-bridge.js` 增加 `call()` 包装：先 `await` IPC 结果再校验，7 个操作全部改为 `call(() => api.x())`。
+2. `desktop/main.cjs` 的「新建工程」不再创建 0 个节点的空工程，而是带一个空白对话节点，避免新建后编辑器里没有任何可选内容。
+3. `dist/app.js` 新建工程后选中第一个节点，与打开工程的逻辑一致。
+4. 防回归：`tests/desktop-security.test.cjs` 断言桥接层不得出现 `ok(api.`；`npm run desktop:smoke` 增加「bootstrap / recent / newProject / open 必须 resolve 且不得进入失败分支」；新增 `npm run desktop:smoke:project` 端到端验证。
+5. `scripts/packaged-smoke.cjs` 自检改用独立 `--user-data-dir`，否则本机已有最近工程时启动会恢复它，节点数断言失去意义。
+
+两个 EXE 已用修复后的 `app.asar` 重建（`release/v6/` 为构建目录），根目录产物已替换，`npm run desktop:smoke:packaged` 复验通过。
 
 ## 产物位置
 

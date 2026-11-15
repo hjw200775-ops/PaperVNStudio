@@ -1,7 +1,7 @@
 'use strict';
 const {spawnSync}=require('node:child_process'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
-const syntax=[...['app.js','core.js','effects.js','player.js','export.js','desktop-bridge.js'].map(f=>'dist/'+f),...['main.cjs','preload.cjs','project-store.cjs'].map(f=>'desktop/'+f),'scripts/serve.cjs','scripts/desktop.cjs','scripts/desktop-smoke.cjs','scripts/packaged-smoke.cjs'];
+const syntax=[...['app.js','core.js','effects.js','player.js','export.js','desktop-bridge.js'].map(f=>'dist/'+f),...['main.cjs','preload.cjs','project-store.cjs'].map(f=>'desktop/'+f),'scripts/serve.cjs','scripts/desktop.cjs','scripts/desktop-smoke.cjs','scripts/desktop-project-smoke.cjs','scripts/packaged-smoke.cjs'];
 const tests=['tests/core.test.cjs','tests/effects.test.cjs','tests/project-store.test.cjs','tests/export.test.cjs','tests/desktop-security.test.cjs'];
 const checks=[...syntax.map(f=>['--check',f]),...tests.map(f=>[f])];
 for(const args of checks){console.log('\n> node '+args.join(' '));const r=spawnSync(process.execPath,args,{cwd:root,stdio:'inherit'});if(r.error){console.error(r.error.message);process.exit(1)}if(r.status!==0)process.exit(r.status||1)}

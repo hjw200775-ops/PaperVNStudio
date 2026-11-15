@@ -13,9 +13,12 @@
     "desktop:smoke:packaged": "node scripts/packaged-smoke.cjs",
     "build:win": "electron-builder --win --x64",
     "build:win:portable": "electron-builder --win portable --x64",
-    "build:win:installer": "electron-builder --win nsis --x64"
+    "build:win:installer": "electron-builder --win nsis --x64",
+    "desktop:smoke:project": "node scripts/desktop.cjs --smoke-project"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "devDependencies": {
     "electron": "45.3.2",
     "electron-builder": "26.18.0"
@@ -39,8 +42,18 @@
     ],
     "win": {
       "target": [
-        { "target": "portable", "arch": ["x64"] },
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "portable": {

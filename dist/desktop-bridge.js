@@ -7,6 +7,10 @@
   document.body.classList.add('desktop');
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ok = r => { if (r && r.ok) return r; throw new Error((r && r.message) || '桌面文件操作失败'); };
+  /* Every IPC call is async: unwrap the resolved value before validating it.
+   * Passing the pending Promise into ok() would read an undefined .ok and
+   * report a bogus "desktop file operation failed" on save/open/new. */
+  const call = run => Promise.resolve().then(run).then(ok);
 
   /* Turn a main-process file result into something the existing callbacks can
    * consume without changing their editor logic. */
@@ -38,15 +42,15 @@
 
   window.PaperHost = {
     desktop: true,
-    bootstrap: () => ok(api.bootstrap()),
+    bootstrap: () => call(() => api.bootstrap()),
     applyState,
     autoSave: p => api.autoSave(p),
-    save: p => ok(api.save(p)),
-    saveAs: p => ok(api.saveAs(p)),
-    newProject: () => ok(api.newProject()),
-    open: () => ok(api.open()),
-    openRecent: index => ok(api.openRecent(index)),
-    recent: () => ok(api.recent()),
+    save: p => call(() => api.save(p)),
+    saveAs: p => call(() => api.saveAs(p)),
+    newProject: () => call(() => api.newProject()),
+    open: () => call(() => api.open()),
+    openRecent: index => call(() => api.openRecent(index)),
+    recent: () => call(() => api.recent()),
     pickImage: assetKind => api.pickImage(assetKind).then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
     pickText: () => api.pickText().then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
     saveFile: payload => api.saveFile(payload).then(r => { const v = ok(r); return v.cancelled ? null : v; }),

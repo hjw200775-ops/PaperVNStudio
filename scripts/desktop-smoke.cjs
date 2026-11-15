@@ -109,6 +109,24 @@ async function run() {
   assert(env.desktopClass, 'desktop-only UI activated');
   console.log('  ok  paper:// window, preload bridge, CSP-compatible scripts, no Node in renderer');
 
+  // Guard the async contract of the bridge: every IPC call must resolve to a
+  // validated state object, not throw on the pending Promise.
+  const bridge = await win.webContents.executeJavaScript(`(async()=>{
+    const out={};
+    const probe=async(name,fn)=>{try{const v=await fn();out[name]=!!(v&&v.ok)}catch(e){out[name]='throw:'+e.message}};
+    await probe('bootstrap',()=>window.PaperHost.bootstrap());
+    await probe('recent',()=>window.PaperHost.recent());
+    await probe('newProject',()=>window.PaperHost.newProject());
+    await probe('open',()=>window.PaperHost.open());
+    return out;
+  })()`);
+  for (const key of ['bootstrap', 'recent', 'newProject', 'open']) {
+    assert.strictEqual(bridge[key], true, 'bridge call "' + key + '" must resolve, got: ' + bridge[key]);
+  }
+  const savedText = await win.webContents.executeJavaScript(`document.querySelector('#saved').textContent`);
+  assert(!savedText.includes('请手动保存工程'), 'startup recovery reached the failure branch: ' + savedText);
+  console.log('  ok  desktop bridge resolves bootstrap / recent / new / open and startup recovery succeeds');
+
   const added = await win.webContents.executeJavaScript(`(()=>{document.querySelector('#add').click();return document.querySelectorAll('#list .node').length})()`);
   assert.equal(added, env.nodes + 1, 'adding a dialogue node works');
   const undone = await win.webContents.executeJavaScript(`(()=>{document.querySelector('#undo').click();return document.querySelectorAll('#list .node').length})()`);
@@ -151,6 +169,8 @@ async function run() {
   await win.webContents.executeJavaScript(`document.querySelector('#save').click(); true`);
   await sleep(900);
   assert(fs.existsSync(MAIN), 'explicit save wrote project.paper.json');
+  const saveText = await win.webContents.executeJavaScript(`document.querySelector('#saved').textContent`);
+  assert(saveText.startsWith('已保存'), 'renderer received the resolved save state, got: ' + saveText);
   const mainDisk = JSON.parse(fs.readFileSync(MAIN, 'utf8'));
   assert.equal(mainDisk.title, '烟测 标题');
   assert.equal(mainDisk.nodes.length, env.nodes + 2);

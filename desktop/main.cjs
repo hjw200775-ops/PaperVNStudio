@@ -259,7 +259,11 @@ function registerIPC() {
     if (!await clearDirtyBefore('新工程')) return reply({ cancelled: true });
     const dir = await chooseDirectory('新建工程：选择一个空白目录');
     if (!dir) return reply({ cancelled: true });
-    const result = store.createProject(dir, C.blank());
+    // A brand-new project starts with one empty dialogue node: an editor with a
+    // zero-length node list has nothing to select and looks like a failed create.
+    const blank = C.blank();
+    blank.nodes.push(C.makeNode('say'));
+    const result = store.createProject(dir, blank);
     track(result.root, result.project.title);
     state.dirty = false;
     return stateSnapshot({ project: result.project, cancelled: false });

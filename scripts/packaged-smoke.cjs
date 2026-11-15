@@ -33,6 +33,11 @@ try { fs.unlinkSync(out); } catch { /* not present */ }
 const env = { ...process.env, PAPER_VN_SMOKE: '1', PAPER_VN_SMOKE_OUT: out };
 delete env.ELECTRON_RUN_AS_NODE;          // otherwise Electron runs as plain Node
 
+/* Isolate userData: a machine that already has recent projects or a draft would
+ * restore that project instead of the sample story, which makes the rendered
+ * node count meaningless. The check must be hermetic. */
+const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'pvn-userdata-'));
+
 function cleanup() {
   if (cleaned) return;
   cleaned = true;
@@ -42,6 +47,7 @@ function cleanup() {
   }
   try { fs.unlinkSync(out); } catch { /* best effort */ }
   if (staging) { try { fs.rmSync(staging, { recursive: true, force: true }); } catch { /* best effort */ } }
+  try { fs.rmSync(userData, { recursive: true, force: true }); } catch { /* best effort */ }
 }
 process.on('exit', cleanup);
 process.on('SIGINT', () => { cleanup(); process.exit(1); });
@@ -75,6 +81,7 @@ async function main() {
   } else if (!fs.existsSync(exe)) {
     throw new Error('打包产物不存在，请先运行 npm run build:win:portable，或用 --asar 验证打包形态\n' + exe);
   }
+  args.push('--user-data-dir=' + userData);
   child = spawn(exe, args, { env, cwd: path.dirname(exe), stdio: ['ignore', 'pipe', 'pipe'] });
   if (process.env.PAPER_VN_DEBUG === '1') {
     console.log('[smoke] exe=' + exe + ' cwd=' + path.dirname(exe) + ' out=' + out + ' pid=' + child.pid);

@@ -60,6 +60,22 @@ for (const required of [
 assert(main.includes("handle('app:finishSaveBeforeClose'"), 'save-before-close reply must be an invoke/handle pair');
 console.log('  ok  save / discard / cancel on close, failure keeps the window open');
 
+/* The renderer adapter must await the IPC result before validating it: passing
+ * the pending Promise into ok() reads an undefined .ok and reports a bogus
+ * "desktop file operation failed" for save / open / new / startup recovery. */
+const bridge = read('dist/desktop-bridge.js');
+assert(!/ok\(api\./.test(bridge), 'bridge must unwrap the IPC Promise before ok(): ok(api.x()) always throws');
+for (const line of [
+  'bootstrap: () => call(() => api.bootstrap())',
+  'save: p => call(() => api.save(p))',
+  'saveAs: p => call(() => api.saveAs(p))',
+  'newProject: () => call(() => api.newProject())',
+  'open: () => call(() => api.open())',
+  'openRecent: index => call(() => api.openRecent(index))',
+  'recent: () => call(() => api.recent())'
+]) assert(bridge.includes(line), 'bridged operation must resolve before validating: ' + line);
+console.log('  ok  every bridged file operation resolves its async result before validation');
+
 assert(!/require\(/.test(app), 'renderer editor must not use Node require');
 assert(!/window\.require|process\.versions|__dirname/.test(app), 'renderer editor must not reach Node globals');
 assert(/const H=window\.PaperHost\|\|null/.test(app), 'web build keeps its native path when the adapter is absent');

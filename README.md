@@ -38,6 +38,7 @@ node scripts/check.cjs
 npm install              # 首次需要；依赖版本已固定在 package-lock.json
 npm run desktop          # 打开独立桌面窗口（不需要启动上面的网页服务）
 npm run desktop:smoke    # 真实 Electron 窗口自动烟测（隐藏窗口，不弹窗）
+npm run desktop:smoke:project    # 真实主进程验证「新建 / 保存 / 重新打开」
 npm run desktop:smoke:packaged   # 打包 EXE 启动自检（加 -- --asar 验证 app.asar 形态）
 npm run check            # 源码检查与全部测试
 npm run build:win        # 便携版 + NSIS 安装包，产物在 release/
