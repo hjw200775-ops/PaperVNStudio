@@ -1,12 +1,55 @@
 {
   "name": "paper-vn-studio",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
-  "description": "纸间 Galgame 制作器 V0.3 网页源码与桌面迁移基线",
+  "description": "纸间 Galgame 制作器 V0.3 网页源码与 Windows 桌面预览版",
+  "main": "desktop/main.cjs",
   "scripts": {
     "start": "node scripts/serve.cjs",
     "check": "node scripts/check.cjs",
-    "test": "node tests/core.test.cjs && node tests/effects.test.cjs"
+    "test": "node scripts/check.cjs",
+    "desktop": "node scripts/desktop.cjs",
+    "desktop:smoke": "node scripts/desktop.cjs --smoke",
+    "desktop:smoke:packaged": "node scripts/packaged-smoke.cjs",
+    "build:win": "electron-builder --win --x64",
+    "build:win:portable": "electron-builder --win portable --x64",
+    "build:win:installer": "electron-builder --win nsis --x64"
   },
-  "engines": { "node": ">=18" }
+  "engines": { "node": ">=20" },
+  "devDependencies": {
+    "electron": "45.3.2",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "cn.papervnstudio.desktop",
+    "productName": "PaperVNStudio",
+    "asar": true,
+    "compression": "normal",
+    "npmRebuild": false,
+    "directories": {
+      "output": "release",
+      "buildResources": "desktop/build-resources"
+    },
+    "files": [
+      "dist/**",
+      "desktop/**",
+      "package.json",
+      "!desktop/build-resources/**",
+      "!**/*.test.cjs"
+    ],
+    "win": {
+      "target": [
+        { "target": "portable", "arch": ["x64"] },
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "portable": {
+      "artifactName": "PaperVNStudio-${version}-win-x64-portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "PaperVNStudio-${version}-win-x64-setup.${ext}"
+    }
+  }
 }
