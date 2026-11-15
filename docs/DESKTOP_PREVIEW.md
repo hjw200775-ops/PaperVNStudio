@@ -142,9 +142,9 @@ npx asar pack <只含 dist/ desktop/ package.json 的目录> release/app.asar
 
 | 产物 | 路径 | 大小 |
 | --- | --- | --- |
-| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,421,378 字节（约 105 MiB） |
-| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,335,783 字节（约 116 MiB） |
-| 免安装目录 | `release/v6/win-unpacked/`（与两个产物同版） | 含 `PaperVNStudio.exe` 与 `resources/app.asar` |
+| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,421,597 字节（约 105 MiB） |
+| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,335,965 字节（约 116 MiB） |
+| 免安装目录 | `release/stage/`（打包所用的 Electron 运行时 + `resources/app.asar`） | 与两个产物同版 |
 
 构建日志显示 `electron=45.3.2`、`asar: true`、未配置代码签名。`app.asar` 内 14 个文件（`dist/` 8 个、`desktop/` 3 个、`package.json` 等），入口 `desktop/main.cjs` 已核对。
 
@@ -162,12 +162,12 @@ npx asar pack <只含 dist/ desktop/ package.json 的目录> release/app.asar
 修复与加固：
 
 1. `dist/desktop-bridge.js` 增加 `call()` 包装：先 `await` IPC 结果再校验，7 个操作全部改为 `call(() => api.x())`。
-2. `desktop/main.cjs` 的「新建工程」不再创建 0 个节点的空工程，而是带一个空白对话节点，避免新建后编辑器里没有任何可选内容。
+2. `desktop/main.cjs` 的「新建工程」不再创建 0 个节点的空工程，而是带一个空白对话节点，避免新建后编辑器里没有任何可选内容；启动恢复遇到 0 节点的旧工程时不动磁盘文件，直接从示例开始并提示原目录位置。
 3. `dist/app.js` 新建工程后选中第一个节点，与打开工程的逻辑一致。
 4. 防回归：`tests/desktop-security.test.cjs` 断言桥接层不得出现 `ok(api.`；`npm run desktop:smoke` 增加「bootstrap / recent / newProject / open 必须 resolve 且不得进入失败分支」；新增 `npm run desktop:smoke:project` 端到端验证。
 5. `scripts/packaged-smoke.cjs` 自检改用独立 `--user-data-dir`，否则本机已有最近工程时启动会恢复它，节点数断言失去意义。
 
-两个 EXE 已用修复后的 `app.asar` 重建（`release/v6/` 为构建目录），根目录产物已替换，`npm run desktop:smoke:packaged` 复验通过。
+两个 EXE 已用修复后的 `app.asar` 重建（`release/v6/`、`release/v7/` 为构建目录），根目录产物已替换为最终版本，`npm run desktop:smoke:packaged` 复验通过；另外用「最近工程指向 0 节点旧工程」的独立 `userData` 启动 EXE，确认会从示例开始而不是停在空编辑器。
 
 ## 产物位置
 

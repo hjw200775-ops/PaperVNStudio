@@ -197,6 +197,18 @@ function registerIPC() {
     if (dir) {
       try {
         const opened = store.openProject(dir);
+        // Older builds could create a directory with zero nodes; restoring it
+        // leaves an empty editor that looks like a failed startup. Leave the
+        // files untouched and start from the sample instead.
+        if (!opened.project.nodes.length) {
+          state.currentDir = null;
+          state.label = '';
+          state.dirty = false;
+          return stateSnapshot({
+            project: null, recovered: null,
+            notice: '上次的工程还没有剧情节点（旧版本创建的空白工程），已从示例开始；原文件仍在 ' + dir + '，可用「打开工程」重新选择。'
+          });
+        }
         track(opened.root, opened.project.title);
         state.dirty = opened.recovered === 'autosave';
         return stateSnapshot({
