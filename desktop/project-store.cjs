@@ -55,6 +55,7 @@ function friendlyError(stage, err) {
   e.code = code || 'WRITE_FAILED';
   e.friendly = true;
   e.cause = err;
+  if (process.env.PAPER_STORE_DEBUG) console.error('[store] ' + stage + ' :: ' + (err && (err.stack || err)));
   return e;
 }
 
@@ -361,7 +362,8 @@ function createProjectStore(options = {}) {
       if (final.format !== disk.format || final.id !== disk.id || final.savedAt !== disk.savedAt) {
         throw new Error('替换后校验失败');
       }
-      if (io.existsSync(previous)) io.unlinkSync(previous);
+      // 清理临时回滚副本是尽力而为：删不掉不能把已经写好的工程报告成失败。
+      if (io.existsSync(previous)) { try { io.unlinkSync(previous); } catch { /* 保留也无害 */ } }
     } catch (err) {
       if (io.existsSync(tmp)) { try { io.unlinkSync(tmp); } catch { /* best effort */ } }
       if (io.existsSync(previous)) {

@@ -1,6 +1,6 @@
 {
   "name": "paper-vn-studio",
-  "version": "0.3.1",
+  "version": "0.4.1",
   "private": true,
   "description": "纸间 PaperVNStudio — 视觉小说 / 文字冒险创作工具：Electron 桌面版与自包含 HTML 导出",
   "author": "wenwenwen817",
@@ -24,7 +24,8 @@
     "build:win": "electron-builder --win --x64",
     "build:win:portable": "electron-builder --win portable --x64",
     "build:win:installer": "electron-builder --win nsis --x64",
-    "desktop:smoke:project": "node scripts/desktop.cjs --smoke-project"
+    "desktop:smoke:project": "node scripts/desktop.cjs --smoke-project",
+    "demo:acceptance": "node scripts/desktop.cjs --acceptance"
   },
   "engines": {
     "node": ">=20"

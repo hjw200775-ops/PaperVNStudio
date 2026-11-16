@@ -210,6 +210,11 @@ assert.throws(() => denied.saveProject(target, modified), /EACCES|权限/);
 assert.deepEqual(fs.readFileSync(mainFile(target)), goodMain);
 assert.equal(diskFiles(target).length, imageCount, 'failed metadata save must not delete assets');
 
+/* 清理回滚副本失败（杀毒软件/沙箱占用）不该把已写好的保存报告成失败 */
+const cleanupBlocked = createStore({ io: failingIo((key, args) => key === 'unlinkSync' && String(args[0]).endsWith(MAIN_FILE + '.previous'), 'EPERM') });
+const cleanupSave = cleanupBlocked.saveProject(target, modified);
+assert.equal(cleanupSave.disk.title, '不应写入', 'cleanup failure still reports the save as done');
+assert.equal(JSON.parse(fs.readFileSync(mainFile(target), 'utf8')).title, '不应写入', '写入的内容没有被回滚');
 assert.equal(store.saveProject(target, modified).project.title, '不应写入', 'a later normal save succeeds');
 console.log('  ok  ENOSPC / EPERM / EACCES rollback, no temp residue, no asset pruning');
 
