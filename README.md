@@ -42,7 +42,30 @@ npm run check                # 语法检查 + 全部测试
 
 ```powershell
 npm run build:win            # 便携版 + NSIS 安装包，输出到 release/
+npm run build:win:portable   # 只出便携版
+npm run build:win:installer  # 只出 NSIS 安装包
 ```
+
+打包脚本默认把 Electron 本体与 NSIS / winCodeSign 工具链从 npmmirror 镜像下载，避免直连 GitHub Release 超时；想用官方源时，把环境变量 `ELECTRON_MIRROR`、`ELECTRON_BUILDER_BINARIES_MIRROR` 设成官方地址即可。
+
+## 连不上 GitHub 时
+
+先跑一次体检，它会指出是哪一层出了问题：
+
+```powershell
+npm run net:check
+```
+
+常见情况与处理：
+
+1. **github.com 解析到了不通的 IP**。体检会打印「DNS 解析」与「实际连接 IP」，并逐个试已知边缘 IP。若给出可用的，把它写进 `C:\Windows\System32\drivers\etc\hosts`（需管理员），再 `ipconfig /flushdns`：
+   ```
+   20.27.177.113   github.com
+   ```
+   撤销就是删掉这一行再刷新 DNS。GitHub 换了 IP 时换用体检列出的其它地址。
+2. **raw.githubusercontent.com 不通**。这是 GitHub 的原始文件分发域，常被整体阻断，改 hosts 无效。改用镜像：`https://ghfast.top/<原 raw 地址>` 或 `https://cdn.jsdelivr.net/gh/<用户>/<仓库>@<分支>/<路径>`。
+3. **Release 资产不通**（Electron、NSIS 下载失败）。用上面打包脚本内置的镜像，或手动设 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`。
+4. **git 报 `Could not connect to server`**。先确认没有残留的失效代理：`git config --global --get http.proxy` 应为空，`netsh winhttp show proxy` 应为「直接访问」。github.com 能连时不要给 git 设代理，代理客户端退出后反而会让所有 git 操作失败。
 
 ## 工程目录
 

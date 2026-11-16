@@ -21,11 +21,12 @@
     "desktop": "node scripts/desktop.cjs",
     "desktop:smoke": "node scripts/desktop.cjs --smoke",
     "desktop:smoke:packaged": "node scripts/packaged-smoke.cjs",
-    "build:win": "electron-builder --win --x64",
-    "build:win:portable": "electron-builder --win portable --x64",
-    "build:win:installer": "electron-builder --win nsis --x64",
+    "build:win": "node scripts/build-win.cjs all",
+    "build:win:portable": "node scripts/build-win.cjs portable",
+    "build:win:installer": "node scripts/build-win.cjs nsis",
     "desktop:smoke:project": "node scripts/desktop.cjs --smoke-project",
-    "demo:acceptance": "node scripts/desktop.cjs --acceptance"
+    "demo:acceptance": "node scripts/desktop.cjs --acceptance",
+    "net:check": "node scripts/check-network.cjs"
   },
   "engines": {
     "node": ">=20"
