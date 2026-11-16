@@ -2,8 +2,21 @@
 
 用一个小工程覆盖全流程：两个角色、两个背景、十几句对话、三个局部分支再汇合、一个结局、一次角色特写与背景虚化。使用自己拥有使用权的素材。
 
-> 状态记录：2026-11-15，Windows 本机。证据来源：`npm run check`、`npm run desktop:smoke`（真实 Electron 隐藏窗口）、网页服务 HTTP 检查、源码与存储测试。完整交付说明见 `docs/DESKTOP_PREVIEW.md`。
-> 「通过」= 有自动化证据；「部分」= 逻辑/自动化覆盖但缺少该项的人工或副机实机操作；「未验证」= 没有执行，不得标成通过。
+> 状态记录：2026-11-15 首轮，2026-11-17 V0.3.1 收尾复验，Windows 本机。完整交付说明见 `docs/DESKTOP_PREVIEW.md`。
+
+## 验收分层
+
+同一件事"跑过了"和"人点过了"不是一回事，本表按四层记录，不再用一档"通过"混着说：
+
+| 层级 | 含义 | 复现方式 | 本轮结果 |
+| --- | --- | --- | --- |
+| **A 自动化** | Node 里的纯逻辑 / 文件系统测试、静态检查，不开窗口 | `npm run check` | 通过 |
+| **B 可见渲染** | 真实 Electron 窗口里用脚本驱动界面，断言 DOM 与落盘结果 | `npm run desktop:smoke`、`desktop:smoke:project`、`desktop:smoke:packaged` | 通过 |
+| **C 人工点击** | 必须有人在屏幕前点原生对话框、拖拽、看动画 | 人工 | **未执行**（不得标成通过） |
+| **D 副机验收** | 另一台干净机器断网打开 EXE / 导出 HTML | 人工 | **未执行**（不得标成通过） |
+
+B 层虽然真的开了窗口、走了真实 `paper://` 协议和真实 IPC，但点击是脚本合成的，**不能替代 C**：原生文件对话框、未保存关闭三选一、安装向导这些仍然只有人能验。
+
 
 ## A. 网页基线
 
@@ -32,7 +45,11 @@
 | 新建 / 打开 / 保存 / 另存为均可用 | 通过 | `project-store.test.cjs`；窗口烟测走 IPC 完成显式保存与重新打开校验；`desktop:smoke:project` 在真实主进程里走通「新建 → 添加节点 → 保存 → 未保存时再打开」 |
 | 启动恢复与工程操作不再报「桌面文件操作失败」 | 通过 | 根因是桥接层对 IPC 返回的 Promise 直接取 `.ok`；修复后 `desktop:smoke` 断言 bootstrap / recent / newProject / open 均 resolve，`desktop-security.test.cjs` 静态禁止 `ok(api.` 写法 |
 | 新建工程后编辑器里有可编辑内容 | 通过 | 新建会写入一个空白对话节点（`desktop:smoke:project` 断言磁盘 `nodes.length === 1`），并选中第一个节点 |
-| 同一张图片重复导入不会破坏工程 | 通过 | 素材 ID 内容寻址，重复导入会被合并：渲染侧复用已有素材，存储侧 `dedupeAssets` 兜底；存储测试第 12 条 + 窗口烟测「重复导入 → 图层 +1、素材 1 条、自动保存无失败」 |
+| 同一张图片同用途重复导入：复用素材、新增独立图层 | 通过（A+B） | 复用键改为「图片数据 + 用途」；`tests/asset-dedupe.test.cjs` 断言素材表只留一条、两个图层 id 不同且共用素材；窗口烟测「重复导入 → 图层 +1、自动保存无失败」 |
+| 同一张图分别作为背景和角色：两种用途都正确 | 通过（A+B） | 同上测试断言两种用途生成两个素材、`kind` 不被借用；窗口烟测在真实窗口里先导背景再导角色，断言 DOM 标签、`#layersCanvas` 三层渲染与落盘两条素材 |
+| 同名不同图：互不覆盖 | 通过（A） | `asset-dedupe` + 存储测试：内容寻址文件名不同，两个文件都在且 sha256 不同 |
+| 同 ID 不同内容 / 同 ID 不同用途：明确报错且不损坏工程 | 通过（A） | `dedupeAssets` 抛「素材 ID 重复且内容不同 / 用途不同」；测试断言主文件字节不变、素材目录不变、备份未新增，工程仍可打开 |
+| 两个图层复用同一素材时，位置、大小、效果仍独立 | 通过（A） | 同素材的两个图层改 `x/y/w/h/opacity` 并只给其中一个加效果，存盘再打开逐字段 `deepEqual` 一致 |
 | 导入旧 `.paper.json` 后，剧情、图层、分支、效果与预设保留 | 通过 | `project-store.test.cjs` 用 V0.1 单文件工程导入，校验迁移后的图层与 `motion`，原文件逐字节未变；V0.2/V0.3 由 `core.test.cjs` / `effects.test.cjs` 的迁移测试覆盖 |
 | 保存退出再打开，数据完整 | 通过 | 磁盘往返 `assert.deepEqual(reopened.project, p)`；烟测保存后 `store.openProject()` 文本逐句一致 |
 | 工程放在中文、空格路径下正常 | 通过 | 测试目录 `中文 空格/我的 作品` 与 `另存为 目录` |
@@ -53,6 +70,18 @@
 | 分支汇合、持续效果、句间恢复、读档终态一致 | 通过 | `export.test.cjs` 在 VM 中执行导出脚本，点击分支、保存/读取进度并核对当前台词；编辑器与播放器共用同一 `core.js`/`effects.js` 工厂函数 |
 | Windows 制作器打包命令、产物位置与运行限制已记录 | 通过 | `npm run build:win:portable` / `build:win:installer` 均实际生成 EXE（约 105 MiB / 116 MiB）；配置、构建日志、502 与目录清理问题的处理、产物路径见 `docs/DESKTOP_PREVIEW.md` |
 | 未能执行的项目单独列明，不标成通过 | 通过 | 本表与交付说明的「尚未验证」章节 |
+
+## E. V0.3.1 收尾检查（2026-11-17）
+
+| 检查 | 层级 | 结果与证据 |
+| --- | --- | --- |
+| 源码根目录不再残留工程产物 | A | `tests/workspace-hygiene.test.cjs` 断言根目录不存在 `project.paper.json`、`assets/`、`backups/`、`user-projects/`、`out/`、`drafts/` |
+| 忽略规则不遮蔽示例工程 | A | 同一测试逐条检查 `.gitignore`，禁止忽略 `assets/`、`project.paper.json`、`*.paper.json` |
+| 烟测统一写系统临时目录 | A | 同测试静态检查三个烟测脚本必须 `fs.mkdtempSync(path.join(os.tmpdir(), …))`，且不得引用源码根目录工程文件；主进程的最近工程与草稿只能写 `appData/userData` |
+| 重复导入不再是「图层 +1、素材 +1」 | A+B | 见 C 节前四条 |
+| 打包 EXE 自检（新产物） | B | `npm run desktop:smoke:packaged` 与 `-- --asar`，见 `docs/VERIFICATION.md` 的产物 SHA-256 |
+| 原生对话框人工点击 / 未保存关闭三选一 / 安装向导 | C | **未执行** |
+| 副机断网打开 EXE 与导出 HTML | D | **未执行** |
 
 ## 尚未执行的完整人工验收
 

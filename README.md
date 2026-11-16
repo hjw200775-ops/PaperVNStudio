@@ -46,6 +46,8 @@ npm run build:win        # 便携版 + NSIS 安装包，产物在 release/
 
 桌面版使用「文件」菜单或页面顶部的按钮新建 / 打开 / 保存 / 另存为工程。工程是一个目录（含 `project.paper.json`、`assets/images/`、`backups/`），图片复制进工程内部，移动整个目录后仍可打开。旧版单文件 `.paper.json` 通过「打开工程 → 旧 .paper.json 文件」导入，原文件不会被修改。「导出试玩」生成的 HTML 依然自包含，不含本机路径。未保存时关闭窗口会提示保存 / 放弃 / 取消。
 
+工程目录由你选定，源码树不是工程目录：烟测与自动检查的工程一律写在系统临时目录（`os.tmpdir()`），最近工程列表与崩溃草稿只写 Electron 的 `userData`。`tests/workspace-hygiene.test.cjs` 会在源码根目录出现 `project.paper.json`、`assets/`、`backups/` 时直接失败。验收按「自动化 / 可见渲染 / 人工点击 / 副机验收」四层记录，见 `docs/ACCEPTANCE.md`。
+
 ## 网页里的工程怎样迁过来
 
 线上网址和本地网址的浏览器存储互不相通。请先在原网页点击「保存工程」，下载 `.paper.json`，再在本地页面点击「打开工程」导入。图片、图层、剧情和效果都包含在下载的工程中。不要清理原网页数据后再尝试迁移。

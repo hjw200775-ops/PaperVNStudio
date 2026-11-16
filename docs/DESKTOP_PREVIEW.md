@@ -140,11 +140,13 @@ npx asar pack <只含 dist/ desktop/ package.json 的目录> release/app.asar
 
 本机（Windows 10.0.26300，Node 22.22.2，electron-builder 26.18.0）实际生成：
 
-| 产物 | 路径 | 大小 |
-| --- | --- | --- |
-| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,421,802 字节（约 105 MiB） |
-| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,336,245 字节（约 116 MiB） |
-| 免安装目录 | `release/stage/`（打包所用的 Electron 运行时 + `resources/app.asar`） | 与两个产物同版 |
+| 产物 | 路径 | 大小 | SHA-256 |
+| --- | --- | --- | --- |
+| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,422,325 字节（约 105 MiB） | `72879d3c37941ed03169f665373c318ae5f6f6fad7a385adbc76824600f8c226` |
+| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,336,682 字节（约 116 MiB） | `55f1bebc190a1aee3a778cb168e789e53219b119a73eb6c9e8f9f95b06a582f6` |
+| 免安装目录 | `release/stage/`（打包所用的 Electron 运行时 + `resources/app.asar`） | 与两个产物同版 | `app.asar` = `82c0778144b1f5f403f14a817fd0c45a2bb73903fb0361283f85b3ff2a2985d7` |
+
+> 上表是 **V0.3.1 收尾版**（载荷提交 `ebbdadf`）的两个 EXE。两个文件都用 7-Zip 抽出内嵌的 `$PLUGINSDIR/app-64.7z → resources/app.asar` 比对过，哈希与源码打包结果完全一致，可以确认没有混入修复前的旧载荷。早期构建（`release/v6`、`v7`、`v9`）里的同名 EXE 大小与哈希都不同，不要拿来对照或分发。
 
 构建日志显示 `electron=45.3.2`、`asar: true`、未配置代码签名。`app.asar` 内 14 个文件（`dist/` 8 个、`desktop/` 3 个、`package.json` 等），入口 `desktop/main.cjs` 已核对。
 
@@ -180,10 +182,24 @@ npx asar pack <只含 dist/ desktop/ package.json 的目录> release/app.asar
 
 防回归：存储测试新增第 12 条（同 ID 同内容合并 + 同 ID 异内容冲突报错）；`npm run desktop:smoke` 新增「重复导入同一张图 → 图层 +1、素材仍为 1 条、自动保存不报错」。
 
+### 第四轮（V0.3.1 收尾：复用语义、工作区卫生、验收分层）
+
+第三轮的去重按「图片数据」匹配，漏掉了一种真实用法：**同一张图先当背景、再当角色**。复用回来的素材带着第一次的 `kind`，角色图层会按背景的几何铺满画面——画面错了，但校验不会报错。
+
+1. **复用键改为「图片数据 + 用途」**（`dist/core.js` 的 `assetForImport`）：同图同用途复用，同图不同用途各自成为素材。桌面端素材 ID 本来就是 `kind + 内容哈希`，两种用途 ID 天然不同。
+2. **图层生成逻辑上移**（`defaultLayer` / `appendAssetLayer`）：导入链路不再只活在浏览器里，Node 测试可以直接断言图层几何与层级。
+3. **存储层补齐第三种冲突**：`dedupeAssets` 原来对「同 ID 同图不同用途」会静默合并、丢掉一种用途，现在明确报错「素材 ID 重复且用途不同」；同 ID 同内容仍折叠为一条。
+4. **新增 `tests/asset-dedupe.test.cjs`**：四种情况逐条断言，外加「两个图层复用同一素材时位置/大小/效果独立」和「存盘再打开逐字段一致」。
+5. **新增 `tests/workspace-hygiene.test.cjs`**：源码根目录出现 `project.paper.json`、`assets/`、`backups/` 等工程产物即失败；`.gitignore` 不得忽略 `assets/` 与 `*.paper.json`；三个烟测脚本必须把工程建在 `os.tmpdir()`。
+6. **根目录残留已归档**：一份手工试跑留下的空工程（`project.paper.json` + 空的 `assets/images/` + `backups/latest/`）整体移到仓库外的 `_test-archive/2026-11-17-root-smoke-project/`，保留相对结构并附 `MANIFEST.md` 说明来源与哈希；没有删除、没有覆盖，也没有用 `git clean`。
+
+两个 EXE 用新载荷重建（`release/v10b/`），`app.asar` 与源码打包结果哈希一致；`npm run desktop:smoke:packaged` 与 `-- --asar` 均通过。本轮只改源码不搬运行时的做法见下方构建记录。
+
 ## 产物位置
 
 - 源码与测试：项目根目录。
 - 最终打包产物：`release/PaperVNStudio-0.3.1-win-x64-portable.exe`、`release/PaperVNStudio-0.3.1-win-x64-setup.exe`（`release/` 为忽略目录）。
 - 用户工程：由作者通过「新建 / 另存为」选择的任意目录，不写入仓库。
 - 最近工程与未关联草稿：Electron `userData` 目录（`recent-projects.json`、`drafts/`）。
-- 烟测临时工程：系统临时目录 `pvn-desktop-smoke-*`（输出中会打印实际路径）。
+- 烟测临时工程：系统临时目录 `pvn-desktop-smoke-*`、`pvn-project-smoke-*`、`pvn-dedupe-*`（输出中会打印实际路径），源码树不再接收任何工程。
+- 历史测试残留（仓库外）：`../_test-archive/2026-11-17-root-smoke-project/`，含来源说明与 SHA-256。

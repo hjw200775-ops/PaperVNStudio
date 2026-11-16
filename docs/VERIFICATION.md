@@ -22,3 +22,43 @@
 - 打包产物启动自检：`npm run desktop:smoke:packaged` 对便携版 EXE 实体通过（页面 `paper://app/index.html`、7 个节点、preload 可用、渲染进程无 `require`/`process`）；`-- --asar` 与 `PAPER_VN_SMOKE=1 npm run desktop` 同样通过。
 - 修复记录：开发过程中发现 `setWindowOpenHandler` 误挂在 `BrowserWindow` 上，会导致正式窗口创建失败；修复后重建两个 EXE 并通过上述自检，另加静态防回归断言。
 - 未执行：人工可见窗口交互、原生对话框点击、未保存关闭三选一、NSIS 安装向导与安装后运行、另一台电脑断网打开导出 HTML、代码签名。
+
+## V0.3.1 收尾记录（2026-11-17，Windows 本机）
+
+载荷提交（dist/desktop/tests 全部内容）：`ebbdadf5074e30740833eea9b4212b4ab43f858b`
+
+### 已执行的检查
+
+| 检查 | 层级 | 结果 |
+| --- | --- | --- |
+| `npm run check` | A 自动化 | 通过：14 个脚本语法检查 + 7 个测试文件（新增 `asset-dedupe`、`workspace-hygiene`） |
+| `npm run desktop:smoke` | B 可见渲染 | 通过：新增「同图先当背景再当角色 → 两个素材、DOM 三层渲染、落盘 kind 正确」 |
+| `npm run desktop:smoke:project` | B 可见渲染 | 通过：新建 → 编辑 → 保存 → 重新打开 |
+| `npm run desktop:smoke:packaged` | B 可见渲染 | 通过：最终便携版 EXE 实体，`paper://app/index.html`、7 个示例节点、preload 可用、`require`/`process` 为 undefined |
+| `npm run desktop:smoke:packaged -- --asar` | B 可见渲染 | 通过：`app.asar` 打包形态 |
+| 7-Zip 抽取 EXE 内 `resources/app.asar` 比对 | 构建证据 | 两个 EXE 内嵌 asar 均为 `82c07781…985d7`，与源码打包结果逐字节一致 |
+| 原生对话框 / 三选一 / 安装向导 | C 人工点击 | **未执行** |
+| 副机断网打开 | D 副机验收 | **未执行** |
+
+### 根目录残留的处理
+
+源码根目录曾有一份手工试跑留下的空工程：`project.paper.json`（未跟踪）、`assets/images/`（空）、`backups/latest/project.paper.json`（被忽略）。判断依据不是「0 节点」，而是逐项核对：三者从未出现在任何提交里（`git log --all -- ...` 为空）、`assets/` 实际文件数为 0、元数据 `assets/nodes/presets` 全为空数组、备份与主文件字节相同（`43fde512…8dd2`）。
+
+整目录（元数据 + 素材目录 + 备份，保留相对结构）已移动到仓库外：`../_test-archive/2026-11-17-root-smoke-project/`，附 `MANIFEST.md` 记录来源、判断依据与哈希。未删除、未覆盖、未使用 `git clean`。
+
+后续烟测的工程一律建在 `os.tmpdir()`（`pvn-desktop-smoke-*`、`pvn-project-smoke-*`、`pvn-dedupe-*`），最近工程与草稿只写 `userData`；`.gitignore` 没有新增对 `assets/` 或 `*.paper.json` 的忽略，避免以后提交示例工程时被遮蔽，改由 `tests/workspace-hygiene.test.cjs` 在根目录出现工程产物时直接失败。
+
+### 最终产物（V0.3.1 收尾版）
+
+| 产物 | 大小 | SHA-256 |
+| --- | --- | --- |
+| `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,422,325 字节 | `72879d3c37941ed03169f665373c318ae5f6f6fad7a385adbc76824600f8c226` |
+| `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,336,682 字节 | `55f1bebc190a1aee3a778cb168e789e53219b119a73eb6c9e8f9f95b06a582f6` |
+| `release/app-v10.asar` / `release/stage/resources/app.asar` | 148,712 字节 | `82c0778144b1f5f403f14a817fd0c45a2bb73903fb0361283f85b3ff2a2985d7` |
+
+修复前的产物（110,421,802 / 121,336,245 字节）已被替换，`release/v6`、`v7`、`v9` 等早期构建目录仅作过程留痕，**不要用于分发或与本表混用**。
+
+### 构建过程备注
+
+本轮 `electron-builder --win --x64` 在解包 Electron 后再次触发本机目录重命名保护（`EPERM`，随后 `safe-delete` 要求批量确认），因此改为复用已解包运行时：`asar pack` 出 `release/app-v10.asar` → 替换 `release/stage/resources/app.asar` → `electron-builder --win portable nsis --x64 --prepackaged release/stage -c.directories.output=release/v10b`。这与上一轮的应急方式一致，只影响构建路径，不影响产物内容；两个 EXE 的内嵌 asar 已用哈希核对。
+
