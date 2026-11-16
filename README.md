@@ -81,7 +81,7 @@ npm run build:win            # 便携版 + NSIS 安装包，输出到 release/
 
 - 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复（素材复用语义、去重四类情况、工作区隔离）。
 - 未开始：独立游戏 EXE、自动更新、多平台、代码签名、发布流程。
-- 已打包产物不随仓库分发（`release/` 是忽略目录）；需要的自行 `npm run build:win`。
+- 打包好的 Windows 产物在 [Releases](https://github.com/hjw200775-ops/PaperVNStudio/releases) 下载（便携版 / 安装包，附 SHA-256）；`release/` 本身是忽略目录，不随仓库分发。也可自行 `npm run build:win`。
 
 细节见 `docs/DESKTOP_PREVIEW.md`（交付说明与构建记录）、`docs/ACCEPTANCE.md`（验收清单）、`docs/KNOWN_LIMITATIONS.md`（已知限制）。
 
