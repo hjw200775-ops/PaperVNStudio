@@ -142,11 +142,11 @@ npx asar pack <只含 dist/ desktop/ package.json 的目录> release/app.asar
 
 | 产物 | 路径 | 大小 | SHA-256 |
 | --- | --- | --- | --- |
-| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,422,325 字节（约 105 MiB） | `72879d3c37941ed03169f665373c318ae5f6f6fad7a385adbc76824600f8c226` |
-| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,336,682 字节（约 116 MiB） | `55f1bebc190a1aee3a778cb168e789e53219b119a73eb6c9e8f9f95b06a582f6` |
-| 免安装目录 | `release/stage/`（打包所用的 Electron 运行时 + `resources/app.asar`） | 与两个产物同版 | `app.asar` = `82c0778144b1f5f403f14a817fd0c45a2bb73903fb0361283f85b3ff2a2985d7` |
+| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,422,522 字节（约 105 MiB） | `8b0fe9fe194ba0c1f125f143d4d15e4e7ca5cf7ee30c8cf27c19a6470fa8593e` |
+| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,337,021 字节（约 116 MiB） | `56c8cb40e28afe45012d86434200c4de4ee940af5ae24f9039e74a6dadf2dca5` |
+| 免安装目录 | `release/stage/`（打包所用的 Electron 运行时 + `resources/app.asar`） | 与两个产物同版 | `app.asar` = `dfd15be8d54aa65ce97672d1c669fb30e33162501d54cdae6765f58c717f59ef` |
 
-> 上表是 **V0.3.1 收尾版**（载荷提交 `ebbdadf`）的两个 EXE。两个文件都用 7-Zip 抽出内嵌的 `$PLUGINSDIR/app-64.7z → resources/app.asar` 比对过，哈希与源码打包结果完全一致，可以确认没有混入修复前的旧载荷。早期构建（`release/v6`、`v7`、`v9`）里的同名 EXE 大小与哈希都不同，不要拿来对照或分发。
+> 上表是 **V0.3.1 发布版**（载荷提交 `7134489`，即补 MIT 许可证与仓库元数据后的重建）的两个 EXE。两个文件都用 7-Zip 抽出内嵌的 `$PLUGINSDIR/app-64.7z → resources/app.asar` 比对过，哈希与源码打包结果完全一致，可以确认没有混入修复前的旧载荷。早期构建（`release/v6`、`v7`、`v9`）里的同名 EXE 大小与哈希都不同，不要拿来对照或分发。
 
 构建日志显示 `electron=45.3.2`、`asar: true`、未配置代码签名。`app.asar` 内 14 个文件（`dist/` 8 个、`desktop/` 3 个、`package.json` 等），入口 `desktop/main.cjs` 已核对。
 
