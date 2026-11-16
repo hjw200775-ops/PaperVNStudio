@@ -80,8 +80,8 @@ B 层虽然真的开了窗口、走了真实 `paper://` 协议和真实 IPC，�
 | 烟测统一写系统临时目录 | A | 同测试静态检查三个烟测脚本必须 `fs.mkdtempSync(path.join(os.tmpdir(), …))`，且不得引用源码根目录工程文件；主进程的最近工程与草稿只能写 `appData/userData` |
 | 重复导入不再是「图层 +1、素材 +1」 | A+B | 见 C 节前四条 |
 | 打包 EXE 自检（新产物） | B | `npm run desktop:smoke:packaged` 与 `-- --asar`，见 `docs/VERIFICATION.md` 的产物 SHA-256 |
-| 原生对话框人工点击 / 未保存关闭三选一 / 安装向导 | C | **未执行** |
-| 副机断网打开 EXE 与导出 HTML | D | **未执行** |
+| 原生对话框人工点击 / 未保存关闭三选一 / 安装向导 | C | **未执行**；按 `docs/MANUAL_ACCEPTANCE.md` 的 C1–C5 逐项勾选 |
+| 副机断网打开 EXE 与导出 HTML | D | **未执行**；按 `docs/MANUAL_ACCEPTANCE.md` 的 D 层执行 |
 
 ## 尚未执行的完整人工验收
 
