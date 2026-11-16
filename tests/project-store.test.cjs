@@ -267,7 +267,30 @@ const refs = store.inspectReferences(brokenRefs);
 assert.equal(refs.brokenAssets.length, 1);
 console.log('  ok  missing asset references reported');
 
-/* 12. Recent projects live in the user data dir (here: a temp file). */
+/* 12. Importing the same picture twice must not break the project.
+ * Asset ids are content addressed, so the second import repeats the id. */
+const dupeDir = dir('重复素材');
+const dupe = C.clone(p);
+const dupeId = 'asset-1';                       // the same picture imported twice
+dupe.assets.push({ id: dupeId, name: '同名.png', kind: 'bg', width: 3, height: 2, data: url(imgA) });
+dupe.nodes[0].layers.push(L('layer-bg-2', dupeId, 'bg', '背景副本'));
+const dupeSaved = store.saveProject(dupeDir, dupe);
+assert.equal(dupeSaved.project.assets.length, 2, 'identical asset entries collapse into one');
+const dupeDisk = JSON.parse(fs.readFileSync(mainFile(dupeDir), 'utf8'));
+assert.equal(dupeDisk.assets.length, 2, 'disk metadata keeps one entry per picture');
+assert.equal(new Set(dupeDisk.assets.map(a => a.id)).size, dupeDisk.assets.length, 'no duplicate asset ids on disk');
+assert.equal(diskFiles(dupeDir).length, 2, 'the picture is stored once');
+assert.equal(store.openProject(dupeDir).project.assets.length, 2, 'reopening the project succeeds');
+let dupeConflict = false;
+try {
+  const conflict = C.clone(p);
+  conflict.assets.push({ id: conflict.assets[0].id, name: '同名.png', kind: 'bg', data: url(imgC) });
+  store.saveProject(dir('冲突素材'), conflict);
+} catch (e) { dupeConflict = /素材 ID 重复/.test(e.message); }
+assert(dupeConflict, 'same id with different bytes is still reported as a conflict');
+console.log('  ok  importing the same picture twice collapses to one asset and still saves');
+
+/* 13. Recent projects live in the user data dir (here: a temp file). */
 const recentFile = path.join(tmp, 'user-data', 'recent-projects.json');
 store.touchRecent(recentFile, imported.root, '旧工程');
 store.touchRecent(recentFile, copyDir, '我的作品');

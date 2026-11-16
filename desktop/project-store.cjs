@@ -157,10 +157,32 @@ function createProjectStore(options = {}) {
     return { buf, mime, hash: sha256(buf) };
   }
 
+  /* Asset ids are content addressed, so importing the same picture twice
+   * produces the same id. Collapse identical entries instead of failing the
+   * whole save; a real conflict (same id, different bytes) stays an error. */
+  function dedupeAssets(input) {
+    const list = Array.isArray(input.assets) ? input.assets : [];
+    const byId = new Map();
+    const assets = [];
+    for (const a of list) {
+      const prev = byId.get(a && a.id);
+      if (prev) {
+        if (String(prev.data) !== String(a.data)) {
+          throw new Error('素材 ID 重复且内容不同：' + a.id);
+        }
+        continue;                        // same picture: keep one entry
+      }
+      byId.set(a && a.id, a);
+      assets.push(a);
+    }
+    return Object.assign({}, input, { assets });
+  }
+
   function validateRuntime(input) {
     if (!input || typeof input !== 'object') throw new Error('不是有效的纸间工程');
-    C.validate(input);
-    let p = C.migrate(input);
+    const merged = dedupeAssets(input);
+    C.validate(merged);
+    let p = C.migrate(merged);
     if (p.schema !== 3) throw new Error('工程版本无法迁移');
     C.validate(p);
     for (const n of p.nodes) F.validate(n.effects || []);

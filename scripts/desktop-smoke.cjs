@@ -141,6 +141,16 @@ async function run() {
   const layers = await win.webContents.executeJavaScript(`({rows:document.querySelectorAll('#layerList .layer-row').length,visual:document.querySelectorAll('#layersCanvas .visual-layer').length})`);
   assert.equal(layers.rows, 1, 'native-picked image became an editor layer');
   assert.equal(layers.visual, 1, 'image rendered on the stage');
+
+  // Importing the same picture again must reuse the asset instead of creating
+  // a second entry with the same content-addressed id (which used to break
+  // autosave with "图片素材格式错误").
+  await win.webContents.executeJavaScript(`document.querySelector('#uploadBg').click(); true`);
+  await sleep(800);
+  const reimport = await win.webContents.executeJavaScript(`({rows:document.querySelectorAll('#layerList .layer-row').length,saved:document.querySelector('#saved').textContent})`);
+  assert.equal(reimport.rows, 2, 'a second import of the same picture adds a layer');
+  assert(!reimport.saved.includes('失败'), 're-importing the same picture keeps autosave working: ' + reimport.saved);
+  console.log('  ok  re-importing the same picture reuses the asset and autosave still works');
   const effectState = await win.webContents.executeJavaScript(`(()=>{
     const lw=document.querySelector('#lw');lw.value='80';lw.dispatchEvent(new Event('input',{bubbles:true}));
     const t=document.querySelector('#effectTarget'),id=t.options[1]?t.options[1].value:'';
@@ -174,9 +184,10 @@ async function run() {
   const mainDisk = JSON.parse(fs.readFileSync(MAIN, 'utf8'));
   assert.equal(mainDisk.title, '烟测 标题');
   assert.equal(mainDisk.nodes.length, env.nodes + 2);
-  assert.equal(mainDisk.assets.length, 1, 'image asset saved');
-  assert.equal(mainDisk.nodes[0].layers.length, 1);
-  assert.equal(mainDisk.nodes[0].layers[0].w, 80, 'layout edit persisted');
+  assert.equal(mainDisk.assets.length, 1, 'the re-imported picture is stored as one asset');
+  assert.equal(mainDisk.nodes[0].layers.length, 2, 'both imported layers are stored');
+  assert.equal(mainDisk.nodes[0].layers[0].asset, mainDisk.nodes[0].layers[1].asset, 'the re-imported layer reuses the same asset');
+  assert(mainDisk.nodes[0].layers.some(l => l.w === 80), 'layout edit persisted');
   assert.equal(mainDisk.nodes[0].effects.length, 1, 'effect persisted');
   assert(fs.existsSync(path.join(tmp, mainDisk.assets[0].file)), 'content-addressed image exists');
   assert.deepEqual(store.openProject(tmp).project.nodes.map(n => n.text), mainDisk.nodes.map(n => n.text));

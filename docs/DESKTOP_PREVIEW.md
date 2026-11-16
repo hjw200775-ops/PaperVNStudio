@@ -142,8 +142,8 @@ npx asar pack <只含 dist/ desktop/ package.json 的目录> release/app.asar
 
 | 产物 | 路径 | 大小 |
 | --- | --- | --- |
-| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,421,597 字节（约 105 MiB） |
-| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,335,965 字节（约 116 MiB） |
+| 便携版 | `release/PaperVNStudio-0.3.1-win-x64-portable.exe` | 110,421,802 字节（约 105 MiB） |
+| NSIS 安装包 | `release/PaperVNStudio-0.3.1-win-x64-setup.exe` | 121,336,245 字节（约 116 MiB） |
 | 免安装目录 | `release/stage/`（打包所用的 Electron 运行时 + `resources/app.asar`） | 与两个产物同版 |
 
 构建日志显示 `electron=45.3.2`、`asar: true`、未配置代码签名。`app.asar` 内 14 个文件（`dist/` 8 个、`desktop/` 3 个、`package.json` 等），入口 `desktop/main.cjs` 已核对。
@@ -167,7 +167,18 @@ npx asar pack <只含 dist/ desktop/ package.json 的目录> release/app.asar
 4. 防回归：`tests/desktop-security.test.cjs` 断言桥接层不得出现 `ok(api.`；`npm run desktop:smoke` 增加「bootstrap / recent / newProject / open 必须 resolve 且不得进入失败分支」；新增 `npm run desktop:smoke:project` 端到端验证。
 5. `scripts/packaged-smoke.cjs` 自检改用独立 `--user-data-dir`，否则本机已有最近工程时启动会恢复它，节点数断言失去意义。
 
-两个 EXE 已用修复后的 `app.asar` 重建（`release/v6/`、`release/v7/` 为构建目录），根目录产物已替换为最终版本，`npm run desktop:smoke:packaged` 复验通过；另外用「最近工程指向 0 节点旧工程」的独立 `userData` 启动 EXE，确认会从示例开始而不是停在空编辑器。
+两个 EXE 已用修复后的 `app.asar` 重建（`release/v6/`、`release/v7/`、`release/v9/` 为构建目录），根目录产物已替换为最终版本，`npm run desktop:smoke:packaged` 复验通过；另外用「最近工程指向 0 节点旧工程」的独立 `userData` 启动 EXE，确认会从示例开始而不是停在空编辑器。
+
+### 第三轮修复（实机测试发现）
+
+实机跑通真实窗口后，发现两个只有真实使用才会暴露的问题：
+
+1. **重复导入同一张图片会让自动保存失败**：素材 ID 是内容寻址（`newAssetId` = 素材类型 + 内容哈希），再次导入同一张图会得到**同一个 ID**，而渲染进程无条件把它追加进 `p.assets`，于是 `core.validate` 判定「素材 ID 重复」并抛出「图片素材格式错误」，整份工程的自动保存随之失败。
+   - 渲染侧（`dist/app.js`）：导入时先按图片数据查找已有素材，命中就复用（只加图层、不新增素材条目），并提示「复用已有素材」。
+   - 存储侧（`desktop/project-store.cjs`）：`validateRuntime` 增加 `dedupeAssets`，同一 ID 同一内容合并为一条，同一 ID 不同内容仍然报错。磁盘上同一张图片始终只存一份。
+2. **状态栏把工程目录显示了两遍**：`#saved` 拼接了 `#projectPath` 的文本，右侧又单独显示一次。现在桌面模式只显示状态词（已自动保存 / 已保存 / 已另存为 / 新建工程 / 已打开工程），目录信息仍由 `#projectPath` 单独承担。
+
+防回归：存储测试新增第 12 条（同 ID 同内容合并 + 同 ID 异内容冲突报错）；`npm run desktop:smoke` 新增「重复导入同一张图 → 图层 +1、素材仍为 1 条、自动保存不报错」。
 
 ## 产物位置
 

@@ -32,6 +32,7 @@
 | 新建 / 打开 / 保存 / 另存为均可用 | 通过 | `project-store.test.cjs`；窗口烟测走 IPC 完成显式保存与重新打开校验；`desktop:smoke:project` 在真实主进程里走通「新建 → 添加节点 → 保存 → 未保存时再打开」 |
 | 启动恢复与工程操作不再报「桌面文件操作失败」 | 通过 | 根因是桥接层对 IPC 返回的 Promise 直接取 `.ok`；修复后 `desktop:smoke` 断言 bootstrap / recent / newProject / open 均 resolve，`desktop-security.test.cjs` 静态禁止 `ok(api.` 写法 |
 | 新建工程后编辑器里有可编辑内容 | 通过 | 新建会写入一个空白对话节点（`desktop:smoke:project` 断言磁盘 `nodes.length === 1`），并选中第一个节点 |
+| 同一张图片重复导入不会破坏工程 | 通过 | 素材 ID 内容寻址，重复导入会被合并：渲染侧复用已有素材，存储侧 `dedupeAssets` 兜底；存储测试第 12 条 + 窗口烟测「重复导入 → 图层 +1、素材 1 条、自动保存无失败」 |
 | 导入旧 `.paper.json` 后，剧情、图层、分支、效果与预设保留 | 通过 | `project-store.test.cjs` 用 V0.1 单文件工程导入，校验迁移后的图层与 `motion`，原文件逐字节未变；V0.2/V0.3 由 `core.test.cjs` / `effects.test.cjs` 的迁移测试覆盖 |
 | 保存退出再打开，数据完整 | 通过 | 磁盘往返 `assert.deepEqual(reopened.project, p)`；烟测保存后 `store.openProject()` 文本逐句一致 |
 | 工程放在中文、空格路径下正常 | 通过 | 测试目录 `中文 空格/我的 作品` 与 `另存为 目录` |
