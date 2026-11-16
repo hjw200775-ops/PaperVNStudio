@@ -1,94 +1,94 @@
-# 纸间 PaperVNStudio · V0.3 源码交付包
+# 纸间 PaperVNStudio
 
-这是已完成网页体验版的真实源码，不是根据功能描述重新生成的模板。当前分支在保留网页版的基础上实现了 V0.3 Desktop Preview：Electron 桌面窗口、本地工程目录、可靠保存与备份，并保留离线 HTML 游戏导出。独立游戏 EXE 与 AI 动作模型仍属于后续阶段。完整交付说明见 `docs/DESKTOP_PREVIEW.md`。
+一个跑在本地的视觉小说（Galgame / 文字冒险）创作工具：左边排剧情，右边摆图层，逐句加演出，最后导出一个自包含的 HTML 游戏。
 
-## 先做这三件事
+项目基于 V0.3 网页版源码，在同一套 `core.js` / `effects.js` 运行时上增加了 Windows 桌面预览版 —— 独立窗口、本地工程目录、内容寻址素材、原子保存与备份，以及完全离线的导出。没有重写编辑器，也没有把网页版推倒重来。
 
-1. 将压缩包中的文件解压到你已创建的项目文件夹。确认 `package.json`、`dist`、`scripts` 在同一级，避免多套一层目录。
-2. 双击 `Start-Web.cmd`，按终端提示打开 `http://127.0.0.1:4173/`。需要本机存在 Node.js；当前源码包不需要 `npm install`。
-3. 用本地 AI 工具打开整个文件夹，将 `AI_START_PROMPT.md` 的全文发给它。让 AI 先读文档、检查原版，再开始桌面迁移。
+## 它能做什么
 
-如果你的文件夹为 `D:\Projects\PaperVNStudio`，其直接下级应是 `dist\index.html`、`package.json` 等文件。实际路径以你创建的目录为准。
-
-## 从命令行运行
-
-```powershell
-node scripts/serve.cjs
-# 或 npm start
-```
-
-如端口被占用：
-
-```powershell
-node scripts/serve.cjs --port 4174
-```
-
-源码检查：
-
-```powershell
-node scripts/check.cjs
-# 或 npm run check
-```
-
-关闭开发服务：在运行窗口按 Ctrl+C。本地服务只监听本机，不会把项目开放到局域网。
-
-## 桌面预览版（Windows）
-
-```powershell
-npm install              # 首次需要；依赖版本已固定在 package-lock.json
-npm run desktop          # 打开独立桌面窗口（不需要启动上面的网页服务）
-npm run desktop:smoke    # 真实 Electron 窗口自动烟测（隐藏窗口，不弹窗）
-npm run desktop:smoke:project    # 真实主进程验证「新建 / 保存 / 重新打开」
-npm run desktop:smoke:packaged   # 打包 EXE 启动自检（加 -- --asar 验证 app.asar 形态）
-npm run check            # 源码检查与全部测试
-npm run build:win        # 便携版 + NSIS 安装包，产物在 release/
-```
-
-桌面版使用「文件」菜单或页面顶部的按钮新建 / 打开 / 保存 / 另存为工程。工程是一个目录（含 `project.paper.json`、`assets/images/`、`backups/`），图片复制进工程内部，移动整个目录后仍可打开。旧版单文件 `.paper.json` 通过「打开工程 → 旧 .paper.json 文件」导入，原文件不会被修改。「导出试玩」生成的 HTML 依然自包含，不含本机路径。未保存时关闭窗口会提示保存 / 放弃 / 取消。
-
-工程目录由你选定，源码树不是工程目录：烟测与自动检查的工程一律写在系统临时目录（`os.tmpdir()`），最近工程列表与崩溃草稿只写 Electron 的 `userData`。`tests/workspace-hygiene.test.cjs` 会在源码根目录出现 `project.paper.json`、`assets/`、`backups/` 时直接失败。验收按「自动化 / 可见渲染 / 人工点击 / 副机验收」四层记录，见 `docs/ACCEPTANCE.md`。
-
-## 网页里的工程怎样迁过来
-
-线上网址和本地网址的浏览器存储互不相通。请先在原网页点击「保存工程」，下载 `.paper.json`，再在本地页面点击「打开工程」导入。图片、图层、剧情和效果都包含在下载的工程中。不要清理原网页数据后再尝试迁移。
-
-包内没有你在浏览器中上传的素材或草稿；这些不在站点源码里。页面首次启动时可能只有默认文字示例，这是正常现象。
-
-`4173` 与 `4174` 也属于不同来源；改变端口后如看不到原草稿，请导入工程文件。
-
-## 文件结构
-
-| 文件 | 用途 |
+| 能力 | 说明 |
 | --- | --- |
-| `dist/index.html` | 编辑器页面与控件 |
-| `dist/style.css` | 工作台样式与响应式布局 |
-| `dist/app.js` | 编辑状态、图层操作、导入导出、自动保存与撤销 |
-| `dist/core.js` | 工程校验、旧工程迁移、剧情与场景解析 |
-| `dist/effects.js` | 效果参数、插值、状态延续与渲染 |
-| `dist/player.js` | 导出游戏播放器与样式 |
-| `dist/export.js` | 自包含 HTML 导出（编辑器与测试共用） |
-| `dist/desktop-bridge.js` | 桌面适配层；网页版加载但不生效 |
-| `desktop/main.cjs` | 桌面窗口、菜单、原生对话框与受控 IPC |
-| `desktop/preload.cjs` | 固定通道的 contextBridge 接口 |
-| `desktop/project-store.cjs` | 工程目录读写、素材哈希、备份与恢复 |
-| `tests/` | 核心逻辑、效果、存储、导出与安全回归测试 |
-| `scripts/` | 无依赖本地服务、检查入口、桌面启动与窗口烟测 |
-| `AI_START_PROMPT.md` | 直接发给本地 AI 的任务说明 |
-| `AGENTS.md` | 本仓库开发约定 |
-| `docs/DESKTOP_MIGRATION.md` | 桌面迁移路线与工程格式 |
-| `docs/DESKTOP_PREVIEW.md` | 本次桌面版交付说明、命令与验证结果 |
-| `docs/ACCEPTANCE.md` | 实机验收清单与证据 |
-| `docs/KNOWN_LIMITATIONS.md` | 已知限制与未验证内容 |
-| `docs/SOURCE_PROVENANCE.json` | 原始源码版本及逐文件校验值 |
+| 剧情编辑 | 对话、选项分支、分支再汇合、结局节点；支持 TXT 批量导入并自动区分「角色：台词」与旁白 |
+| 多图层画面 | 背景与角色立绘分层，拖动、缩放、排序、锁定、隐藏；同一张图既能当背景也能当角色 |
+| 逐句演出 | 缩放、移动、透明度、模糊、亮度、对比度、饱和度和旋转，按句设置延迟与时长 |
+| 效果恢复策略 | 持续保持 / 本句结束恢复 / 自动恢复；带角色特写、背景虚化等预设 |
+| 场景继承 | 节点可继承上一句的画面，也可独立成场；可存成预设复用 |
+| 工程管理 | 工程是一个目录，图片复制进工程内，移动整个目录仍可打开；自动保存副本 + 最近一次成功保存的备份 |
+| 导出 | 自包含 HTML：图片内嵌、不依赖本机路径、不需要联网，双击即可试玩 |
 
-## 已有能力
+## 两种运行方式
 
-文本录入/TXT 导入、旁白、任意选项与分支汇合；多图片图层、拖动/缩放/排序/锁定/隐藏；场景继承与预设；逐句缩放、移动、透明度、模糊、亮度、对比度、饱和度和旋转；效果恢复策略；撤销重做；工程 JSON 导入导出；离线 HTML 游戏导出。
+**网页版**：`npm start` 后打开 `http://127.0.0.1:4173/`。只监听本机，草稿存在浏览器里。
 
-原始网页脚本保持与 V0.3 基线一致，便于对照调试。部分源码较紧凑，后续可以小步整理，但应先通过测试与实际交互检查。
+**桌面版（Windows 预览）**：`npm run desktop`，或直接运行打包好的便携版 EXE。桌面版才具备本地工程目录、备份与启动恢复。
 
-## 发布说明
+## 快速开始
 
-本包不含云端部署绑定、源站凭据或原站 Git 历史，已在本机新建独立仓库（基线提交 + `desktop-preview` 分支），未创建远程仓库、未上传代码、未公开素材、未选择开源许可证。发布前由项目所有者确认许可证与素材授权，不要将其他来源的角色图片、字体、语音自动视为可公开分发素材。
+```powershell
+npm install                  # 首次；依赖版本已固定在 package-lock.json
+npm start                    # 网页版 → http://127.0.0.1:4173/
+npm run desktop              # 桌面版窗口（不需要先启动网页服务）
+npm run check                # 语法检查 + 全部测试
+```
 
-Windows 便携版 / 安装包由 `npm run build:win` 生成到忽略目录 `release/`。下载运行时偶发 502 时可设置 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` 重试；重复构建遇到目录清理限制时可用 `-c.directories.output=release/<新目录>` 换输出目录。详见 `docs/DESKTOP_PREVIEW.md`。
+打包 Windows 产物：
+
+```powershell
+npm run build:win            # 便携版 + NSIS 安装包，输出到 release/
+```
+
+## 工程目录
+
+「新建 / 另存为」会创建一个工程目录：
+
+```
+我的故事/
+├── project.paper.json           # 版本化元数据：剧情、图层、效果、预设
+├── assets/images/<sha256>.<ext> # 内容寻址素材，同一张图只存一份
+└── backups/
+    ├── latest/                  # 最近一次成功保存
+    └── autosave/                # 崩溃恢复用的自动保存副本
+```
+
+保存顺序是「素材先写、元数据后写」，元数据用原子替换，失败会回滚；打开时若主文件损坏，会从 `backups/latest` 恢复并校验素材 sha256。旧版单文件 `.paper.json` 可通过「打开工程 → 旧 .paper.json 文件」导入，原文件只读。
+
+## 项目结构
+
+| 路径 | 用途 |
+| --- | --- |
+| `dist/` | 编辑器页面与运行时：`app.js` 编辑状态与图层操作，`core.js` 校验/迁移/场景解析，`effects.js` 效果插值与渲染，`player.js` 导出游戏播放器，`export.js` 自包含导出 |
+| `desktop/` | Electron 主进程、`paper://` 白名单协议、窄 IPC，以及工程目录读写与备份 |
+| `tests/` | 核心逻辑、效果、存储、素材去重、导出、安全边界、工作区卫生 |
+| `scripts/` | 无依赖本地服务、检查入口、桌面启动与真实窗口烟测 |
+| `docs/` | 迁移路线、交付说明、验收清单、已知限制 |
+
+设计上的几条硬约束：渲染进程 `contextIsolation` + `sandbox`，没有 Node 访问；页面只从 `paper://` 白名单加载；IPC 通道固定并校验发送方；素材按内容哈希命名，不覆盖、不信任外部路径。
+
+## 测试与验收
+
+验收分四层记录，不把「脚本跑过」当成「人点过」：
+
+| 层级 | 含义 | 命令 |
+| --- | --- | --- |
+| 自动化 | Node 测试与静态检查 | `npm run check` |
+| 可见渲染 | 真实 Electron 窗口里驱动界面并断言 DOM 与落盘 | `npm run desktop:smoke`、`desktop:smoke:project`、`desktop:smoke:packaged` |
+| 人工点击 | 原生对话框、未保存关闭三选一、安装向导 | 人工，**尚未执行** |
+| 副机验收 | 另一台干净机器断网打开 EXE 与导出 HTML | 人工，**尚未执行** |
+
+`desktop:smoke` 用真实主进程和真实 IPC 跑完整链路：导入图片 → 图层 → 修改布局与效果 → 自动保存 → 显式保存 → 重新打开 → 导出 HTML。烟测工程一律建在系统临时目录，源码树不接收任何工程产物。
+
+## 当前状态
+
+- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复（素材复用语义、去重四类情况、工作区隔离）。
+- 未开始：独立游戏 EXE、自动更新、多平台、代码签名、发布流程。
+- 已打包产物不随仓库分发（`release/` 是忽略目录）；需要的自行 `npm run build:win`。
+
+细节见 `docs/DESKTOP_PREVIEW.md`（交付说明与构建记录）、`docs/ACCEPTANCE.md`（验收清单）、`docs/KNOWN_LIMITATIONS.md`（已知限制）。
+
+## 授权与素材
+
+仓库目前**没有附带开源许可证**，默认保留所有权利。若要公开复用，请先补一份许可证（MIT / Apache-2.0 等）。
+
+代码里不包含任何第三方角色图片、字体或语音素材；`docs/SOURCE_PROVENANCE.json` 记录的是原始网页源码的版本与逐文件校验值。使用时请自备有授权的素材，发布前确认素材与字体许可。
+
+用户工程与草稿不在仓库内：工程目录由使用者选定，最近工程列表与崩溃草稿写在 Electron 的 `userData` 目录。
