@@ -17,8 +17,11 @@ const fs = require('node:fs');
 const os = require('node:os');
 const assert = require('node:assert/strict');
 
-const PACK = 'F:/Wanfeng-Demo-Pack';
-const OUT = 'F:/Wanfeng-Demo';
+/* 素材包与输出目录都是本机路径，不写死进仓库：
+ *   WANFENG_PACK=<解压后的素材包目录>  WANFENG_OUT=<演示工程与截图输出目录>
+ * 默认输出到系统临时目录，方便换了机器也能直接跑。 */
+const PACK = process.env.WANFENG_PACK || path.join(os.homedir(), 'Wanfeng-Demo-Pack');
+const OUT = process.env.WANFENG_OUT || path.join(os.tmpdir(), 'wanfeng-demo');
 const CANON_DIR = path.join(OUT, '晚风-canon');
 const BRANCH_DIR = path.join(OUT, '晚风-branch');
 const RESULT_DIR = path.join(OUT, '验收结果');
@@ -431,7 +434,8 @@ async function main() {
   await sleep(2500);
   const html = fs.readFileSync(exportPath, 'utf8');
   check('导出的 HTML 自包含：不引用素材包、本机绝对路径或开发服务器', () => {
-    for (const bad of ['file:///', '127.0.0.1', 'localhost', 'F:/Wanfeng', 'C:\\', 'Wanfeng-Demo-Pack', 'assets/images']) {
+    const localPaths = [PACK, OUT].map(x => x.replace(/\\/g, '/'));
+    for (const bad of ['file:///', '127.0.0.1', 'localhost', 'assets/images', ...localPaths]) {
       assert(!html.includes(bad), '导出内容不应包含 ' + bad);
     }
     assert(!/<script[^>]+src=/i.test(html));
