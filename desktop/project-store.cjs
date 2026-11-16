@@ -55,6 +55,7 @@ function friendlyError(stage, err) {
   e.code = code || 'WRITE_FAILED';
   e.friendly = true;
   e.cause = err;
+  /* 排查用户报告「保存失败」时可设 PAPER_STORE_DEBUG=1 拿到原始错误；默认静默。 */
   if (process.env.PAPER_STORE_DEBUG) console.error('[store] ' + stage + ' :: ' + (err && (err.stack || err)));
   return e;
 }
