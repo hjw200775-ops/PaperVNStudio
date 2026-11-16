@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),C=require('../dist/core.js')();
-const p=C.sample();assert(C.validate(p));assert.equal(p.nodes[1].options.length,3);assert.deepEqual(C.analyze(p),{errors:[],warnings:[]});
+const p=C.sample();assert(C.validate(p));assert.equal(p.nodes[1].options.length,3);const clean=C.analyze(p);assert.deepEqual(clean.errors,[]);assert.deepEqual(clean.warnings,[]);assert.deepEqual(clean.issues,[]);
 // All three temporary branches rejoin the same story, rather than ending it.
 for(const o of p.nodes[1].options){const n=p.nodes.find(n=>n.id===o.target);assert.equal(n.type,'say');assert.equal(n.next,p.nodes[5].id)}
 // Runtime inheritance follows the actual path; editor preview follows order.

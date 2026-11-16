@@ -73,7 +73,7 @@ function bindCast(p) {
 /* ---------- 1. 迁移 ---------- */
 const raw = v3Project();
 const migrated = C.migrate(raw);
-assert.equal(migrated.schema, 4);
+assert.equal(migrated.schema, 5);
 assert.deepEqual(migrated.characters, [], '旧工程不凭空造角色');
 assert.equal(migrated.nodes[2].name, '林澈', '说话人文本原样保留，没有被猜成角色');
 assert.deepEqual(migrated.nodes[1].layers, raw.nodes[1].layers, '未改动的节点图层完全相等');
@@ -113,7 +113,7 @@ console.log('  ok  表情切换只改素材关联：不跳位、不累计缩放�
 
 /* ---------- 3. 表情按路径结算，分支互不污染 ---------- */
 const branch = bindCast(C.migrate(v3Project()));
-const choice = { id: 'c1', type: 'choice', name: '', text: '要说什么？', next: '', sceneMode: 'inherit', layers: [], effects: [], speakerId: '', expressionId: '', cast: [],
+const choice = { id: 'c1', type: 'choice', name: '', text: '要说什么？', next: '', sceneMode: 'inherit', layers: [], effects: [], speakerId: '', expressionId: '', cast: [], paragraphId: '',
   options: [{ text: '道歉', target: 'b1' }, { text: '换个话题', target: 'b2' }] };
 const b1 = say('b1', '刚才是我太急了。', '林悠', 'merge');
 b1.speakerId = 'ch_you'; b1.expressionId = 'ex_you_n';
@@ -121,6 +121,8 @@ const b2 = say('b2', '今天的风真好。', '林悠', 'merge');
 b2.speakerId = 'ch_you';                      // 没有指定表情 → 沿用路径上的
 const merge = say('merge', '两人一起下楼。', '', 'end');
 branch.nodes = [branch.nodes[0], branch.nodes[1], choice, b1, b2, merge, branch.nodes[4]];
+const branchPg = branch.chapters[0].paragraphs[0].id;
+branch.nodes.forEach(n => { if (!n.paragraphId) n.paragraphId = branchPg; });
 branch.nodes[1].next = 'c1'; b1.next = 'merge'; b2.next = 'merge'; merge.next = 'end';
 assert(C.validate(branch));
 const express = (id, trail) => C.stage(branch, id, trail).find(l => l.id === 'linyou').asset;
@@ -201,7 +203,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pvn-cast-'));
 const root = path.join(tmp, '晚风演示');
 store.createProject(root, p);
 const disk = JSON.parse(fs.readFileSync(path.join(root, 'project.paper.json'), 'utf8'));
-assert.equal(disk.schema, 4);
+assert.equal(disk.schema, 5);
 assert.equal(disk.characters.length, 2, '角色写入工程文件');
 assert.equal(disk.characters[0].expressions.length, 2);
 assert.equal(disk.nodes[1].speakerId, 'ch_you', '台词的角色绑定写入工程文件');

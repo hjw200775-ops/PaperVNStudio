@@ -27,7 +27,246 @@ async function loadProject(raw){C.validate(raw);const x=C.clone(raw);await Promi
 async function initialize(){if(H){const started=revision;try{const s=await H.bootstrap();H.applyState(s);if(s.notice)toast(s.notice);if(s.project){const restored=await loadProject(s.project);if(revision!==started)return;p=restored;selected=p.nodes[0]?.id;selectedLayer=null;render();$('#saved').textContent=s.currentDir?'已打开工程':'已恢复草稿 · 请另存为'}else $('#saved').textContent='准备就绪 · 保存工程以创建目录'}catch(e){toast('启动恢复失败：'+e.message);$('#saved').textContent='请手动保存工程'}return}try{const req=indexedDB.open('paper-vn-studio',1);req.onupgradeneeded=()=>req.result.createObjectStore('projects');req.onsuccess=()=>{db=req.result;const started=revision,r=db.transaction('projects').objectStore('projects').get('draft');r.onsuccess=async()=>{if(!r.result)return;try{const restored=await loadProject(r.result);if(revision!==started)return;p=restored;selected=p.nodes[0]?.id;selectedLayer=null;render();$('#saved').textContent='已恢复本地工程'+(r.result.schema<3?' · 已兼容升级':'')}catch(e){toast('本地工程未覆盖：'+e.message)}}};req.onerror=()=>$('#saved').textContent='请下载工程备份'}catch{$('#saved').textContent='请下载工程备份'}}
 function indexLabel(id){const i=p.nodes.findIndex(n=>n.id===id);if(i<0)return '目标已删除';const n=p.nodes[i];return String(i+1).padStart(2,'0')+' · '+(n.type==='end'?'结局':n.type==='choice'?'选择':n.name||'旁白')+' / '+(n.text||'空文本').slice(0,16)}
 function targets(value='',auto=true){let out='<option value="">'+(auto?'按顺序继续':'请选择对话 / 主线 / 结局')+'</option>';if(value&&!p.nodes.some(n=>n.id===value))out+='<option selected value="'+esc(value)+'">目标已删除，请重新设置</option>';return out+p.nodes.map(n=>'<option value="'+esc(n.id)+'" '+(n.id===value?'selected':'')+'>'+esc(indexLabel(n.id))+'</option>').join('')}
-function renderList(){$('#count').textContent=p.nodes.length+' 个节点';$('#list').innerHTML=p.nodes.map((n,i)=>'<button class="node '+(n.id===selected?'active':'')+'" data-id="'+esc(n.id)+'"><span class="num">'+String(i+1).padStart(2,'0')+'</span><div><b>'+esc(n.name||'旁白')+'</b><em>'+({say:'对话',choice:'分支',end:'结局'}[n.type])+'</em><p>'+esc(n.text||'尚未填写文本')+'</p></div></button>').join('');$('#list').querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>selectNode(b.dataset.id))}
+/* ---------- 章节 / 段落树 ---------- */
+let treeDrag=null;
+function treeNodeRow(id){
+ const idx=p.nodes.findIndex(n=>n.id===id);const n=p.nodes[idx];if(!n)return '';
+ const kind={say:'对话',choice:'分支',end:'结局'}[n.type];
+ return '<button class="node '+(n.id===selected?'active':'')+'" data-id="'+esc(n.id)+'" draggable="true" title="'+esc((n.name||'旁白')+'：'+(n.text||'尚未填写文本'))+'">'
+  +'<span class="num">'+String(idx+1).padStart(2,'0')+'</span>'
+  +'<span class="node-main"><b>'+esc(n.name||'旁白')+'</b><em>'+kind+'</em>'
+  +'<span class="node-text">'+esc(n.text||'尚未填写文本')+'</span></span></button>';
+}
+function paragraphBlock(g){
+ const count=g.nodes.length;
+ return '<div class="paragraph" data-paragraph="'+esc(g.id)+'">'
+  +'<div class="paragraph-head" data-paragraph-head="'+esc(g.id)+'" draggable="true">'
+  +'<button class="caret" data-toggle-paragraph="'+esc(g.id)+'" aria-label="'+(g.collapsed?'展开':'折叠')+'段落">'+(g.collapsed?'▸':'▾')+'</button>'
+  +'<span class="paragraph-title" title="'+esc(g.title)+'">'+esc(g.title)+'</span>'
+  +'<span class="count-pill">'+count+'</span>'
+  +'<span class="mini-actions">'
+  +'<button data-rename-paragraph="'+esc(g.id)+'" title="重命名段落">改名</button>'
+  +'<button data-move-paragraph="'+esc(g.id)+'" title="移动到其他章节">移动</button>'
+  +'<button data-del-paragraph="'+esc(g.id)+'" class="danger" title="删除段落（保留剧情）">删</button>'
+  +'</span></div>'
+  +(g.collapsed?'':'<div class="paragraph-body" data-drop-paragraph="'+esc(g.id)+'">'
+   +(count?g.nodes.map(treeNodeRow).join(''):'<p class="empty-hint">这个段落还没有台词。把句子拖进来，或用「移动到…」。</p>')
+   +'</div>')
+  +'</div>';
+}
+function renderList(){
+ const t=C.tree(p);
+ $('#count').textContent=p.nodes.length+' 句 · '+t.chapters.length+' 章';
+ let html=t.chapters.map(c=>{
+  const total=c.paragraphs.reduce((s,g)=>s+g.nodes.length,0);
+  return '<div class="chapter" data-chapter="'+esc(c.id)+'">'
+   +'<div class="chapter-head'+(c.collapsed?' collapsed':'')+'" data-chapter-head="'+esc(c.id)+'" draggable="true">'
+   +'<button class="caret" data-toggle-chapter="'+esc(c.id)+'" aria-label="'+(c.collapsed?'展开':'折叠')+'章节">'+(c.collapsed?'▸':'▾')+'</button>'
+   +'<span class="chapter-title" title="'+esc(c.title)+'">'+esc(c.title)+'</span>'
+   +'<span class="count-pill">'+total+'</span>'
+   +'<span class="mini-actions">'
+   +'<button data-add-paragraph="'+esc(c.id)+'" title="在这个章节里新建段落">＋段</button>'
+   +'<button data-rename-chapter="'+esc(c.id)+'" title="重命名章节">改名</button>'
+   +'<button data-up-chapter="'+esc(c.id)+'" title="章节上移">↑</button>'
+   +'<button data-down-chapter="'+esc(c.id)+'" title="章节下移">↓</button>'
+   +'<button data-del-chapter="'+esc(c.id)+'" class="danger" title="删除章节（保留剧情）">删</button>'
+   +'</span></div>'
+   +(c.collapsed?'':'<div class="chapter-body" data-drop-chapter="'+esc(c.id)+'">'
+    +(c.paragraphs.length?c.paragraphs.map(paragraphBlock).join(''):'<p class="empty-hint">这个章节还没有段落，点「＋段」新建。</p>')
+    +'</div>')
+   +'</div>';
+ }).join('');
+ if(t.ungrouped.length){
+  html+='<div class="chapter ungrouped"><div class="chapter-head"><span class="chapter-title">未分组</span>'
+   +'<span class="count-pill">'+t.ungrouped.length+'</span></div>'
+   +'<div class="chapter-body" data-drop-paragraph="">'
+   +t.ungrouped.map(treeNodeRow).join('')+'</div></div>';
+ }
+ $('#list').innerHTML=html||'<p class="empty-hint">还没有剧情。点下面的「＋ 对话」开始，或到「文本导入」预览粘贴的稿子。</p>';
+}
+function locateNode(id){
+ const target=p.nodes.find(n=>n.id===id);if(!target)return;
+ const entry=C.paragraphMap(p).get(target.paragraphId);
+ if(entry){entry.chapter.collapsed=false;entry.paragraph.collapsed=false}
+ selectNode(id);
+ const row=$('#list').querySelector('.node[data-id="'+String(id).replace(/"/g,'')+'"]');
+ if(row&&row.scrollIntoView)row.scrollIntoView({block:'nearest'});
+ const body=$('#body');if(body&&body.focus)body.focus();
+}
+function askName(title,value,onOk){
+ modal(title,'<label>名称<input id="nameInput" value="'+esc(value||'')+'" maxlength="40"></label><div class="stack"><button id="confirmName" class="primary">保存</button></div>');
+ $('#nameInput').focus();$('#nameInput').select();
+ $('#confirmName').onclick=()=>{
+  const v=$('#nameInput').value.trim();
+  if(!v)return toast('名称不能为空');
+  $('#modal').close();onOk(v);
+ };
+}
+/* 移动会改变「按顺序继续」时先解释清楚，再决定是否继续。 */
+function runMove(diffs,apply){
+ if(!diffs||!diffs.length){edit(apply);return}
+ modal('这次移动会改变「按顺序继续」的去向',
+  '<p>显式跳转和选项不受影响；下面这些句子会顺着新顺序继续：</p><ul class="issue-list">'
+  +diffs.map(d=>'<li>'+esc(indexLabel(d.nodeId))+'：原来到 '+esc(d.before?indexLabel(d.before):'（没有下一句）')+'，移动后到 '+esc(d.after?indexLabel(d.after):'（没有下一句）')+'</li>').join('')
+  +'</ul><p class="hint">想保持原样可以取消，再换个位置。</p><div class="stack"><button id="applyMove" class="primary">继续移动</button></div>');
+ $('#applyMove').onclick=()=>{$('#modal').close();edit(apply)};
+}
+function moveNodeTo(nodeId,paragraphId,beforeNodeId){
+ const impact=C.moveImpact(p,nodeId,paragraphId,beforeNodeId);
+ runMove(impact.diffs,()=>{
+  C.moveNodeToParagraph(p,nodeId,paragraphId,beforeNodeId);
+  selected=nodeId;
+  const g=C.paragraphMap(p).get(paragraphId);
+  if(g)g.paragraph.collapsed=false;
+ });
+}
+function moveParagraphTo(paragraphId,chapterId,beforeParagraphId){
+ const sim=C.clone(p);
+ const res=C.moveParagraph(sim,paragraphId,chapterId,beforeParagraphId);
+ if(!res)return;
+ runMove(res.diffs,()=>{
+  C.moveParagraph(p,paragraphId,chapterId,beforeParagraphId);
+  const c=p.chapters.find(x=>x.id===chapterId);if(c)c.collapsed=false;
+ });
+}
+function moveChapterTo(chapterId,beforeChapterId){
+ const res=C.moveChapter(C.clone(p),chapterId,beforeChapterId);
+ if(!res)return;
+ runMove(res.diffs,()=>{C.moveChapter(p,chapterId,beforeChapterId)});
+}
+function openMoveDialog(kind,id){
+ if(kind==='node'){
+  const t=C.tree(p);
+  const rows=t.chapters.map(c=>'<optgroup label="'+esc(c.title)+'">'
+   +c.paragraphs.map(g=>'<option value="'+esc(g.id)+'">'+esc(c.title)+' / '+esc(g.title)+'</option>').join('')+'</optgroup>').join('');
+  modal('把这句话移动到…','<label>目标段落<select id="moveTarget">'+rows+'</select></label>'
+   +'<p class="hint">换段落会同时改变它在播放顺序里的位置；影响「按顺序继续」时会先提示。</p>'
+   +'<div class="stack"><button id="confirmMove" class="primary">移动</button></div>');
+  const cur=p.nodes.find(n=>n.id===id);if(cur&&cur.paragraphId&&$('#moveTarget').querySelector('option[value="'+cur.paragraphId+'"]'))$('#moveTarget').value=cur.paragraphId;
+  $('#confirmMove').onclick=()=>{const pid=$('#moveTarget').value;$('#modal').close();moveNodeTo(id,pid,null)};
+  return;
+ }
+ modal('把这段移动到…','<label>目标章节<select id="moveTarget">'+p.chapters.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.title)+'</option>').join('')+'</select></label>'
+  +'<p class="hint">整段移动，段内句子顺序不变；如果因此改变「按顺序继续」，会先提示。</p>'
+  +'<div class="stack"><button id="confirmMove" class="primary">移动</button></div>');
+ const g=C.paragraphMap(p).get(id);if(g)$('#moveTarget').value=g.chapter.id;
+ $('#confirmMove').onclick=()=>{const cid=$('#moveTarget').value;$('#modal').close();moveParagraphTo(id,cid,null)};
+}
+function removeParagraphConfirm(id){
+ const g=C.paragraphMap(p).get(id);if(!g)return;
+ const count=p.nodes.filter(n=>n.paragraphId===id).length;
+ modal('删除段落「'+g.paragraph.title+'」','<p>段落里的 <b>'+count+'</b> 句剧情会保留，放到「未分组」，播放顺序不变。可以撤销。</p>'
+  +'<div class="stack"><button id="confirmRemoveParagraph" class="danger">删除段落</button></div>');
+ $('#confirmRemoveParagraph').onclick=()=>{$('#modal').close();edit(()=>{C.removeParagraph(p,id)});toast('段落已删除，剧情保留在「未分组」')};
+}
+function removeChapterConfirm(id){
+ const c=p.chapters.find(x=>x.id===id);if(!c)return;
+ const pids=new Set((c.paragraphs||[]).map(g=>g.id));
+ const count=p.nodes.filter(n=>pids.has(n.paragraphId)).length;
+ modal('删除章节「'+c.title+'」','<p>章节和它的 <b>'+(c.paragraphs||[]).length+'</b> 个段落会被移除；<b>'+count+'</b> 句剧情保留到「未分组」，播放顺序不变。可以撤销。</p>'
+  +'<div class="stack"><button id="confirmRemoveChapter" class="danger">删除章节</button></div>');
+ $('#confirmRemoveChapter').onclick=()=>{$('#modal').close();edit(()=>{C.removeChapter(p,id)});toast('章节已删除，剧情保留在「未分组」')};
+}
+$('#list').addEventListener('click',e=>{
+ const hit=e.target.closest('[data-id],[data-toggle-chapter],[data-toggle-paragraph],[data-add-paragraph],[data-rename-chapter],[data-rename-paragraph],[data-move-paragraph],[data-del-chapter],[data-del-paragraph],[data-up-chapter],[data-down-chapter]');
+ if(!hit)return;
+ const d=hit.dataset;
+ if(d.id){selectNode(d.id);return}
+ if(d.toggleChapter){const c=p.chapters.find(x=>x.id===d.toggleChapter);if(c){c.collapsed=!c.collapsed;revision++;queueSave();render()}return}
+ if(d.toggleParagraph){const g=C.paragraphMap(p).get(d.toggleParagraph);if(g){g.paragraph.collapsed=!g.paragraph.collapsed;revision++;queueSave();render()}return}
+ if(d.addParagraph){
+  let g;edit(()=>{g=C.addParagraph(p,d.addParagraph,'新段落');const c=p.chapters.find(x=>x.id===d.addParagraph);if(c)c.collapsed=false});
+  askName('重命名段落',g.title,v=>edit(()=>{const t=C.paragraphMap(p).get(g.id);if(t)t.paragraph.title=v}));
+  return;
+ }
+ if(d.renameChapter){const c=p.chapters.find(x=>x.id===d.renameChapter);if(!c)return;askName('重命名章节',c.title,v=>edit(()=>{const t=p.chapters.find(x=>x.id===c.id);if(t)t.title=v}));return}
+ if(d.renameParagraph){const g=C.paragraphMap(p).get(d.renameParagraph);if(!g)return;askName('重命名段落',g.paragraph.title,v=>edit(()=>{const t=C.paragraphMap(p).get(g.id);if(t)t.paragraph.title=v}));return}
+ if(d.moveParagraph){openMoveDialog('paragraph',d.moveParagraph);return}
+ if(d.delParagraph){removeParagraphConfirm(d.delParagraph);return}
+ if(d.delChapter){removeChapterConfirm(d.delChapter);return}
+ if(d.upChapter||d.downChapter){
+  const id=d.upChapter||d.downChapter,i=p.chapters.findIndex(c=>c.id===id),j=i+(d.upChapter?-1:1);
+  if(i<0||j<0||j>=p.chapters.length)return;
+  moveChapterTo(id,p.chapters[j].id);
+ }
+});
+/* 拖动：句子可在段落间移动，段落可在章节间移动，章节可调整先后。 */
+function clearDropMarks(){for(const x of $('#list').querySelectorAll('.drop-before,.drop-after,.drop-into'))x.classList.remove('drop-before','drop-after','drop-into')}
+$('#list').addEventListener('dragstart',e=>{
+ const head=e.target.closest('[data-chapter-head]'),para=e.target.closest('[data-paragraph-head]'),row=e.target.closest('.node');
+ treeDrag=head?{kind:'chapter',id:head.dataset.chapterHead}:para?{kind:'paragraph',id:para.dataset.paragraphHead}:row?{kind:'node',id:row.dataset.id}:null;
+ if(!treeDrag){e.preventDefault();return}
+ if(e.dataTransfer){e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',treeDrag.kind+':'+treeDrag.id)}catch{}}
+ document.body.classList.add('tree-dragging');
+});
+$('#list').addEventListener('dragend',()=>{treeDrag=null;clearDropMarks();document.body.classList.remove('tree-dragging')});
+$('#list').addEventListener('dragover',e=>{
+ if(!treeDrag)return;
+ const t=dropTarget(e);if(!t)return;
+ e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';
+ clearDropMarks();t.el.classList.add(t.where==='before'?'drop-before':t.where==='after'?'drop-after':'drop-into');
+});
+$('#list').addEventListener('dragleave',e=>{if(!$('#list').contains(e.relatedTarget))clearDropMarks()});
+$('#list').addEventListener('drop',e=>{
+ if(!treeDrag)return;
+ const t=dropTarget(e);if(!t)return;
+ e.preventDefault();clearDropMarks();
+ const drag=treeDrag;treeDrag=null;document.body.classList.remove('tree-dragging');
+ if(drag.kind==='node'){
+  if(t.paragraphId===undefined)return;
+  const before=(t.where==='before'||t.where==='after')?t.anchorId:null;
+  if(before===drag.id)return;
+  moveNodeTo(drag.id,t.paragraphId,before);
+  return;
+ }
+ if(drag.kind==='paragraph'){
+  if(!t.chapterId)return;
+  const before=(t.where==='before'||t.where==='after')?t.anchorId:null;
+  if(before===drag.id)return;
+  moveParagraphTo(drag.id,t.chapterId,before);
+  return;
+ }
+ if(!t.chapterId||t.anchorId===drag.id)return;
+ moveChapterTo(drag.id,(t.where==='before'||t.where==='after')?t.anchorId:null);
+});
+/* 把鼠标位置翻译成「放进某个段落 / 插到某段或某章前后」。 */
+function dropTarget(e){
+ const d=treeDrag;if(!d)return null;
+ const el=e.target.closest('.node,[data-paragraph-head],[data-drop-paragraph],[data-chapter-head],[data-drop-chapter]');
+ if(!el)return null;
+ const r=el.getBoundingClientRect(),half=(e.clientY-r.top)<r.height/2?'before':'after';
+ if(d.kind==='node'){
+  if(el.classList.contains('node')){
+   const body=el.closest('[data-drop-paragraph]');
+   const paragraphId=body?body.dataset.dropParagraph:'';
+   if(half==='before')return {el,where:'before',paragraphId,anchorId:el.dataset.id};
+   const next=el.nextElementSibling&&el.nextElementSibling.classList.contains('node')?el.nextElementSibling:null;
+   return {el,where:next?'before':'after',paragraphId,anchorId:next?next.dataset.id:null};
+  }
+  if(el.dataset.paragraphHead)return {el,where:'into',paragraphId:el.dataset.paragraphHead,anchorId:null};
+  if(el.dataset.dropParagraph!==undefined)return {el,where:'into',paragraphId:el.dataset.dropParagraph,anchorId:null};
+  if(el.dataset.dropChapter!==undefined){
+   const bodies=[...el.querySelectorAll('[data-drop-paragraph]')];
+   const last=bodies[bodies.length-1];
+   if(!last)return null;
+   return {el:last,where:'into',paragraphId:last.dataset.dropParagraph,anchorId:null};
+  }
+  return null;
+ }
+ if(d.kind==='paragraph'){
+  const chapterOf=node=>{const c=node.closest('[data-chapter]');return c?c.dataset.chapter:''};
+  if(el.dataset.paragraphHead)return {el,where:half,chapterId:chapterOf(el),anchorId:el.dataset.paragraphHead};
+  if(el.dataset.dropParagraph!==undefined)return {el,where:'into',chapterId:chapterOf(el),anchorId:null};
+  if(el.dataset.dropChapter!==undefined)return {el,where:'into',chapterId:el.dataset.dropChapter,anchorId:null};
+  if(el.dataset.chapterHead)return {el,where:'into',chapterId:el.dataset.chapterHead,anchorId:null};
+  return null;
+ }
+ const chapterOf=node=>{const c=node.closest('[data-chapter]');return c?c.dataset.chapter:''};
+ if(el.dataset.chapterHead)return {el,where:half,chapterId:el.dataset.chapterHead,anchorId:el.dataset.chapterHead};
+ if(el.dataset.dropChapter!==undefined)return {el,where:'after',chapterId:el.dataset.dropChapter,anchorId:null};
+ const fallback=chapterOf(el);
+ return fallback?{el,where:'after',chapterId:fallback,anchorId:null}:null;
+}
 function selectNode(id){playing=false;trail=[];selected=id;selectedLayer=null;effectId=null;effectMode='layout';group='';render()}
 function renderFlow(){$('#flow').innerHTML=p.nodes.map((n,i)=>'<div class="flow-row '+(n.id===selected?'active':'')+'"><button class="flow-title" data-go="'+esc(n.id)+'">'+esc(indexLabel(n.id))+'</button>'+ (n.type==='end'?'<p class="hint">终止剧情</p>':(n.type==='choice'?n.options.map(o=>({label:o.text,target:o.target})):[{label:n.next?'跳转 / 汇合':'顺序继续',target:n.next||p.nodes[i+1]?.id}]).map(e=>'<div class="flow-edge"><span>'+esc(e.label||'未命名')+' →</span><button data-go="'+esc(e.target||'')+'">'+esc(e.target?indexLabel(e.target):'未设置')+'</button></div>').join(''))+'</div>').join('');$('#flow').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{if(p.nodes.some(n=>n.id===b.dataset.go))selectNode(b.dataset.go)})}
 function inspector(){const n=node();$('.inspector-body').hidden=!n;if(!n)return;$('#nodeId').textContent='#'+String(p.nodes.indexOf(n)+1).padStart(2,'0');for(const [id,key]of [['type','type'],['name','name'],['body','text']]){if(document.activeElement!==$('#'+id))$('#'+id).value=n[key]}$('#jump').innerHTML=targets(n.next);$('#branchEditor').hidden=n.type!=='choice';$('#jumpEditor').hidden=n.type!=='say';$('#inherit').checked=n.sceneMode==='inherit';renderOptions();renderLayerUI()}
@@ -45,12 +284,59 @@ function updateHistory(){$('#undo').disabled=playing||!past.length;$('#redo').di
 function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind()}
 function go(id){if(!p.nodes.some(n=>n.id===id))return toast('这个分支尚未设置有效目标');trail.push(current);current=id;playbackAnimate=true;renderCanvas()}
 function next(){const n=active();if(n?.type!=='say')return;const id=C.edges(p,n)[0];if(!id)return;if(playing)go(id);else selectNode(id)}
-function stop(){playing=false;trail=[];render()}
+function stop(){playing=false;trail=[];$('#entryNotice').hidden=true;render()}
+function describeNode(id){const n=p.nodes.find(x=>x.id===id);if(!n)return '这句';const i=p.nodes.indexOf(n);const g=C.paragraphMap(p).get(n.paragraphId);return (g?g.paragraph.title+' · ':'')+'第 '+(i+1)+' 句'}
+/* 前置状态沿用现有 scene/effects/cast 解析：把「到本句为止的脚本顺序」当作路径。
+   前面出现分支或跳转时明确告诉作者这是近似还原，而不是假装走了真实路径。 */
+function playFrom(nodeId){
+ if(!nodeId)return toast('请先选中一句剧情');
+ const info=C.entryPath(p,nodeId);
+ if(!info)return toast('找不到这句剧情');
+ playing=true;current=nodeId;trail=[...info.trail];selectedLayer=null;effectId=null;effectMode='layout';playbackAnimate=true;
+ render();
+ const notice=$('#entryNotice');
+ if(info.uncertain){
+  notice.hidden=false;
+  notice.textContent='从「'+describeNode(nodeId)+'」开始：前面有 '+info.reasons.length+' 处分支或跳转，已按脚本顺序还原背景、表情与持续演出，可能和实际游玩不同。需要精确还原时，请从更前面的独立场景第一句开始。';
+  toast('已从这句开始试玩（前置状态按脚本顺序还原）');
+ }else{
+  notice.hidden=false;
+  notice.textContent='从「'+describeNode(nodeId)+'」开始：场景、表情和持续演出按前面的句子还原。';
+  toast('已从这句开始试玩');
+ }
+ if($('#stage').focus)$('#stage').focus();
+}
+$('#playHere').onclick=()=>playFrom(node()?.id);
+$('#playPara').onclick=()=>{
+ const n=node();if(!n)return toast('请先选中一句剧情');
+ const t=C.tree(p);
+ for(const c of t.chapters)for(const g of c.paragraphs)if(g.nodes.includes(n.id)){
+  if(!g.nodes.length)return toast('这个段落还没有剧情');
+  return playFrom(g.nodes[0]);
+ }
+ toast('这句还不在任何段落里，先用「移动到…」放进段落');
+};
 $('#play').onclick=()=>{if(!p.nodes.length)return toast('请先添加剧情');playing=true;playbackAnimate=true;current=p.nodes[0].id;trail=[];selectedLayer=null;render();$('#stage').focus()};$('#stop').onclick=stop;$('#next').onclick=next;$('#prev').onclick=()=>{if(playing){if(trail.length)current=trail.pop();playbackAnimate=false;renderCanvas()}else{const i=p.nodes.findIndex(n=>n.id===selected);if(i>0)selectNode(p.nodes[i-1].id)}};
 $('#stage').onclick=e=>{if(playing&&e.target.tagName!=='BUTTON')next()};$('#stage').onkeydown=e=>{if(playing&&e.target.tagName!=='BUTTON'&&(e.key===' '||e.key==='Enter')){e.preventDefault();next()}};$('#toggleUI').onclick=()=>{hideDialogue=!hideDialogue;renderCanvas()};
 $('#title').oninput=e=>{checkpoint('title');p.title=e.target.value;revision++;queueSave();updateHistory()};for(const [id,key]of [['name','name'],['body','text']])$('#'+id).oninput=e=>{const n=node();if(!n||playing)return;checkpoint(n.id+'-'+key);n[key]=e.target.value;revision++;queueSave();renderList();renderFlow();renderCanvas();updateHistory()};$('#type').onchange=e=>edit(()=>{const n=node();n.type=e.target.value;if(n.type==='choice'&&!n.options)n.options=[{text:'选项一',target:''},{text:'选项二',target:''}]});$('#jump').onchange=e=>edit(()=>node().next=e.target.value);$('#addOption').onclick=()=>edit(()=>node().options.push({text:'新选项',target:''}));
-function add(type){edit(()=>{const n=C.makeNode(type),i=p.nodes.findIndex(n=>n.id===selected);p.nodes.splice(i+1,0,n);selected=n.id;selectedLayer=null})}$('#add').onclick=()=>add('say');$('#addChoice').onclick=()=>add('choice');$('#addEnd').onclick=()=>add('end');
-$('#duplicate').onclick=()=>{if(!node())return;edit(()=>{const n=C.clone(node());n.id=C.id();const mapping=new Map();n.layers.forEach(l=>{const old=l.id;l.id=C.id();mapping.set(old,l.id)});n.effects.forEach(e=>{e.id=C.id();e.layer=mapping.get(e.layer)||e.layer});p.nodes.splice(p.nodes.findIndex(n=>n.id===selected)+1,0,n);selected=n.id;selectedLayer=null})};function moveNode(d){const i=p.nodes.findIndex(n=>n.id===selected);if(i<0||i+d<0||i+d>=p.nodes.length)return;edit(()=>[p.nodes[i],p.nodes[i+d]]=[p.nodes[i+d],p.nodes[i]])}$('#up').onclick=()=>moveNode(-1);$('#down').onclick=()=>moveNode(1);$('#remove').onclick=()=>{if(!node())return;edit(()=>{const i=p.nodes.findIndex(n=>n.id===selected);p.nodes.splice(i,1);selected=p.nodes[Math.min(i,p.nodes.length-1)]?.id;selectedLayer=null});toast('已删除剧情，可撤销。指向它的跳转会在检查中提示。')};
+function add(type){edit(()=>{const cur=node();const pid=cur&&cur.paragraphId?cur.paragraphId:(p.chapters[0]&&p.chapters[0].paragraphs[0]?p.chapters[0].paragraphs[0].id:'');const n=C.makeNode(type);n.paragraphId=pid;const i=p.nodes.findIndex(x=>x.id===selected);p.nodes.splice(i+1,0,n);selected=n.id;selectedLayer=null})}$('#add').onclick=()=>add('say');$('#addChoice').onclick=()=>add('choice');$('#addEnd').onclick=()=>add('end');
+$('#duplicate').onclick=()=>{if(!node())return;edit(()=>{const n=C.clone(node());n.id=C.id();const mapping=new Map();n.layers.forEach(l=>{const old=l.id;l.id=C.id();mapping.set(old,l.id)});n.effects.forEach(e=>{e.id=C.id();e.layer=mapping.get(e.layer)||e.layer});p.nodes.splice(p.nodes.findIndex(n=>n.id===selected)+1,0,n);selected=n.id;selectedLayer=null})};function moveNode(d){
+ const n=node();if(!n)return;
+ const siblings=p.nodes.filter(x=>x.paragraphId===n.paragraphId);
+ const i=siblings.indexOf(n),j=i+d;
+ if(i<0||j<0||j>=siblings.length)return toast(d<0?'已经是这段的第一句':'已经是这段的最后一句');
+ const before=d<0?siblings[j].id:(siblings[j+1]?siblings[j+1].id:null);
+ moveNodeTo(n.id,n.paragraphId,before);
+}$('#up').onclick=()=>moveNode(-1);$('#down').onclick=()=>moveNode(1);$('#remove').onclick=()=>{
+ if(!node())return;
+ const id=selected,idx=p.nodes.findIndex(n=>n.id===id);
+ const refs=p.nodes.filter(n=>n.id!==id&&(n.next===id||(n.options||[]).some(o=>o.target===id)));
+ const inside=p.nodes.filter(n=>n.id!==id&&(n.next===id||(n.options||[]).some(o=>o.target===id)));
+ modal('删除这句剧情？','<p>第 '+(idx+1)+' 句：'+esc((node().name||'旁白')+'：'+(node().text||'（空）').slice(0,40))+'</p>'
+  +'<p>有 <b>'+inside.length+'</b> 处跳转指向它'+(inside.length?'（'+inside.slice(0,4).map(n=>'第 '+(p.nodes.indexOf(n)+1)+' 句').join('、')+(inside.length>4?' 等':'')+'）':'')+'。删除后这些跳转会失效，剧情检查会提示。可以撤销。</p>'
+  +'<div class="stack"><button id="confirmRemoveNode" class="danger">删除这句</button></div>');
+ $('#confirmRemoveNode').onclick=()=>{$('#modal').close();edit(()=>{p.nodes.splice(idx,1);selected=p.nodes[Math.min(idx,p.nodes.length-1)]?.id;selectedLayer=null});toast('已删除 1 句剧情，可撤销')};
+};
 $('#inherit').onchange=e=>{const inherit=e.target.checked;if(inherit&&node().sceneMode==='own'&&node().layers.length&&!confirm('改为沿用上一画面？本节点的独立画面将被替换，可撤销。')){e.target.checked=false;return}edit(()=>{if(inherit){node().sceneMode='inherit';node().layers=[]}else makeOwn();selectedLayer=null})};
 function defaultLayer(a){return C.defaultLayer(a)}
 function addAssetLayer(a,bind){makeOwn();const l=C.appendAssetLayer(node(),a,bind);selectedLayer=l.id}
@@ -67,7 +353,46 @@ function finishDrag(e){if(!drag||e.pointerId!==drag.pointer)return;const moved=d
 $('#savePreset').onclick=()=>{if(!displayed().length)return toast('请先添加图层');const name=prompt('为当前场景预设命名：','我的场景');if(!name?.trim())return;edit(()=>p.presets.push({id:C.id(),name:name.trim(),layers:C.clone(displayed())}));toast('已保存预设，可应用到其他节点')};$('#applyPreset').onclick=()=>{const preset=p.presets.find(t=>t.id===$('#presets').value);if(!preset)return toast('先选择场景预设');edit(()=>{node().sceneMode='own';node().layers=C.clone(preset.layers);node().layers.forEach(l=>l.id=C.id());selectedLayer=null})};
 $('#buildBranch').onclick=()=>{const n=node();if(!n||n.type!=='choice')return;if(!n.options.length)return toast('先添加至少一个选项');modal('生成对话分支，并汇回主线','<p>每个选项会获得一段可编辑的对话，结束后跳到你选择的共同节点。现有选项目标将被替换，可撤销。</p><div class="stack"><label>共同主线<select id="mergeTarget">'+targets('',false)+'</select></label><button id="confirmBranches" class="primary">创建 '+n.options.length+' 段分支</button></div>');$('#mergeTarget').querySelector('option[value="'+n.id+'"]').remove();$('#confirmBranches').onclick=()=>{const target=$('#mergeTarget').value;if(!target||target===n.id)return toast('请选择有效的共同主线');edit(()=>{const branches=n.options.map(o=>{const b=C.makeNode();b.name='';b.text='【'+o.text+'】在这里填写这条分支的对话。';b.next=target;o.target=b.id;return b});p.nodes.splice(p.nodes.indexOf(n)+1,0,...branches)});$('#modal').close();toast('分支已建立，每段结尾均已指向共同主线')};};
 $('#branchDemo').onclick=()=>{if(!confirm('用三选项汇合示例替换当前工程？可撤销，建议先保存备份。'))return;edit(()=>{p=C.sample();selected=p.nodes[0].id;selectedLayer=null})};
-$('.tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('.tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));for(const name of ['nodes','text','flow','cast'])$('#'+name+'-tab').hidden=b.dataset.tab!==name});$('#txtFile').onclick=()=>pick('.txt,text/plain',async f=>{if(f.size>2*1024*1024)throw Error('文本请小于 2MB');$('#importText').value=await f.text();toast('已载入 UTF-8 文本，请检查后解析')});$('#parse').onclick=()=>{const lines=$('#importText').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(!lines.length)return toast('请先输入文本');if(lines.length>5000)return toast('每次最多导入 5000 行');edit(()=>{const ns=lines.map(s=>{const n=C.makeNode(),m=s.match(/^([^：:]{1,30})[：:](.*)$/);n.name=m&&m[1]!=='旁白'?m[1]:'';n.text=m?m[2].trim():s;return n});p.nodes.push(...ns);selected=ns[0].id;selectedLayer=null});toast('已追加 '+lines.length+' 句剧情')};
+$('.tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('.tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));for(const name of ['nodes','text','flow','cast'])$('#'+name+'-tab').hidden=b.dataset.tab!==name});$('#txtFile').onclick=()=>pick('.txt,text/plain',async f=>{if(f.size>2*1024*1024)throw Error('文本请小于 2MB');$('#importText').value=await f.text();toast('已载入 UTF-8 文本，请检查后解析')});function defaultParagraphId(){const n=node();if(n&&n.paragraphId)return n.paragraphId;const c=p.chapters[0];return c&&c.paragraphs[0]?c.paragraphs[0].id:''}
+function previewImport(){
+ const text=$('#importText').value;
+ if(!text.trim())return toast('请先输入文本');
+ if(text.length>2*1024*1024)return toast('文本请小于 2MB');
+ const plan=C.parseScript(text,p.characters||[]);
+ if(!plan.stats.nodes)return toast('没有识别到可导入的台词');
+ const cur=defaultParagraphId(),entry=C.paragraphMap(p).get(cur);
+ const curLabel=entry?entry.chapter.title+' / '+entry.paragraph.title:'（还没有段落）';
+ const treeHtml=plan.chapters.map(c=>'<li><b>'+esc(c.title)+'</b><ul>'+c.paragraphs.map(g=>'<li>'+esc(g.title)+'（'+g.nodes.length+' 句）</li>').join('')+'</ul></li>').join('');
+ const unrec=plan.unrecognized.length
+  ?'<p class="hint">'+plan.unrecognized.length+' 行无法识别，会被跳过：</p><ul class="issue-list">'
+   +plan.unrecognized.slice(0,8).map(u=>'<li>第 '+u.lineNo+' 行：'+esc(String(u.text).slice(0,40))+'（'+esc(u.reason)+'）</li>').join('')
+   +(plan.unrecognized.length>8?'<li>…还有 '+(plan.unrecognized.length-8)+' 行</li>':'')+'</ul>':'';
+ const notes=[...new Set(plan.chapters.flatMap(c=>c.paragraphs.flatMap(g=>g.nodes.map(n=>n.note))).filter(Boolean))];
+ const noteHtml=notes.length?'<p class="hint">'+notes.map(esc).join('；')+'</p>':'';
+ const canCurrent=!!entry;
+ modal('导入预览',
+  '<p>识别到 <b>'+plan.stats.chapters+'</b> 章 / <b>'+plan.stats.paragraphs+'</b> 段 / <b>'+plan.stats.nodes+'</b> 句：'
+  +'已绑定角色 '+plan.stats.bound+' 句，保留自由文本说话人 '+plan.stats.free+' 句，旁白 '+plan.stats.narration+' 句。</p>'
+  +'<div class="import-target"><label class="check-label"><input type="radio" name="impTarget" value="chapters" checked>按文本里的章节标题新建章节和段落</label>'
+  +(canCurrent?'<label class="check-label"><input type="radio" name="impTarget" value="paragraph">全部导入当前段落「'+esc(curLabel)+'」</label>':'<p class="hint">当前没有可用段落，只能按标题新建。</p>')
+  +'</div>'
+  +'<div class="import-tree"><p class="hint">将要新建的结构：</p><ul>'+treeHtml+'</ul></div>'
+  +unrec+noteHtml
+  +'<p class="hint">确认后会一次写入，可以整体撤销；取消不会改动工程。</p>'
+  +'<div class="stack"><button id="confirmImport" class="primary">确认导入 '+plan.stats.nodes+' 句</button></div>');
+ $('#confirmImport').onclick=()=>{
+  const picked=$('input[name="impTarget"]:checked');
+  const mode=picked?picked.value:'chapters';
+  let created;
+  edit(()=>{
+   created=C.applyScriptPlan(p,plan,mode==='paragraph'?{mode:'paragraph',paragraphId:cur}:{mode:'chapters'});
+  });
+  $('#modal').close();
+  if(created.nodes.length){selected=created.nodes[0];selectedLayer=null;locateNode(selected)}
+  toast('已导入 '+created.nodes.length+' 句，可一次撤销');
+ };
+}
+$('#parse').onclick=()=>previewImport();
 async function download(data,name,type){const ext=String(name).toLowerCase(),kind=ext.endsWith('.png')?'png':ext.endsWith('.json')?'json':'html';if(H){try{let payload={kind,name};if(data instanceof Blob){const bytes=new Uint8Array(await data.arrayBuffer());let s='';for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));payload.base64=btoa(s)}else payload.text=String(data);const r=await H.saveFile(payload);if(r&&!r.cancelled)toast('已保存到：'+r.path)}catch(e){toast('导出失败：'+(e.message||e))}return}const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}const filename=()=>(p.title||'我的故事').replace(/[\\/:*?"<>|]/g,'_');async function applyOpened(r){if(!r||r.cancelled)return;const out=await loadProject(r.project);edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});H.applyState(r);$('#saved').textContent='已打开 · '+(r.label||'工程');if(r.imported)toast('旧工程已导入到新目录，原文件未改动');if(r.notice)toast(r.notice)}
 $('#save').onclick=()=>{if(H){H.save(p).then(r=>{if(r.cancelled)return;H.applyState(r);$('#saved').textContent='已保存';toast('工程已保存到目录，素材与备份完整')}).catch(e=>{$('#saved').textContent='保存失败';toast('保存失败：'+e.message)});return}download(JSON.stringify(p,null,2),filename()+'.paper.json','application/json');toast('已下载完整 V0.3 工程，包含全部图层与图片')};
 $('#open').onclick=()=>{if(H){H.open().then(applyOpened).catch(e=>toast('打开失败：'+e.message));return}pick('.json,application/json',async f=>{if(f.size>80*1024*1024)throw Error('工程请小于 80MB');const out=await loadProject(JSON.parse(await f.text()));if(!confirm('替换当前工程？可撤销，建议先下载当前工程。'))return;edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});toast('工程已打开，旧版工程已自动兼容转换')})};
@@ -80,7 +405,19 @@ if(H){
  H.onCommand(cmd=>{if(String(cmd).startsWith('recent:')){H.openRecent(+String(cmd).slice(7)).then(applyOpened).catch(err=>toast('打开最近工程失败：'+err.message));return}const b=menuButtons[cmd];if(b&&$(b))$(b).click()});
  H.onSaveBeforeClose(async token=>{try{const r=await H.save(p);H.finishSaveBeforeClose({token,ok:!r.cancelled,message:r.cancelled?'已取消保存':''})}catch(e){H.finishSaveBeforeClose({token,ok:false,message:e.message||'保存失败'})}});
 }
-$('#check').onclick=()=>{const report=C.analyze(p),items=[...report.errors.map(x=>'错误：'+x),...report.warnings.map(x=>'提示：'+x)];modal(report.errors.length?'发现 '+report.errors.length+' 项错误':report.warnings.length?'没有阻塞错误，有 '+report.warnings.length+' 项提示':'剧情检查通过',items.length?'<ul>'+items.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul><p class="hint">检查引用、可达性与循环，不判断故事逻辑。循环可能是有意设计。</p>':'<p>跳转、图层引用与可达性有效。请试玩每条路径，确认演出和汇合符合预期。</p>')};
+$('#check').onclick=()=>{
+ const report=C.analyze(p),items=report.issues;
+ const blocking=items.filter(x=>x.level==='error').length,notes=items.length-blocking;
+ if(!items.length)return modal('剧情检查通过','<p>跳转、图层、角色与段落引用都有效。请逐条试玩，确认演出和汇合符合预期。</p><p class="hint">检查不判断故事逻辑；有意的循环不会报错。</p>');
+ const list='<ul class="issue-list">'+items.map((it,i)=>'<li><button data-issue="'+i+'" class="issue '+(it.level==='error'?'error':'note')+'"><em>'+(it.level==='error'?'错误':'提示')+'</em>'+esc(it.text)+(it.nodeId?'<span class="jump">定位 →</span>':'')+'</button></li>').join('')+'</ul>';
+ modal(blocking?'发现 '+blocking+' 项错误，导出前需要处理':(notes?'没有阻塞错误，有 '+notes+' 项提示':'剧情检查通过'),
+  list+'<p class="hint">点一条结果可以跳到对应的句子；错误会阻止导出，提示只是提醒。</p>');
+ $('#modalBody').querySelectorAll('[data-issue]').forEach(b=>b.onclick=()=>{
+  const it=items[+b.dataset.issue];if(!it)return;
+  if(it.nodeId){$('#modal').close();locateNode(it.nodeId);toast('已定位到这句')}
+  else toast('这条问题不对应具体句子，请按文字说明处理');
+ });
+};
 $('#slotSave').onclick=()=>{slot={revision,current,trail:[...trail]};toast('已存档（当前编辑会话）')};$('#slotLoad').onclick=()=>{if(!slot)return toast('暂无试玩存档');if(slot.revision!==revision)return toast('工程已变化，请重新试玩并存档');current=slot.current;trail=[...slot.trail];playbackAnimate=false;renderCanvas();toast('已读取试玩存档')};
 $('#flatten').onclick=async()=>{if(effectMode!=='layout')return toast('请先返回布局。PNG 合成导出只包含原始布局；演出效果保留在试玩网页中。');const ls=C.clone(displayed());if(!ls.some(l=>!l.hidden))return;try{const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d');for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)throw Error('图片丢失');const im=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('图片无法解码'));img.src=a.data});ctx.save();const x=l.x*12.8,y=l.y*7.2,w=l.w*12.8,h=l.h*7.2;ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.globalAlpha=l.opacity/100;if(l.fit==='fill')ctx.drawImage(im,x,y,w,h);else{const f=l.fit==='cover'?Math.max(w/im.width,h/im.height):Math.min(w/im.width,h/im.height);ctx.drawImage(im,x+(w-im.width*f)/2,y+(h-im.height*f)/2,im.width*f,im.height*f)}ctx.restore()}canvas.toBlob(blob=>{if(blob)download(blob,filename()+'-合成场景.png','image/png')},'image/png');toast('导出 1280×720 场景合成图（透明底，不含对话框）')}catch(e){toast('导出失败：'+e.message)}};
 $('#export').onclick=()=>{const report=C.analyze(p);if(report.errors.length){$('#check').click();return}let html;try{html=buildGameHTML(p,{player:paperPlayer,coreFactory:createVNCore,effectFactory:createPaperEffects,css:paperPlayerCSS,esc})}catch(e){toast('导出失败：'+e.message);return}download(html,filename()+'.html','text/html');toast('已导出独立 HTML，包含图层、效果、位置与全部分支')};
@@ -318,5 +655,18 @@ $('#layerChar').onchange=e=>{
  layerEdit(l=>{l.characterId=v;const c=v?C.characterIn(p,v):null;
   l.expressionId=c?((c.expressions||[]).find(x=>x.assetId===l.asset)||{}).id||'':''});
 };
+
+$('#addChapter').onclick=()=>{
+ let c;edit(()=>{c=C.addChapter(p,'新章节')});
+ askName('重命名章节',c.title,v=>edit(()=>{const t=p.chapters.find(x=>x.id===c.id);if(t)t.title=v}));
+};
+$('#addPara').onclick=()=>{
+ const n=node(),entry=n?C.paragraphMap(p).get(n.paragraphId):null;
+ const cid=entry?entry.chapter.id:(p.chapters[0]?p.chapters[0].id:'');
+ if(!cid)return toast('请先新建一个章节');
+ let g;edit(()=>{g=C.addParagraph(p,cid,'新段落');const c=p.chapters.find(x=>x.id===cid);if(c)c.collapsed=false});
+ askName('重命名段落',g.title,v=>edit(()=>{const t=C.paragraphMap(p).get(g.id);if(t)t.paragraph.title=v}));
+};
+$('#moveNode').onclick=()=>{if(!node())return toast('请先选中一句剧情');openMoveDialog('node',selected)};
 
 render();initialize();

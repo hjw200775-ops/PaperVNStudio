@@ -197,8 +197,18 @@ async function run() {
   await win.webContents.executeJavaScript(`document.querySelector('#txtFile').click(); true`);
   await sleep(250);
   await win.webContents.executeJavaScript(`document.querySelector('#parse').click(); true`);
+  await sleep(250);
+  // V0.4.2：解析后先出预览，确认后才写入工程
+  const preview = await win.webContents.executeJavaScript(`(()=>{
+    const body=document.querySelector('#modalBody');
+    return {open:document.querySelector('#modal').open, rows:body.querySelectorAll('.import-tree li').length, hasConfirm:!!body.querySelector('#confirmImport')};
+  })()`);
+  assert(preview.open && preview.hasConfirm, 'TXT import opens a preview before touching the project');
+  assert.equal(await win.webContents.executeJavaScript(`document.querySelectorAll('#list .node').length`), beforeTxt, '预览阶段不修改工程');
+  await win.webContents.executeJavaScript(`document.querySelector('#confirmImport').click(); true`);
+  await sleep(250);
   const afterTxt = await win.webContents.executeJavaScript(`document.querySelectorAll('#list .node').length`);
-  assert.equal(afterTxt, beforeTxt + 2, 'TXT import adds two dialogue lines');
+  assert.equal(afterTxt, beforeTxt + 2, 'TXT import adds two dialogue lines after confirming the preview');
   console.log('  ok  image layer, layout resize, effect and TXT import in the real window');
 
   await win.webContents.executeJavaScript(`(()=>{const t=document.querySelector('#title');t.value='烟测 标题';t.dispatchEvent(new Event('input',{bubbles:true}));return true})()`);

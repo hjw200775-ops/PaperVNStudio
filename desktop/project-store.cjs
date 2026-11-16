@@ -189,7 +189,7 @@ function createProjectStore(options = {}) {
     const merged = dedupeAssets(input);
     C.validate(merged);
     let p = C.migrate(merged);
-    if (p.schema !== 4) throw new Error('工程版本无法迁移');
+    if (p.schema !== 5) throw new Error('工程版本无法迁移');
     C.validate(p);
     for (const n of p.nodes) F.validate(n.effects || []);
     const ids = new Set();
@@ -227,13 +227,14 @@ function createProjectStore(options = {}) {
       format: FORMAT,
       formatVersion: FORMAT_VERSION,
       savedAt: new Date(clock()).toISOString(),
-      schema: 4,
+      schema: 5,
       id: p.id,
       title: p.title,
       assets,
       nodes: p.nodes,
       presets: p.presets,
-      characters: p.characters || []
+      characters: p.characters || [],
+      chapters: p.chapters || []
     };
     return { disk, used };
   }
@@ -242,12 +243,15 @@ function createProjectStore(options = {}) {
     if (!disk || disk.format !== FORMAT || disk.formatVersion !== FORMAT_VERSION) {
       throw new Error('不是桌面工程目录（缺少 project.paper.json 或格式版本不匹配）');
     }
-    if (![3, 4].includes(disk.schema) || typeof disk.id !== 'string' || typeof disk.title !== 'string' ||
+    if (![3, 4, 5].includes(disk.schema) || typeof disk.id !== 'string' || typeof disk.title !== 'string' ||
         !Array.isArray(disk.nodes) || !Array.isArray(disk.assets) || !Array.isArray(disk.presets)) {
       throw new Error('桌面工程元数据格式错误');
     }
     if (disk.characters !== undefined && !Array.isArray(disk.characters)) {
       throw new Error('桌面工程角色列表格式错误');
+    }
+    if (disk.chapters !== undefined && !Array.isArray(disk.chapters)) {
+      throw new Error('桌面工程章节列表格式错误');
     }
     if (disk.nodes.length > 20000 || disk.assets.length > 1000 || disk.presets.length > 200) {
       throw new Error('工程超过体验版限制');
@@ -303,7 +307,8 @@ function createProjectStore(options = {}) {
     const runtime = {
       schema: disk.schema || 4, id: disk.id, title: disk.title,
       assets, nodes: disk.nodes, presets: disk.presets,
-      characters: Array.isArray(disk.characters) ? disk.characters : []
+      characters: Array.isArray(disk.characters) ? disk.characters : [],
+      chapters: Array.isArray(disk.chapters) ? disk.chapters : []
     };
     return validateRuntime(runtime);
   }
