@@ -210,6 +210,17 @@ async function main() {
     assert.equal(canonDisk.assets.filter(a => a.kind === 'char').length, 4);
     assert(!canonDisk.assets.some(a => /reference/i.test(a.name) || /reference/i.test(a.file)));
   });
+  check('素材是按字节复制的原文件（校验值与素材包一致，透明通道原样保留）', () => {
+    const crypto = require('node:crypto');
+    for (const a of canonDisk.assets) {
+      const bytes = fs.readFileSync(path.join(CANON_DIR, a.file));
+      const hash = crypto.createHash('sha256').update(bytes).digest('hex');
+      const src = pack.manifest.assets.find(x => String(x.sha256) === hash);
+      assert(src, '素材 ' + a.name + ' 的哈希能在 manifest 中找到');
+      assert.equal(hash, a.sha256, a.name + ' 与 manifest 校验值一致');
+      assert.equal(bytes.length, src.bytes);
+    }
+  });
   check('背景近 16:9 用 cover；角色按原图比例摆放，没有压扁或拉长', () => {
     const node = canonDisk.nodes[0];
     const bg = node.layers.find(l => l.kind === 'bg');
@@ -488,7 +499,55 @@ async function main() {
   console.log('EXPORTED=' + exportPath);
 }
 
-main().then(() => app.exit(0)).catch(err => {
+/* 第二遍：新进程里只做「退出再打开」，证明角色与绑定真的留在工程目录里。 */
+async function reopen() {
+  await app.whenReady();
+  await waitForLoad();
+  const errors = [];
+  win.webContents.on('console-message', (...args) => {
+    const d = args[0];
+    const level = d && typeof d === 'object' && 'level' in d ? d.level : args[1];
+    if (level >= 2) errors.push(String(d && d.message || args[2]));
+  });
+  await sleep(500);
+  await openDirectory(CANON_DIR);
+  const nodes = await run('document.querySelectorAll("#list .node").length');
+  assert.equal(nodes, 45);
+  const chars = [...(await castIds()).keys()];
+  assert.deepEqual(chars.sort(), ['林悠', '林澈']);
+  await selectNode('road_09');
+  const disk = JSON.parse(fs.readFileSync(path.join(CANON_DIR, 'project.paper.json'), 'utf8'));
+  const base64Of = id => 'data:image/png;base64,' + fs.readFileSync(path.join(CANON_DIR, disk.assets.find(a => a.id === id).file)).toString('base64');
+  const state = await stageState();
+  assert.equal(state.linyou.sig, sig(base64Of('you_annoyed')), '重开后 road_09 仍是轻恼');
+  assert.equal(state.linche.sig, sig(base64Of('che_neutral')));
+  const speak = await run('document.querySelector("#castStatus").textContent');
+  assert(/林悠/.test(speak), '重开后仍显示角色名：' + speak);
+  const out = path.join(RESULT_DIR, 'wanfeng-canon-重开导出.html');
+  saveQueue.push(out);
+  await click('#export');
+  await sleep(2500);
+  const html = fs.readFileSync(out, 'utf8');
+  assert(html.includes('"characters"') && !html.includes('file:///'));
+  assert.equal(errors.length, 0, errors.join(' | '));
+  console.log('  ok  新进程重开工程：45 节点、两个角色、road_09 表情与绑定都在');
+  console.log('  ok  重开后再导出 HTML：自包含且携带角色数据 → ' + out);
+  const reportFile = path.join(RESULT_DIR, '验收报告.json');
+  if (fs.existsSync(reportFile)) {
+    const previous = JSON.parse(fs.readFileSync(reportFile, 'utf8'));
+    previous.reopen = {
+      checkedAt: new Date().toISOString(),
+      checks: ['新进程重开工程：45 节点、两个角色、road_09 表情与绑定都在', '重开后再导出 HTML：自包含且携带角色数据'],
+      exported: out
+    };
+    fs.writeFileSync(reportFile, JSON.stringify(previous, null, 2), 'utf8');
+  }
+  console.log('\nDEMO_REOPEN PASS');
+}
+
+if (process.env.PAPER_DEMO_REOPEN === '1') {
+  reopen().then(() => app.exit(0)).catch(err => { console.error('DEMO REOPEN FAILED: ' + (err && err.stack)); app.exit(1); });
+} else main().then(() => app.exit(0)).catch(err => {
   console.error('DEMO ACCEPTANCE FAILED: ' + (err && err.stack));
   app.exit(1);
 });
