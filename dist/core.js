@@ -60,12 +60,12 @@ function createVNCore(){
    if(n.speakerId){
     const c=chars.get(n.speakerId);
     if(!c)add('error',at+'说话人角色已删除或丢失，请重新选择角色，或改为自由填写说话人。',{nodeId:n.id,kind:'cast'});
-    else if(n.expressionId&&!c.expressions.some(e=>e.id===n.expressionId))add('error',at+'表情「'+(n.expressionId)+'」在角色「'+c.name+'」中已删除，请重新选择或保留占位。',{nodeId:n.id,kind:'cast'});
+    else if(n.expressionId&&!c.expressions.some(e=>e.id===n.expressionId))add('error',at+'本句的表情在角色「'+c.name+'」中已删除，请重新选择或保留占位。',{nodeId:n.id,kind:'cast'});
    }else if(n.expressionId)add('error',at+'选择了表情但没有指定角色。',{nodeId:n.id,kind:'cast'});
    for(const x of n.cast||[]){
     const c=chars.get(x.characterId);
     if(!c)add('error',at+'同场角色已删除，请重新选择或清除该表情。',{nodeId:n.id,kind:'cast'});
-    else if(!c.expressions.some(e=>e.id===x.expressionId))add('error',at+'同场表情「'+x.expressionId+'」在角色「'+c.name+'」中已删除。',{nodeId:n.id,kind:'cast'});
+    else if(!c.expressions.some(e=>e.id===x.expressionId))add('error',at+'同场角色「'+c.name+'」的表情已删除，请重新选择或清除。',{nodeId:n.id,kind:'cast'});
    }
    for(const l of n.layers||[]){
     if(!l.characterId)continue;
@@ -272,8 +272,8 @@ function createVNCore(){
    const dm=/^([^：:]{1,20})[：:]\s*(.*)$/.exec(line);
    let name='',body=line,speakerId='',note='';
    if(dm){name=dm[1].trim();body=dm[2].trim()}
-   if(name==='旁白')name='';
    if(dm&&!name){unrecognized.push({lineNo:i+1,text:line,reason:'说话人为空'});continue}
+   if(name==='旁白')name='';          /* 「旁白：」是合法的旁白写法，不是空说话人 */
    if(!body){unrecognized.push({lineNo:i+1,text:line,reason:'台词内容为空'});continue}
    if(name){
     if(dupNames.has(name))note='角色重名，保留自由文本说话人';
