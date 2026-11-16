@@ -159,7 +159,8 @@ function createProjectStore(options = {}) {
 
   /* Asset ids are content addressed, so importing the same picture twice
    * produces the same id. Collapse identical entries instead of failing the
-   * whole save; a real conflict (same id, different bytes) stays an error. */
+   * whole save; a real conflict (same id, different bytes or different use)
+   * stays an error — silently dropping one of them would lose a layer's kind. */
   function dedupeAssets(input) {
     const list = Array.isArray(input.assets) ? input.assets : [];
     const byId = new Map();
@@ -170,7 +171,10 @@ function createProjectStore(options = {}) {
         if (String(prev.data) !== String(a.data)) {
           throw new Error('素材 ID 重复且内容不同：' + a.id);
         }
-        continue;                        // same picture: keep one entry
+        if (String(prev.kind) !== String(a.kind)) {
+          throw new Error('素材 ID 重复且用途不同：' + a.id);
+        }
+        continue;                        // same picture, same use: keep one entry
       }
       byId.set(a && a.id, a);
       assets.push(a);

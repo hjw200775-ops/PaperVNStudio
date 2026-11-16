@@ -14,6 +14,29 @@ function createVNCore(){
  function makeNode(type='say'){return {id:id(),type,name:'',text:'',next:'',sceneMode:'inherit',layers:[],effects:[],...(type==='choice'?{options:[{text:'选项一',target:''},{text:'选项二',target:''}]}:{})}}
  function blank(){return {schema:3,id:id(),title:'未命名的故事',assets:[],nodes:[],presets:[]}}
  function sample(){const p=blank();p.title='晚风来信 · 局部分支示例';const a=makeNode(),b=makeNode('choice'),c=makeNode(),d=makeNode(),e=makeNode(),merge=makeNode(),end=makeNode('end');a.sceneMode='own';a.name='旁白';a.text='放学后的走廊，风把书页轻轻翻开。';b.name='澪';b.text='要不要一起走一段？';c.name='我';c.text='先去图书馆吧。我想给你看一本书。';d.name='我';d.text='绕操场走走？今天的晚风很舒服。';e.name='我';e.text='我们到门口等一等，看看天边的云。';merge.name='旁白';merge.text='聊着不同的话题，我们还是并肩走出了校门。';end.name='结局';end.text='这一次，选择改变了沿途的谈话，却没有改变共同的约定。';b.options=[{text:'去图书馆',target:c.id},{text:'绕操场走走',target:d.id},{text:'在门口看云',target:e.id}];c.next=d.next=e.next=merge.id;p.nodes=[a,b,c,d,e,merge,end];return p}
- return {clone,id,validate,migrate,scene,edges,analyze,makeNode,blank,sample};
+ /* 素材查重按「图片数据 + 用途」而不是只看图片数据：同一张图既能当背景也能当角色，
+    只按 data 复用会把先导入那一次的 kind 带回新图层，用途就错了。 */
+ function assetForImport(p,{id:newId,name,kind,data,width,height}){
+  const same=(p.assets||[]).find(a=>a.data===data&&a.kind===kind);
+  if(same)return {asset:same,reused:true};
+  const a={id:newId,name,kind,data};
+  if(Number.isFinite(width)&&Number.isFinite(height)){a.width=width;a.height=height}
+  return {asset:a,reused:false};
+ }
+ /* 新图层的初始几何：背景铺满画面，角色站在底部并按原图比例收窄。 */
+ function defaultLayer(a){
+  const ratio=(a.width||1280)/(a.height||720);let w,h;
+  if(a.kind==='bg'){if(ratio>16/9){h=100;w=100*ratio/(16/9)}else{w=100;h=100*(16/9)/ratio}}
+  else{h=85;w=h*9/16*ratio;if(w>90){h*=90/w;w=90}}
+  return {id:id(),asset:a.id,name:a.name,kind:a.kind,x:(100-w)/2,y:a.kind==='bg'?(100-h)/2:100-h,w,h,fit:'contain',opacity:100,hidden:false,locked:false,motion:'none'};
+ }
+ /* 追加图层：背景插在角色下面，角色压在背景上面。同素材可被多个图层复用。 */
+ function appendAssetLayer(node,asset){
+  const l=defaultLayer(asset);
+  if(asset.kind==='bg'){const i=node.layers.findIndex(x=>x.kind==='char');node.layers.splice(i<0?node.layers.length:i,0,l)}
+  else node.layers.push(l);
+  return l;
+ }
+ return {clone,id,validate,migrate,scene,edges,analyze,makeNode,blank,sample,assetForImport,defaultLayer,appendAssetLayer};
 }
 if(typeof module!=='undefined')module.exports=createVNCore;

@@ -51,9 +51,9 @@ function registerIPC() {
   ipcMain.handle('project:open', () => ok({ cancelled: true }));
   ipcMain.handle('project:openRecent', () => ok({ cancelled: true }));
   ipcMain.handle('project:recent', () => ok({ items: [] }));
-  ipcMain.handle('file:pickImage', () => ok({ cancelled: false, file: {
+  ipcMain.handle('file:pickImage', (_e, assetKind) => ok({ cancelled: false, file: {
     name: '烟测背景.png', size: 68, type: 'image/png',
-    dataUrl: 'data:image/png;base64,' + PNG, id: 'a_smoke_bg'
+    dataUrl: 'data:image/png;base64,' + PNG, id: 'a_smoke_' + assetKind
   } }));
   ipcMain.handle('file:pickText', () => ok({ cancelled: false, file: {
     name: '剧本.txt', size: 40, type: 'text/plain', text: '旁白：烟测导入的第一句。\n澪：烟测导入的第二句。'
@@ -151,6 +151,40 @@ async function run() {
   assert.equal(reimport.rows, 2, 'a second import of the same picture adds a layer');
   assert(!reimport.saved.includes('失败'), 're-importing the same picture keeps autosave working: ' + reimport.saved);
   console.log('  ok  re-importing the same picture reuses the asset and autosave still works');
+
+  // The very same picture may also be used as a character. The reuse key must
+  // include the intended use, otherwise the character layer would borrow the
+  // background entry and render with background geometry.
+  await win.webContents.executeJavaScript(`document.querySelector('#uploadChar').click(); true`);
+  let mixed = null;
+  for (let i = 0; i < 20 && !mixed; i++) {
+    try {
+      const d = JSON.parse(fs.readFileSync(DRAFT, 'utf8'));
+      if ((d.assets || []).length >= 2) mixed = d;
+    } catch { /* autosave not written yet */ }
+    if (!mixed) await sleep(200);
+  }
+  assert(mixed, 'autosave persisted the background + character project');
+  const overlay = await win.webContents.executeJavaScript(`(()=>{
+    const rows=[...document.querySelectorAll('#layerList .layer-row')];
+    return {rows:rows.length, texts:rows.map(r=>r.textContent), saved:document.querySelector('#saved').textContent,
+      visual:document.querySelectorAll('#layersCanvas .visual-layer').length};
+  })()`);
+  assert.equal(overlay.rows, 3, 'the same picture used as a character becomes a third layer');
+  assert.equal(overlay.visual, 3, 'all three layers render on the stage');
+  assert(overlay.texts.some(t => t.includes('背景')), 'background layer keeps its label');
+  assert(overlay.texts.some(t => t.includes('角色')), 'character layer is labelled as a character');
+  assert(!overlay.saved.includes('失败'), 'mixed background/character import keeps autosave working: ' + overlay.saved);
+  assert.equal(mixed.assets.length, 2, 'the two uses are stored as two assets');
+  const bgAsset = mixed.assets.find(a => a.kind === 'bg');
+  const charAsset = mixed.assets.find(a => a.kind === 'char');
+  assert(bgAsset && charAsset, 'both uses survived the save');
+  assert.notEqual(bgAsset.id, charAsset.id, 'different use must not share one asset id');
+  const refs = mixed.nodes.flatMap(n => n.layers || []).map(l => l.asset === bgAsset.id ? 'bg' : l.asset === charAsset.id ? 'char' : 'unknown');
+  assert.equal(refs.filter(k => k === 'bg').length, 2, 'both background layers reference the background asset');
+  assert.equal(refs.filter(k => k === 'char').length, 1, 'the character layer references the character asset');
+  assert.equal(refs.filter(k => k === 'unknown').length, 0, 'every layer points at a known asset');
+  console.log('  ok  same picture as background and character: two assets, correct kinds, independent layers');
   const effectState = await win.webContents.executeJavaScript(`(()=>{
     const lw=document.querySelector('#lw');lw.value='80';lw.dispatchEvent(new Event('input',{bubbles:true}));
     const t=document.querySelector('#effectTarget'),id=t.options[1]?t.options[1].value:'';
@@ -184,12 +218,13 @@ async function run() {
   const mainDisk = JSON.parse(fs.readFileSync(MAIN, 'utf8'));
   assert.equal(mainDisk.title, '烟测 标题');
   assert.equal(mainDisk.nodes.length, env.nodes + 2);
-  assert.equal(mainDisk.assets.length, 1, 'the re-imported picture is stored as one asset');
-  assert.equal(mainDisk.nodes[0].layers.length, 2, 'both imported layers are stored');
-  assert.equal(mainDisk.nodes[0].layers[0].asset, mainDisk.nodes[0].layers[1].asset, 'the re-imported layer reuses the same asset');
+  assert.equal(mainDisk.assets.length, 2, 'one asset per use: background and character');
+  assert.equal(mainDisk.nodes[0].layers.length, 3, 'all three layers are stored');
+  assert.equal(mainDisk.nodes[0].layers[0].asset, mainDisk.nodes[0].layers[1].asset, 'the repeated background import reuses one asset');
+  assert.notEqual(mainDisk.nodes[0].layers[2].asset, mainDisk.nodes[0].layers[0].asset, 'the character layer keeps its own asset');
   assert(mainDisk.nodes[0].layers.some(l => l.w === 80), 'layout edit persisted');
   assert.equal(mainDisk.nodes[0].effects.length, 1, 'effect persisted');
-  assert(fs.existsSync(path.join(tmp, mainDisk.assets[0].file)), 'content-addressed image exists');
+  for (const a of mainDisk.assets) assert(fs.existsSync(path.join(tmp, a.file)), 'content-addressed image exists: ' + a.file);
   assert.deepEqual(store.openProject(tmp).project.nodes.map(n => n.text), mainDisk.nodes.map(n => n.text));
   assert(fs.existsSync(path.join(tmp, 'backups/latest/project.paper.json')), 'last-good backup created');
   console.log('  ok  explicit save, reopen verification and last-good backup');
