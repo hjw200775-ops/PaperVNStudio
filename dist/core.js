@@ -168,6 +168,21 @@ function createVNCore(){
   for(const id of before){const i=a.get(id),j=b.get(id);if(i==null||j==null||i===j)continue;const nb=before[i+1],na=after[j+1];if(nb!==na)out.push({nodeId:id,before:nb||'',after:na||''})}
   return out;
  }
+ /* 按树顺序重排节点，但「未分组」的句子留在原位：删除分组不会因为后续整理被搬到最后。 */
+ function applyTreeOrder(p){
+  const groups=new Set(paragraphIds(p));
+  const byGroup=new Map();
+  for(const n of p.nodes){if(!byGroup.has(n.paragraphId))byGroup.set(n.paragraphId,[]);byGroup.get(n.paragraphId).push(n.id)}
+  const out=[],emitted=new Set();
+  for(const n of p.nodes){
+   if(!groups.has(n.paragraphId)){out.push(n.id);continue}
+   if(emitted.has(n.paragraphId))continue;
+   emitted.add(n.paragraphId);
+   for(const id of byGroup.get(n.paragraphId)||[])out.push(id);
+  }
+  applyOrder(p,out);
+  return out;
+ }
  function moveParagraph(p,paragraphId,targetChapterId,beforeParagraphId){
   const entry=paragraphMap(p).get(paragraphId);if(!entry)return null;
   const target=(p.chapters||[]).find(c=>c.id===targetChapterId)||entry.chapter;
@@ -176,7 +191,7 @@ function createVNCore(){
   if(beforeParagraphId){const at=target.paragraphs.findIndex(g=>g.id===beforeParagraphId);if(at>=0)index=at}
   target.paragraphs.splice(index,0,entry.paragraph);
   const before=p.nodes.map(n=>n.id);
-  applyOrder(p,flattenOrder(p));
+  applyTreeOrder(p);
   return {diffs:orderDiff(before,p.nodes.map(n=>n.id)),chapterId:target.id};
  }
  function moveChapter(p,chapterId,beforeChapterId){
@@ -186,7 +201,7 @@ function createVNCore(){
   if(beforeChapterId){const at=p.chapters.findIndex(x=>x.id===beforeChapterId);if(at>=0)index=at}
   p.chapters.splice(index,0,c);
   const before=p.nodes.map(n=>n.id);
-  applyOrder(p,flattenOrder(p));
+  applyTreeOrder(p);
   return {diffs:orderDiff(before,p.nodes.map(n=>n.id))};
  }
  /* 删除分组默认保留剧情：节点变成「未分组」，播放顺序完全不动。 */
@@ -218,23 +233,95 @@ function createVNCore(){
   return c;
  }
 
- /* ---------- 从指定位置试玩 ---------- */
- /* 前置状态沿用现有解析规则：用「到本句为止的脚本顺序」作为路径。前面有分支或跳转时
-    明确标记为不确定，由界面提示，而不是假装还原了真实路径。 */
- function entryPath(p,nodeId){
-  const i=p.nodes.findIndex(n=>n.id===nodeId);if(i<0)return null;
-  const node=p.nodes[i],trail=p.nodes.slice(0,i).map(n=>n.id);
-  let anchorId='';
-  for(let k=i;k>=0;k--)if(p.nodes[k].sceneMode==='own'){anchorId=p.nodes[k].id;break}
-  const reasons=[];
-  for(let k=0;k<i;k++){
-   const n=p.nodes[k];
-   if(n.type==='choice'&&(n.options||[]).length>1)reasons.push({nodeId:n.id,kind:'choice',text:n.text});
-   else if(n.next&&n.next!==p.nodes[k+1]?.id)reasons.push({nodeId:n.id,kind:'jump',text:n.text});
-  }
-  return {trail,anchorId,fromOwn:node.sceneMode==='own',uncertain:reasons.length>0,reasons};
+/* ---------- 从指定位置试玩 ---------- */
+/* 目标句的前置状态由「进入点 → 目标句」的实际路径决定。这里做三件事：
+   1) 有真实试玩路径就直接用；
+   2) 否则从所有可能的进入点枚举到目标句的路径，按「最后一个独立场景 + 之后的尾巴」
+      归一化——独立场景会重置图层、表情与持续效果，所以只有尾巴不同才算状态不同；
+   3) 尾巴唯一才算确定，否则把候选路线交给界面让作者选择，绝不把各分支状态拼在一起。 */
+function followGraph(p){
+ const index=new Map(p.nodes.map((n,i)=>[n.id,i]));
+ const next=new Map(),prev=new Map();
+ for(const [i,n]of p.nodes.entries()){
+  const targets=n.type==='end'?[]:n.type==='choice'
+   ?(n.options||[]).map(o=>o.target).filter(t=>index.has(t))
+   :[n.next||p.nodes[i+1]?.id].filter(t=>t&&index.has(t));
+  next.set(n.id,targets);
+  for(const t of targets){if(!prev.has(t))prev.set(t,[]);prev.get(t).push(n.id)}
  }
-
+ return {index,next,prev};
+}
+/* 从 from 前进到 to 的所有简单路径（不重复节点），最多 limit 条，避免分支爆炸。 */
+function walkPaths(g,from,to,limit){
+ const out=[];
+ const stack=[{at:from,path:[from],seen:new Set([from])}];
+ while(stack.length&&out.length<limit){
+  const {at,path,seen}=stack.pop();
+  if(at===to){out.push(path);continue}
+  for(const nx of g.next.get(at)||[]){
+   if(seen.has(nx))continue;
+   const s2=new Set(seen);s2.add(nx);
+   stack.push({at:nx,path:[...path,nx],seen:s2});
+  }
+ }
+ return out;
+}
+/* 归一化：最后一个独立场景（或起点）之后的部分才决定目标句的状态。 */
+function normalizeRoute(p,path){
+ let last=0;
+ for(let i=0;i<path.length-1;i++){
+  const n=p.nodes.find(x=>x.id===path[i]);
+  if(n&&n.sceneMode==='own')last=i;
+ }
+ /* trail 必须包含进入点本身（scene/effects/cast 沿它回溯），但判定「是否同一状态」时
+    只比较进入点之后的尾巴：进入点会重置图层、表情与持续效果，之前的路径不再影响。 */
+ const suffix=path.slice(last+1,path.length-1);
+ return {anchorId:path[last],trail:path.slice(last,path.length-1),suffix,key:path[last]+'|'+suffix.join('>'),path};
+}
+function entryPlan(p,nodeId,actualTrail){
+ const node=p.nodes.find(n=>n.id===nodeId);
+ if(!node)return null;
+ /* 正在试玩并且就在这一句：真实走过的路径优先。用「路径最后一句确实通向本句」校验，
+    分支路线长度和节点下标不一定相等，不能拿下标比。 */
+ if(Array.isArray(actualTrail)&&actualTrail.length){
+  const last=p.nodes.find(n=>n.id===actualTrail[actualTrail.length-1]);
+  const succ=last?(last.type==='end'?[]:last.type==='choice'
+   ?(last.options||[]).map(o=>o.target)
+   :[last.next||p.nodes[p.nodes.indexOf(last)+1]?.id]):[];
+  if(succ.includes(nodeId))return {trail:[...actualTrail],anchorId:'',source:'actual',ambiguous:false,options:[],fromOwn:node.sceneMode==='own'};
+ }
+ if(node.sceneMode==='own'){
+  return {trail:[],anchorId:node.id,source:'scene',ambiguous:false,options:[],fromOwn:true};
+ }
+ const g=followGraph(p);
+ const anchors=p.nodes.filter(n=>n.sceneMode==='own').map(n=>n.id);
+ if(p.nodes[0]&&!anchors.includes(p.nodes[0].id))anchors.push(p.nodes[0].id);
+ const routes=[];
+ for(const a of anchors){
+  for(const path of walkPaths(g,a,nodeId,12))routes.push(normalizeRoute(p,path));
+ }
+ const unique=new Map();
+ for(const r of routes){
+  if(!unique.has(r.key))unique.set(r.key,{...r,count:0});
+  unique.get(r.key).count++;
+ }
+ const options=[...unique.values()];
+ if(!options.length){
+  return {trail:[],anchorId:'',source:'none',ambiguous:true,options:[],fromOwn:false,
+   reason:'找不到从任何独立场景到这句的路径；请从更靠前的场景入口开始试玩。'};
+ }
+ if(options.length===1){
+  const only=options[0];
+  return {trail:[...only.trail],anchorId:only.anchorId,source:'graph',ambiguous:false,options:[],fromOwn:false,path:only.path};
+ }
+ return {trail:[...options[0].trail],anchorId:options[0].anchorId,source:'ambiguous',ambiguous:true,options,fromOwn:false};
+}
+/* 兼容旧调用：只返回一条路径与是否确定。 */
+function entryPath(p,nodeId,actualTrail){
+ const plan=entryPlan(p,nodeId,actualTrail);
+ if(!plan)return null;
+ return {trail:plan.trail,anchorId:plan.anchorId,fromOwn:plan.fromOwn,uncertain:plan.ambiguous,reasons:[]};
+}
  /* ---------- TXT 文本解析（纯函数，导入前预览用） ---------- */
  /* 只认 # 章节、## 段落、以及「名字：台词」。不推断选项、结局或分支。 */
  function parseScript(text,characters){
@@ -351,7 +438,7 @@ function createVNCore(){
  }
  return {clone,id,validate,migrate,scene,castAlong,stage,characterIn,expressionIn,speakerOf,characterUsage,expressionUsage,edges,analyze,makeNode,blank,sample,assetForImport,defaultLayer,appendAssetLayer,
   tree,checkChapters,paragraphMap,chapterOf,paragraphIds,orderSuccessor,orderDiff,flattenOrder,
-  moveNodeToParagraph,moveImpact,moveParagraph,moveChapter,removeParagraph,removeChapter,addParagraph,addChapter,
-  entryPath,parseScript,applyScriptPlan};
+  moveNodeToParagraph,moveImpact,moveParagraph,moveChapter,applyTreeOrder,removeParagraph,removeChapter,addParagraph,addChapter,
+  entryPath,entryPlan,followGraph,parseScript,applyScriptPlan};
 }
 if(typeof module!=='undefined')module.exports=createVNCore;

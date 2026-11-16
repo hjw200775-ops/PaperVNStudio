@@ -123,6 +123,39 @@ async function main() {
     await sleep(200);
   }
 
+  /* 汇合句的定点试玩：road_26 前面有两条互斥路线，必须让作者选，不能拼状态 */
+  await run(`(()=>{const b=document.querySelector('#list [data-id="road_26"]');if(b)b.click()})()`);
+  await sleep(250);
+  await run(`document.querySelector('#playHere').click()`);
+  await sleep(300);
+  const ambiguous = await run(`(()=>{const body=document.querySelector('#modalBody');return {open:document.querySelector('#modal').open,heading:body.querySelector('h2')?body.querySelector('h2').textContent:'',routes:body.querySelectorAll('[data-route]').length,text:body.textContent.replace(/\s+/g,' ').slice(0,200)}})()`);
+  fs.writeFileSync(path.join(RESULT, 'branch-ambiguity.png'), (await win.webContents.capturePage()).toPNG());
+  assert(ambiguous.open && ambiguous.routes >= 2, 'road_26 需要选择路线：' + JSON.stringify(ambiguous));
+  const pickRoute = async idx => {
+    await run(`document.querySelectorAll('#modalBody [data-route]')[${idx}].click()`);
+    await sleep(350);
+    const state = await run(`({current,trail:trail.slice()})`);
+    await run(`document.querySelector('#stop').click()`);
+    await sleep(180);
+    await run(`document.querySelector('#playHere').click()`);
+    await sleep(300);
+    return state;
+  };
+  const routeA = await pickRoute(0);
+  const routeB = await pickRoute(1);
+  const extras = t => t.filter(id => id.startsWith('extra_'));
+  for (const [name, r] of [['路线 A', routeA], ['路线 B', routeB]]) {
+    assert.equal(r.current, 'road_26', name + ' 从 road_26 开始');
+    assert(r.trail.includes('road_21') && r.trail.includes('test_choice'), name + ' 走的是真实前置节点');
+    const e = extras(r.trail);
+    const onlyB = e.every(id => id.startsWith('extra_b'));
+    const onlyC = e.every(id => id.startsWith('extra_c'));
+    assert(onlyB || onlyC, name + ' 只包含一条分支的节点：' + JSON.stringify(e));
+  }
+  assert.notDeepEqual(routeA.trail, routeB.trail, '两条路线的前置不同');
+  await run(`document.querySelector('#closeModal').click()`).catch(() => {});
+  console.log('  ok  road_26 定点试玩：两条互斥路线分别还原，trail 不含另一条分支（截图 branch-ambiguity.png）');
+
   const report = {
     checkedAt: new Date().toISOString(),
     project: BRANCH,
@@ -134,7 +167,16 @@ async function main() {
     })),
     characters: { branch: chars, packHasCharactersField: packHas, canon: (canon.characters || []).length },
     conclusion: '角色列表为空是旧测试工程未绑定角色（素材包分支剧本没有 characters 字段）；同一版本下原作工程的 2 个角色在保存、重开与导出后仍在，因此不是打开/迁移/保存导致的数据丢失。',
-    screenshots: ['branch-route-1-end.png', 'branch-route-2-end.png', 'branch-route-3-end.png']
+    entryPlan: {
+      node: 'road_26',
+      ambiguous: true,
+      routes: ambiguous.routes,
+      chosen: [routeA, routeB].map(r => ({
+        trail: r.trail,
+        extras: r.trail.filter(id => id.startsWith('extra_'))
+      }))
+    },
+    screenshots: ['branch-route-1-end.png', 'branch-route-2-end.png', 'branch-route-3-end.png', 'branch-ambiguity.png']
   };
   fs.writeFileSync(path.join(RESULT, '分支路线证据.json'), JSON.stringify(report, null, 2), 'utf8');
   console.log('\nBRANCH_EVIDENCE PASS');

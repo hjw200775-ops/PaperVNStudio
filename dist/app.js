@@ -288,23 +288,49 @@ function stop(){playing=false;trail=[];$('#entryNotice').hidden=true;render()}
 function describeNode(id){const n=p.nodes.find(x=>x.id===id);if(!n)return '这句';const i=p.nodes.indexOf(n);const g=C.paragraphMap(p).get(n.paragraphId);return (g?g.paragraph.title+' · ':'')+'第 '+(i+1)+' 句'}
 /* 前置状态沿用现有 scene/effects/cast 解析：把「到本句为止的脚本顺序」当作路径。
    前面出现分支或跳转时明确告诉作者这是近似还原，而不是假装走了真实路径。 */
-function playFrom(nodeId){
- if(!nodeId)return toast('请先选中一句剧情');
- const info=C.entryPath(p,nodeId);
- if(!info)return toast('找不到这句剧情');
- playing=true;current=nodeId;trail=[...info.trail];selectedLayer=null;effectId=null;effectMode='layout';playbackAnimate=true;
+function routeLabel(o){
+ const names=(o.trail||[]).filter(id=>id!==o.anchorId).slice(-3).map(id=>indexLabel(id));
+ return '从「'+describeNode(o.anchorId)+'」出发'+(names.length?'，经过 '+names.join(' → '):'，直接进入本句');
+}
+function startPlayAt(nodeId,pathIds,note){
+ /* 参数不能命名成 trail：会遮住同名全局变量，导致试玩路径被丢掉。 */
+ playing=true;current=nodeId;trail=[...pathIds];selectedLayer=null;effectId=null;effectMode='layout';playbackAnimate=true;
  render();
  const notice=$('#entryNotice');
- if(info.uncertain){
-  notice.hidden=false;
-  notice.textContent='从「'+describeNode(nodeId)+'」开始：前面有 '+info.reasons.length+' 处分支或跳转，已按脚本顺序还原背景、表情与持续演出，可能和实际游玩不同。需要精确还原时，请从更前面的独立场景第一句开始。';
-  toast('已从这句开始试玩（前置状态按脚本顺序还原）');
- }else{
-  notice.hidden=false;
-  notice.textContent='从「'+describeNode(nodeId)+'」开始：场景、表情和持续演出按前面的句子还原。';
-  toast('已从这句开始试玩');
- }
+ notice.hidden=false;notice.textContent=note;
  if($('#stage').focus)$('#stage').focus();
+}
+/* 前置状态只按「进入点 → 本句」的实际路线还原；路线不唯一时让作者选，不拼合分支状态。 */
+function playFrom(nodeId){
+ if(!nodeId)return toast('请先选中一句剧情');
+ const actual=(playing&&current===nodeId&&trail.length)?trail:null;
+ const plan=C.entryPlan(p,nodeId,actual);
+ if(!plan)return toast('找不到这句剧情');
+ const head='从「'+describeNode(nodeId)+'」开始：';
+ if(plan.ambiguous){
+  if(!plan.options.length){
+   toast(plan.reason||'无法确定这句之前的状态');
+   return;
+  }
+  modal('这句前面有多条路线',
+   '<p>「'+esc(describeNode(nodeId))+'」之前有分支，不同路线会带来不同的表情与持续演出。请选择一条路线，或从独立场景的第一句重新开始。</p>'
+   +'<ul class="issue-list">'+plan.options.map((o,i)=>'<li><button data-route="'+i+'" class="issue"><em>路线 '+(i+1)+'</em>'+esc(routeLabel(o))+'</button></li>').join('')+'</ul>'
+   +'<p class="hint">所选路线只影响这次试玩，不会改动剧情。</p>');
+  $('#modalBody').querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>{
+   const i=+b.dataset.route,o=plan.options[i];
+   $('#modal').close();
+   startPlayAt(nodeId,o.trail,head+'按所选路线还原（'+routeLabel(o).replace(/^从/,'从')+'）。');
+   toast('已按所选路线开始试玩');
+  });
+  return;
+ }
+ const notes={
+  actual:head+'沿用刚才实际走过的路径还原背景、表情与持续演出。',
+  scene:head+'这一句是独立场景，舞台与演出从这一句开始。',
+  graph:head+'前面只有一条路线，背景、表情与持续演出按这条路线还原。'
+ };
+ startPlayAt(nodeId,plan.trail,notes[plan.source]||notes.graph);
+ toast(plan.source==='actual'?'已按实际路径从这句开始试玩':'已从这句开始试玩');
 }
 $('#playHere').onclick=()=>playFrom(node()?.id);
 $('#playPara').onclick=()=>{

@@ -144,7 +144,7 @@ console.log('  ok  段落/章节移动与删除：段内顺序保持，删除默
 /* ---------- 5. 从指定位置试玩 ---------- */
 const own = C.entryPath(q, 'n5');
 assert.equal(own.anchorId, 'n4', '入口取最近的独立场景');
-assert.deepEqual(own.trail, ['n1', 'n2', 'n3', 'n4']);
+assert.deepEqual(own.trail, ['n4'], '进入点是最近的独立场景，之前的句子不再参与还原');
 assert.equal(own.uncertain, false, '线性前置没有分支时是确定的');
 const school = C.stage(q, 'n5', own.trail);
 assert.equal(school.find(l => l.id === 'bg').asset, 'bg_school', '从学校段试玩不会沿用上学路的背景');
@@ -155,14 +155,43 @@ branched.nodes[1].type = 'choice';
 branched.nodes[1].options = [{ text: 'A', target: 'n3' }, { text: 'B', target: 'n4' }];
 branched.nodes[1].next = '';
 const bpath = C.entryPath(branched, 'n5');
-assert.equal(bpath.uncertain, true, '前面有选项时标记为不确定');
-assert(bpath.reasons.some(r => r.kind === 'choice'));
+/* n4 是独立场景且就在本句前一句：它会重置图层、表情与持续效果，
+   所以前面出现过选项也不影响这一句的状态，仍算确定。 */
+assert.equal(bpath.uncertain, false, '有独立场景兜底时不算不确定');
+assert.deepEqual(bpath.trail, ['n4']);
+const near = C.entryPlan(branched, 'n2');
+assert.equal(near.ambiguous, false, '紧跟在独立场景后面的句子只有一条入口');
+assert.deepEqual(near.trail, ['n1']);
 /* 持续效果按路径还原：n2 之后进入 n3 的独立场景会重置 */
 const beforeN3 = F.before(branched, C, 'n3', C.entryPath(branched, 'n3').trail);
 assert.equal(Object.keys(beforeN3).length, 0, '独立场景重置此前的持续效果');
-console.log('  ok  从本句试玩：最近独立场景为入口，背景/表情正确，分支时明确标记不确定');
+console.log('  ok  从本句试玩：最近独立场景为入口，背景/表情正确');
 
-/* ---------- 6. TXT 解析与导入计划 ---------- */
+/* ---------- 6. 排序一致性：删除分组与跨段移动 ---------- */
+const orderBefore = q.nodes.map(n => n.id);
+const delOne = C.clone(q);
+C.removeParagraph(delOne, 'pg_break');
+assert.deepEqual(delOne.nodes.map(n => n.id), orderBefore, '删除段落不改播放顺序');
+assert.deepEqual(C.tree(delOne).ungrouped.sort(), ['n1', 'n2'], '被删段落的句子进入未分组');
+/* 之后若整理章节/段落，未分组的句子也必须留在原位，不能被搬到末尾 */
+C.moveParagraph(delOne, 'pg_school', delOne.chapters[0].id, null);
+assert.deepEqual(delOne.nodes.slice(0, 2).map(n => n.id), ['n1', 'n2'], '整理顺序后未分组句子仍在原位');
+assert.deepEqual(delOne.nodes.map(n => n.id).sort(), orderBefore.slice().sort(), '没有节点丢失或重复');
+assert.equal(C.analyze(delOne).errors.length, 0, '删除后显式跳转仍有效');
+assert(C.analyze(delOne).warnings.some(w => w.includes('未分组')), '检查里能看到未分组提示');
+/* 跨段移动后：树顺序 == 播放顺序，显式引用仍指向同一个节点 */
+const crossMove = C.clone(q);
+crossMove.nodes[1].next = '';
+C.moveNodeToParagraph(crossMove, 'n2', pgRoad.id, null);
+assert.deepEqual(C.flattenOrder(crossMove), crossMove.nodes.map(n => n.id), '没有未分组时，树的展开顺序就是播放顺序');
+assert.equal(C.analyze(crossMove).errors.length, 0);
+assert.equal(C.orderSuccessor(crossMove, crossMove.nodes.find(n => n.id === 'n2')), 'n4', '没有显式 next 的句子跟着新顺序继续');
+assert.equal(C.orderSuccessor(crossMove, crossMove.nodes.find(n => n.id === 'n1')), 'n2', '显式 next 仍然指向原节点');
+const jumpTarget = crossMove.nodes.find(n => n.id === 'n4');
+assert.equal(jumpTarget.next, 'n5', '显式 next 没有被移动改写');
+console.log('  ok  排序一致性：删除分组与跨段移动后播放顺序可解释，显式跳转仍有效');
+
+/* ---------- 7. TXT 解析与导入计划 ---------- */
 const script = [
   '# 第一章',
   '## 早餐',
@@ -207,7 +236,7 @@ assert.equal(target2.nodes.filter(n => n.paragraphId === pgId).length, 2 + 4, '�
 assert.equal(target2.chapters.length, q.chapters.length, '没有新建章节');
 console.log('  ok  TXT 解析：章节/段落/说话人识别、重名与无法识别的行都有反馈，应用前不动工程');
 
-/* ---------- 7. 落盘回读与导出 ---------- */
+/* ---------- 8. 落盘回读与导出 ---------- */
 const store = createProjectStore();
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pvn-chapters-'));
 const root = path.join(tmp, '章节工程');

@@ -218,6 +218,14 @@ async function main() {
   await click('#undo'); await sleep(400);
   const undone = await run(`(()=>{const n=p.nodes.find(x=>x.id===${JSON.stringify(dragResult.fromId)});return {paragraph:n.paragraphId,order:JSON.stringify(p.nodes.map(x=>x.id))}})()`);
   check('撤销恢复分组与顺序', () => assert.equal(undone.order, idsBefore));
+  await click('#redo'); await sleep(400);
+  const redone = await run(`(()=>{const n=p.nodes.find(x=>x.id===${JSON.stringify(dragResult.fromId)});return {paragraph:n.paragraphId,order:JSON.stringify(p.nodes.map(x=>x.id))}})()`);
+  check('重做恢复移动后的分组与顺序', () => {
+    assert.equal(redone.paragraph, pgRoad);
+    assert.notEqual(redone.order, idsBefore, '重做后回到移动过的顺序');
+  });
+  await click('#undo'); await sleep(400);
+  assert.equal(await run('JSON.stringify(p.nodes.map(n=>n.id))'), idsBefore, '再撤销一次回到原始顺序');
 
   /* 移动到…（对话框）+ 影响提示，然后取消 */
   await run(`document.querySelector('#list [data-paragraph="${pgBreak}"] .node').click()`);
@@ -404,6 +412,12 @@ async function main() {
 
   check('整个流程没有渲染进程报错', () => assert.equal(errors.length, 0, errors.join(' | ')));
 
+  const crypto = require('node:crypto');
+  report.export = {
+    file: EXPORT,
+    bytes: fs.statSync(EXPORT).size,
+    sha256: crypto.createHash('sha256').update(fs.readFileSync(EXPORT)).digest('hex')
+  };
   report.finishedAt = new Date().toISOString();
   report.demoDirs = { canon: CANON, txt: TXT_DIR, anomaly: badDir };
   report.exported = EXPORT;
@@ -439,12 +453,34 @@ async function reopen() {
   const counts = await run("[...document.querySelectorAll('#list .paragraph .count-pill')].map(x=>x.textContent)");
   assert.deepEqual(counts, ['8', '28', '9']);
   await shot('13-重开工程');
-  saveQueue.push(path.join(RESULT, 'wanfeng-chapters-重开导出.html'));
+  const reopenFile = path.join(RESULT, 'wanfeng-chapters-重开导出.html');
+  saveQueue.push(reopenFile);
   await click('#export'); await sleep(2200);
-  assert(fs.existsSync(path.join(RESULT, 'wanfeng-chapters-重开导出.html')));
+  assert(fs.existsSync(reopenFile));
   assert.equal(errors.length, 0, errors.join(' | '));
+
+  const crypto = require('node:crypto');
+  const sha = f => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+  const first = JSON.parse(fs.readFileSync(path.join(RESULT, '验收报告-v042.json'), 'utf8'));
+  const comparison = {
+    checkedAt: new Date().toISOString(),
+    reopen: {
+      nodes: state.nodes,
+      chapters: state.chapters,
+      characters: state.chars,
+      firstNode: state.first,
+      lastNode: state.last,
+      paragraphCounts: counts
+    },
+    export: {
+      first: first.export,
+      afterReopen: { file: reopenFile, bytes: fs.statSync(reopenFile).size, sha256: sha(reopenFile) },
+      identical: first.export && first.export.sha256 === sha(reopenFile)
+    }
+  };
+  fs.writeFileSync(path.join(RESULT, '重开检查.json'), JSON.stringify(comparison, null, 2), 'utf8');
   console.log('  ok  新进程重开：45 句、3 个段落、2 个角色都在，段落计数一致');
-  console.log('  ok  重开后再导出成功');
+  console.log('  ok  重开后再导出成功；两次导出一致：' + comparison.export.identical);
   console.log('\nCHAPTERS_REOPEN PASS');
 }
 
