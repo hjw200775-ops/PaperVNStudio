@@ -2,7 +2,17 @@
   "name": "paper-vn-studio",
   "version": "0.3.1",
   "private": true,
-  "description": "纸间 Galgame 制作器 V0.3 网页源码与 Windows 桌面预览版",
+  "description": "纸间 PaperVNStudio — 视觉小说 / 文字冒险创作工具：Electron 桌面版与自包含 HTML 导出",
+  "author": "wenwenwen817",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hjw200775-ops/PaperVNStudio.git"
+  },
+  "homepage": "https://github.com/hjw200775-ops/PaperVNStudio#readme",
+  "bugs": {
+    "url": "https://github.com/hjw200775-ops/PaperVNStudio/issues"
+  },
   "main": "desktop/main.cjs",
   "scripts": {
     "start": "node scripts/serve.cjs",

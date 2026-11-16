@@ -1,11 +1,11 @@
-# 纸间 PaperVNStudio V0.3.1 收尾版 · 载荷提交 ebbdadf · 生成于 2026-11-17
+# 纸间 PaperVNStudio V0.3.1 · 生成于 2026-11-17
 # 用法：sha256sum -c SHA256SUMS.txt（在仓库根目录执行）
 # 说明：只覆盖受版本控制的源码与文档，不含 node_modules/、release/ 与用户工程。
 7c2e3246fb6615608bfebe6d342af0bce52653b01ce5b1d0ae42f4d9429e915c  .gitignore
 36ed56e9aa2b455053e8dcfbfc7b0528fc9dce31398e27b6caa72b6eac671a82  AGENTS.md
 76d3474f90fba3deec591578a7fb28392f92ad9b19bc1cdf8aec0daace307446  AI_START_PROMPT.md
 84190c6bf3cea6a5ac8f4c178ea41859a5e5d0422d4be47977be69b52a655416  Check-Source.cmd
-8eec3d86a9751d2ce7c12702804e6c5a16cca9ef9ca7c0296277ec96614f80ca  README.md
+6d22d2caf3db1b01775826bad6e3187e26e765c0d74f33b9addb0704f959cacd  README.md
 ea9a4cc9de5bb33209754ff7bb3204b8321adf428f6b9c1640f3017ba2da8e4f  Start-Web.cmd
 851389fb260e5a761838c2def66fae6ac9ed43987dd0d1d34494c66fad596b2e  desktop/main.cjs
 f85e45cc3a438ff5d2b1e63df2a25d96e0c9464b4d2adb7f195bdd155ef0a4b5  desktop/preload.cjs
@@ -26,7 +26,7 @@ c46eb199718367d49371a9122945ad63d8eca3aaa4c7ca1f6127719d2adb8c4f  docs/DESKTOP_M
 ba691bff79658780ebf397f66de9b25b3c5720aec45d8d55cb1adf7eab41bb7f  docs/VERIFICATION.md
 e3c024ab161f99b8930a39dbab56d07efa8beb24c502dda3cf5ebd2913daca0d  docs/WEB_V03_README.md
 bc51ebf90f7e0947d340d23d9360a0811e301a5dfd58449282aa9d00173432df  package-lock.json
-bc25bc3dfa053f0c1d5c38247fc27cc502edfdba6f66df330081bd70b85bb55b  package.json
+c35b4ae3f22dccf66f832406996f4f12ac82532421e67b1e8643848ff3891281  package.json
 35aace669aa126b4bd2bfc3530ccc482fb9541ba2dec1c216cee4a1ca274fa92  scripts/check.cjs
 5e3620fb80b7b5b7a28c585e17afb6d7fb95dd8f029746940f56d811b6c12f37  scripts/desktop-project-smoke.cjs
 dcaa669364c8c2c0162e67930e32e124bf86e243c34b256f8bf8e4d7d78291fa  scripts/desktop-smoke.cjs
