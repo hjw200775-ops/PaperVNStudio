@@ -17,6 +17,7 @@ const chapters = args[0] === '--chapters';
 const branch = args[0] === '--branch';
 const batchAcc = args[0] === '--batch';
 const audioAcc = args[0] === '--audio';
+const playerAcc = args[0] === '--player';
 const target = smoke ? path.join(root, 'scripts/desktop-smoke.cjs')
   : project ? path.join(root, 'scripts/desktop-project-smoke.cjs')
   : acceptance ? path.join(root, 'scripts/wanfeng-acceptance.cjs')
@@ -24,7 +25,8 @@ const target = smoke ? path.join(root, 'scripts/desktop-smoke.cjs')
   : branch ? path.join(root, 'scripts/branch-evidence.cjs')
   : batchAcc ? path.join(root, 'scripts/batch-acceptance.cjs')
   : audioAcc ? path.join(root, 'scripts/audio-acceptance.cjs')
+  : playerAcc ? path.join(root, 'scripts/player-acceptance.cjs')
   : root;
-const child = spawn(electron, [target, ...(smoke || project || acceptance || chapters || branch || batchAcc || audioAcc ? args.slice(1) : args)], { env, stdio: 'inherit' });
+const child = spawn(electron, [target, ...(smoke || project || acceptance || chapters || branch || batchAcc || audioAcc || playerAcc ? args.slice(1) : args)], { env, stdio: 'inherit' });
 child.on('error', err => { console.error('无法启动桌面窗口：' + err.message); process.exit(1); });
 child.on('exit', code => process.exit(code == null ? 1 : code));

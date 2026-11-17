@@ -54,6 +54,7 @@ function runExported(html) {
       removeItem: k => { delete store[k]; }
     },
     performance: { now: () => 1000 },
+    setTimeout, clearTimeout,
     requestAnimationFrame: () => 1,
     cancelAnimationFrame: () => {},
     matchMedia: () => ({ matches: false })
@@ -82,6 +83,12 @@ console.log('  ok  standalone HTML is self-contained with inlined images and sha
 
 const { nodes } = runExported(html);
 assert.equal(nodes.title.textContent, p.title);
+assert.equal(nodes.gameRoot.hidden, true, 'opens on the title page');
+assert.equal(nodes.continueGame.disabled, true, 'no save yet: continue disabled');
+assert.equal((nodes.text || {}).textContent || '', '', 'no story rendered on the title page');
+nodes.startGame.onclick();                              // real entry point
+assert.equal(nodes.gameRoot.hidden, false, 'start enters the game stage');
+assert.equal(nodes.titleScreen.hidden, true);
 assert.equal(nodes.text.textContent, p.nodes[0].text);
 assert.equal(nodes.layers.children.length, 1, 'scene layers rendered');
 assert.equal(nodes.layers.children[0].dataset.layer, 'L1');

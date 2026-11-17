@@ -40,6 +40,7 @@ protocol.registerSchemesAsPrivileged([{
 app.enableSandbox();
 
 let win = null;
+let previewWin = null;
 let recentFile = '';
 let draftDir = '';
 const state = { currentDir: null, label: '', dirty: false, closing: false, lastError: '' };
@@ -417,6 +418,26 @@ function registerIPC() {
   });
 
   // invoke/handle pair: the renderer's await resolves, and the sender is validated.
+  /* 完整预览：只加载与导出完全相同的自包含 HTML，不暴露工程/编辑器能力。
+     单文件写到 userData/preview，避免在用户工程目录留下临时文件。 */
+  handle('player:preview', async html => {
+    if (typeof html !== 'string' || !html.length) throw new Error('预览内容为空');
+    if (html.length > 64 * 1024 * 1024) throw new Error('预览内容超过 64MB');
+    const dir = path.join(app.getPath('userData'), 'preview');
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, 'game-preview.html');
+    fs.writeFileSync(file, html, 'utf8');
+    if (previewWin && !previewWin.isDestroyed()) previewWin.close();
+    previewWin = new BrowserWindow({
+      width: 1200, height: 860, minWidth: 720, minHeight: 600,
+      title: '完整游戏预览', backgroundColor: '#17261f',
+      webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true }
+    });
+    previewWin.on('closed', () => { previewWin = null; });
+    await previewWin.loadFile(file);
+    return reply({ preview: true });
+  });
+
   handle('app:finishSaveBeforeClose', result => {
     if (pendingSave && result && result.token === pendingSaveToken) {
       pendingSave({ ok: !!result.ok, message: String(result.message || '') });

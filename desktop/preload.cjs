@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('paperDesktop', {
   pickImage: assetKind => call('file:pickImage', assetKind),
   pickAudio: () => call('file:pickAudio'),
   pickText: () => call('file:pickText'),
+  previewGame: html => call('player:preview', html),
   saveFile: payload => call('file:save', payload),
   onCommand: handler => ipcRenderer.on('app:command', (_event, command) => handler(command)),
   onSaveBeforeClose: handler => ipcRenderer.on('app:saveBeforeClose', (_event, token) => handler(token)),

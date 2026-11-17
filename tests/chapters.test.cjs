@@ -261,9 +261,10 @@ const makeElement = tag => ({
   getBoundingClientRect() { return { width: 1280, height: 720 }; }, setAttribute() {}, focus() {}, remove() {}
 });
 const document = { getElementById(id) { return nodes[id] || (nodes[id] = makeElement('div')); }, createElement(t) { return makeElement(t); }, onkeydown: null };
-const sandbox = { document, console, localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, performance: { now: () => 1000 }, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, matchMedia: () => ({ matches: false }) };
+const sandbox = { document, console, localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, performance: { now: () => 1000 }, setTimeout, clearTimeout, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, matchMedia: () => ({ matches: false }) };
 vm.createContext(sandbox);
 vm.runInContext(/<script>([\s\S]*?)<\/script>/.exec(html)[1], sandbox, { filename: 'exported.js' });
+nodes.startGame.onclick();                                // V0.6.1：先从标题页进入
 assert.equal(nodes.text.textContent, q.nodes[0].text, '导出播放器从第一句开始');
 nodes.scene.onclick();
 assert.equal(nodes.text.textContent, q.nodes[1].text, '章节不影响播放顺序');

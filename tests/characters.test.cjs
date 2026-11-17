@@ -224,9 +224,10 @@ const makeElement = tag => ({
   getBoundingClientRect() { return { width: 1280, height: 720 }; }, setAttribute() {}, focus() {}, remove() {}
 });
 const document = { getElementById(id) { return nodes[id] || (nodes[id] = makeElement('div')); }, createElement(t) { return makeElement(t); }, onkeydown: null };
-const sandbox = { document, console, localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, performance: { now: () => 1000 }, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, matchMedia: () => ({ matches: false }) };
+const sandbox = { document, console, localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, performance: { now: () => 1000 }, setTimeout, clearTimeout, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, matchMedia: () => ({ matches: false }) };
 vm.createContext(sandbox);
 vm.runInContext(/<script>([\s\S]*?)<\/script>/.exec(html)[1], sandbox, { filename: 'exported-game.js' });
+nodes.startGame.onclick();                                // V0.6.1：先从标题页进入
 const srcOf = id => nodes.layers.children.find(c => c.dataset.layer === id).children[0].src;
 assert.equal(nodes.who.textContent, '');
 assert(srcOf('linyou').includes(PNG), '初始画面是自然表情');

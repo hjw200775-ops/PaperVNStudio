@@ -146,20 +146,23 @@ console.log('  ok  音频内嵌、体积估算、拒绝磁盘路径 / 远程地�
 /* 2. 独立窗口执行：解锁 → 真实播放 → 音量 → 存档/读档 → 返回/重开 */
 (async () => {
   const { nodes, audios, timers, store } = runExported(html);
-  assert.equal(nodes.text.textContent, '早餐场景');
+  assert.equal(nodes.title.textContent, p.title);
+  assert.equal(nodes.gameRoot.hidden, true, '打开先显示标题页');
+  assert.equal(nodes.continueGame.disabled, true, '没有存档时继续禁用');
   assert.notEqual((nodes.audioPanel || {}).hidden, true, '含音频工程不隐藏音量面板');
   assert.match(nodes.audioStatus.textContent, /启用声音/, '首次播放受限时提示启用');
-  assert.equal(audios.length, 0, '未解锁前不创建作品素材播放对象');
+  assert.equal(audios.length, 0, '标题页不创建作品素材播放对象');
 
-  await nodes.enableSound.onclick();
+  await nodes.startGame.onclick();                       // 点击链里解锁并进入
+  await nodes.enableSound.onclick();                     // 显式启用入口仍可用
   assert.match(nodes.msg.textContent, /声音已启用/);
-  const bgm = audios.find(a => a._src === url(BGM));
+  const bgm = audios.filter(a => a._src === url(BGM)).pop();
   assert(bgm, '解锁后从曲首启动 BGM');
   assert.equal(bgm.paused, false, '实际处于播放状态');
   assert.equal(bgm.loop, true, '循环生效');
   await new Promise(r => setTimeout(r, 150));
   assert(bgm.currentTime > 0, '播放时间真的推进：' + bgm.currentTime);
-  const sfx = audios.find(a => a._src === url(SFX));
+  const sfx = audios.filter(a => a._src === url(SFX)).pop();
   assert(sfx, '进入本句触发一次音效');
   assert.match(nodes.audioStatus.textContent, /正在播放「bgm_morning_test.wav」/, '显示当前生效音乐');
 
@@ -186,7 +189,7 @@ console.log('  ok  音频内嵌、体积估算、拒绝磁盘路径 / 远程地�
   assert.equal(nodes.text.textContent, '第二句沿用音乐');
   assert(bgm.currentTime >= t0, '正常推进沿用当前 BGM 播放位置');
   assert.equal(bgm.paused, false);
-  const voice = audios.find(a => a._src === url(VOICE));
+  const voice = audios.filter(a => a._src === url(VOICE)).pop();
   assert(voice && voice.paused === false, '语音进入本句从头播放');
 
   /* 读档：重建目标句 BGM，从曲首启动 */
@@ -200,6 +203,8 @@ console.log('  ok  音频内嵌、体积估算、拒绝磁盘路径 / 远程地�
   nodes.back.onclick();
   assert.equal(nodes.text.textContent, '早餐场景');
   nodes.restart.onclick();
+  assert.equal(nodes.confirmOverlay.hidden, false, '有进度时重新开始先确认');
+  await nodes.confirmRestart.onclick();
   assert.equal(nodes.text.textContent, '早餐场景');
   assert.match(nodes.audioStatus.textContent, /正在播放|没有背景音乐/, '状态栏可用');
 
@@ -215,6 +220,9 @@ console.log('  ok  音频内嵌、体积估算、拒绝磁盘路径 / 远程地�
   const oldRun = runExported(oldHtml);
   assert.equal(oldRun.audios.length, 0, '旧工程不创建任何播放对象');
   assert.equal(oldRun.nodes.audioPanel.hidden, true, '隐藏音频面板');
+  assert.equal(oldRun.nodes.gameRoot.hidden, true, '旧工程也从标题页开始');
+  assert.equal((oldRun.nodes.text || {}).textContent || '', '');
+  oldRun.nodes.startGame.onclick();
   assert.equal(oldRun.nodes.text.textContent, old.nodes[0].text);
   assert.equal(oldRun.nodes.choices.children.length, 0, '第一句不是选项');
   assert.equal(oldRun.nodes.back.disabled, true, '开头不能返回');

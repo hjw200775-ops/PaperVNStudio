@@ -54,6 +54,7 @@
     pickImage: assetKind => api.pickImage(assetKind).then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
     pickAudio: () => api.pickAudio().then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
     pickText: () => api.pickText().then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
+    previewGame: html => call(() => api.previewGame(html)),
     saveFile: payload => api.saveFile(payload).then(r => { const v = ok(r); return v.cancelled ? null : v; }),
     onCommand: handler => api.onCommand(handler),
     onSaveBeforeClose: handler => api.onSaveBeforeClose(handler),
