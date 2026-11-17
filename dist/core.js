@@ -252,12 +252,16 @@ function followGraph(p){
  return {index,next,prev};
 }
 /* 从 from 前进到 to 的所有简单路径（不重复节点），最多 limit 条，避免分支爆炸。 */
-function walkPaths(g,from,to,limit){
+/* 枚举路径要设上限：分支多或结构异常时宁可停下来提示，也不能卡住窗口，
+   更不能把「没枚举完」当成「只有一条路」。 */
+const WALK_MAX_STEPS=4000,WALK_MAX_ROUTES=24,WALK_PER_ANCHOR=8;
+function walkPaths(g,from,to,limit,budget){
  const out=[];
  const stack=[{at:from,path:[from],seen:new Set([from])}];
  while(stack.length&&out.length<limit){
+  if(budget.steps++>=budget.maxSteps){budget.truncated=true;break}
   const {at,path,seen}=stack.pop();
-  if(at===to){out.push(path);continue}
+  if(at===to){out.push(path);budget.routes++;continue}
   for(const nx of g.next.get(at)||[]){
    if(seen.has(nx))continue;
    const s2=new Set(seen);s2.add(nx);
@@ -296,9 +300,14 @@ function entryPlan(p,nodeId,actualTrail){
  const g=followGraph(p);
  const anchors=p.nodes.filter(n=>n.sceneMode==='own').map(n=>n.id);
  if(p.nodes[0]&&!anchors.includes(p.nodes[0].id))anchors.push(p.nodes[0].id);
+ const budget={steps:0,routes:0,maxSteps:WALK_MAX_STEPS,truncated:false};
  const routes=[];
  for(const a of anchors){
-  for(const path of walkPaths(g,a,nodeId,12))routes.push(normalizeRoute(p,path));
+  for(const path of walkPaths(g,a,nodeId,WALK_PER_ANCHOR,budget)){
+   routes.push(normalizeRoute(p,path));
+   if(routes.length>=WALK_MAX_ROUTES){budget.truncated=true;break}
+  }
+  if(budget.truncated)break;
  }
  const unique=new Map();
  for(const r of routes){
@@ -310,11 +319,16 @@ function entryPlan(p,nodeId,actualTrail){
   return {trail:[],anchorId:'',source:'none',ambiguous:true,options:[],fromOwn:false,
    reason:'找不到从任何独立场景到这句的路径；请从更靠前的场景入口开始试玩。'};
  }
- if(options.length===1){
+ /* 枚举被预算截断时，即使只看到一条也不能断言唯一 */
+ if(options.length===1&&!budget.truncated){
   const only=options[0];
   return {trail:[...only.trail],anchorId:only.anchorId,source:'graph',ambiguous:false,options:[],fromOwn:false,path:only.path};
  }
- return {trail:[...options[0].trail],anchorId:options[0].anchorId,source:'ambiguous',ambiguous:true,options,fromOwn:false};
+ if(options.length===1&&budget.truncated){
+  return {trail:[...options[0].trail],anchorId:options[0].anchorId,source:'truncated',ambiguous:true,options,fromOwn:false,truncated:true,
+   reason:'这句之前的路线太多或存在循环，已停止枚举。请从更明确的场景入口（独立场景第一句）开始试玩。'};
+ }
+ return {trail:[...options[0].trail],anchorId:options[0].anchorId,source:'ambiguous',ambiguous:true,options,fromOwn:false,truncated:budget.truncated};
 }
 /* 兼容旧调用：只返回一条路径与是否确定。 */
 function entryPath(p,nodeId,actualTrail){
@@ -322,7 +336,218 @@ function entryPath(p,nodeId,actualTrail){
  if(!plan)return null;
  return {trail:plan.trail,anchorId:plan.anchorId,fromOwn:plan.fromOwn,uncertain:plan.ambiguous,reasons:[]};
 }
- /* ---------- TXT 文本解析（纯函数，导入前预览用） ---------- */
+ /* ---------- 批量编辑（V0.4.3） ---------- */
+/* 一切批量写入先生成计划，再整体应用：计划里带每个目标的「改前/改后」与跳过原因，
+   界面据此预览；应用时用深拷贝写回，一次 edit() 只有一条撤销记录。 */
+function sceneFor(p,nodeId){
+ const plan=entryPlan(p,nodeId);
+ if(!plan)return {ok:false,reason:'这句已经不存在'};
+ if(plan.ambiguous)return {ok:false,ambiguous:true,reason:'这句的前置路线不唯一，无法确定画面'};
+ return {ok:true,layers:scene(p,nodeId,plan.trail)};
+}
+function exprNameOfChar(c,exprId){const e=c&&(c.expressions||[]).find(x=>x.id===exprId);return e?e.name:''}
+function sceneForCast(p,nodeId,characterId){
+ const info=sceneFor(p,nodeId);
+ if(!info.ok)return info;
+ const layers=info.layers.filter(l=>l.characterId===characterId);
+ if(!layers.length)return {ok:false,reason:'这句的画面里没有这个角色'};
+ if(layers.length>1)return {ok:false,reason:'这个角色在这句里对应多个图层，无法确定改哪一张'};
+ return {ok:true,layer:layers[0],layers:info.layers};
+}
+/* fields：
+   speaker:            { characterId }   '' 表示清空为自由文本
+   speakerExpression:  { expressionId }  '' 表示沿用画面表情
+   cast:               { characterId, expressionId }  expressionId '' 表示清除该角色在本句的表情
+   未出现的字段表示「不修改」。 */
+function planBatch(p,nodeIds,fields){
+ const f=fields||{};
+ const plan={total:0,changes:[],skipped:[],conflicts:[],fields:{}};
+ const seen=new Set();
+ for(const id of nodeIds||[]){
+  if(seen.has(id))continue;
+  seen.add(id);
+  plan.total++;
+  const node=p.nodes.find(n=>n.id===id);
+  if(!node){plan.skipped.push({nodeId:id,reason:'这句已经不存在'});continue}
+  if(node.type!=='say'){plan.skipped.push({nodeId:id,reason:node.type==='choice'?'选项节点不参与批量修改（避免改动结构）':'结局节点不参与批量修改（避免改动结构）'});continue}
+  const before={speakerId:node.speakerId||'',expressionId:node.expressionId||'',cast:clone(node.cast||[]),name:node.name||''};
+  const after={speakerId:before.speakerId,expressionId:before.expressionId,cast:clone(before.cast),name:before.name};
+  const notes=[];
+  let bad=false;
+  const skip=reason=>{plan.skipped.push({nodeId:id,reason});bad=true};
+  const conflict=reason=>{plan.conflicts.push({nodeId:id,reason});bad=true};
+  /* 1) 说话角色 */
+  if(f.speaker){
+   const cid=f.speaker.characterId||'';
+   if(cid){
+    const c=characterIn(p,cid);
+    if(!c)conflict('要设置的角色已经不存在');
+    else{
+     after.speakerId=cid;after.name=c.name;
+     if(after.expressionId&&!c.expressions.some(e=>e.id===after.expressionId)){
+      const def=c.defaultExpressionId||'';
+      notes.push('原表情不属于「'+c.name+'」，已'+(def?'改为默认表情「'+exprNameOfChar(c,def)+'」':'清空为沿用画面表情'));
+      after.expressionId=def;
+     }
+    }
+   }else{
+    after.speakerId='';after.expressionId='';
+    notes.push('改为自由文本说话人，保留原来的名字文字：'+(before.name||'旁白'));
+   }
+  }
+  /* 2) 说话角色的表情 */
+  if(f.speakerExpression){
+   const want=f.speakerExpression.expressionId||'';
+   if(!after.speakerId)skip('这句没有说话角色，先设置说话角色');
+   else if(want){
+    const c=characterIn(p,after.speakerId);
+    if(!c||!c.expressions.some(e=>e.id===want))conflict('表情不属于这句的说话角色');
+    else{after.expressionId=want;notes.push('说话表情改为「'+exprNameOfChar(c,want)+'」')}
+   }else{after.expressionId='';notes.push('说话表情清空为沿用画面表情')}
+  }
+  /* 3) 在场角色的表情（只改本句的绑定，不动图层几何与其他角色） */
+  if(f.cast){
+   const cid=f.cast.characterId||'';
+   const want=f.cast.expressionId||'';
+   if(!cid)skip('没有选择在场的角色');
+   else if(after.speakerId===cid&&f.speakerExpression){
+    conflict('同一个角色既设了说话人表情又设了在场表情，只能保留一个');
+   }else{
+    const info=sceneForCast(p,id,cid);
+    if(!info.ok)skip(info.reason);
+    else{
+     const c=characterIn(p,cid);
+     if(!c)conflict('要设置的角色已经不存在');
+     else if(want&&!c.expressions.some(e=>e.id===want))conflict('表情不属于这个角色');
+     else{
+      const idx=after.cast.findIndex(x=>x.characterId===cid);
+      if(want){
+       if(idx>=0)after.cast[idx]={characterId:cid,expressionId:want};
+       else after.cast.push({characterId:cid,expressionId:want});
+       notes.push('在场「'+c.name+'」的表情改为「'+exprNameOfChar(c,want)+'」');
+      }else if(idx>=0){after.cast.splice(idx,1);notes.push('清除「'+c.name+'」在本句的表情绑定')}
+     }
+    }
+   }
+  }
+  if(bad)continue;
+  if(JSON.stringify(before)===JSON.stringify(after)){plan.skipped.push({nodeId:id,reason:'这句已经是目标状态'});continue}
+  plan.changes.push({nodeId:id,before,after,notes,index:p.nodes.findIndex(n=>n.id===id)});
+ }
+ plan.fields=Object.keys(f).length;
+ return plan;
+}
+function applyBatch(p,plan){
+ for(const change of plan.changes||[]){
+  const node=p.nodes.find(n=>n.id===change.nodeId);
+  if(!node)continue;
+  node.speakerId=change.after.speakerId;
+  node.expressionId=change.after.expressionId;
+  node.name=change.after.name;
+  node.cast=clone(change.after.cast);
+ }
+ return (plan.changes||[]).map(c=>c.nodeId);
+}
+/* ---------- 复制 / 粘贴场景 ---------- */
+/* 只复制源句自己保存的独立场景：继承场景不推断，提示作者先建立独立场景。 */
+function planPasteScene(p,sourceId,targetIds){
+ const source=p.nodes.find(n=>n.id===sourceId);
+ if(!source)return {ok:false,reason:'源句已经不存在',targets:[]};
+ if(source.sceneMode!=='own')return {ok:false,reason:'源句沿用了上一画面，没有自己的场景布局。请先用「独立画面」把它变成独立场景再复制。',targets:[]};
+ const layers=clone(source.layers||[]);
+ const targets=[];
+ for(const id of targetIds||[]){
+  const node=p.nodes.find(n=>n.id===id);
+  if(!node){targets.push({nodeId:id,ok:false,reason:'这句已经不存在'});continue}
+  if(id===sourceId){targets.push({nodeId:id,ok:false,reason:'源句就是目标句，已跳过'});continue}
+  const issues=[];
+  const newIds=new Set(layers.map(l=>l.id));
+  for(const e of node.effects||[])if(!newIds.has(e.layer))issues.push('原有演出指向的图层在粘贴后不存在（'+(e.type)+'）');
+  for(const l of layers){
+   if(l.characterId&&!characterIn(p,l.characterId))issues.push('图层「'+l.name+'」绑定的角色已删除');
+   else if(l.characterId&&l.expressionId){
+    const c=characterIn(p,l.characterId);
+    if(c&&!c.expressions.some(x=>x.id===l.expressionId))issues.push('图层「'+l.name+'」绑定的表情已删除');
+   }
+  }
+  targets.push({nodeId:id,ok:issues.length===0,issues,layers:clone(layers),beforeSceneMode:node.sceneMode,beforeLayerCount:(node.layers||[]).length});
+ }
+ return {ok:true,sourceId,layers,targets};
+}
+function applyPasteScene(p,plan,onlySafe){
+ for(const t of plan.targets||[]){
+  if(!t.ok&&!onlySafe)continue;
+  if(!t.ok)continue;
+  const node=p.nodes.find(n=>n.id===t.nodeId);
+  if(!node)continue;
+  node.sceneMode='own';
+  node.layers=clone(plan.layers);
+ }
+ return (plan.targets||[]).filter(t=>t.ok).map(t=>t.nodeId);
+}
+/* ---------- 复制 / 粘贴演出 ---------- */
+function planPasteEffects(p,sourceId,targetIds,mode){
+ const makeId=id;                    /* 循环变量 id 会遮住生成器，这里先留一份 */
+ const source=p.nodes.find(n=>n.id===sourceId);
+ if(!source)return {ok:false,reason:'源句已经不存在',targets:[]};
+ const effects=clone(source.effects||[]);
+ if(!effects.length)return {ok:false,reason:'源句没有演出可以复制',targets:[]};
+ const srcScene=sceneFor(p,sourceId);
+ const targets=[];
+ for(const id of targetIds||[]){
+  const node=p.nodes.find(n=>n.id===id);
+  if(!node){targets.push({nodeId:id,ok:false,reason:'这句已经不存在'});continue}
+  if(id===sourceId){targets.push({nodeId:id,ok:false,reason:'源句就是目标句，已跳过'});continue}
+  const sceneInfo=sceneFor(p,id);
+  if(!sceneInfo.ok){targets.push({nodeId:id,ok:false,reason:sceneInfo.reason+'（不按某条路线猜图层）'});continue}
+  const targetLayers=sceneInfo.layers;
+  const mapping={},issues=[];
+  for(const e of effects){
+   const srcLayer=(srcScene.ok?srcScene.layers:[]).find(l=>l.id===e.layer)||(source.layers||[]).find(l=>l.id===e.layer);
+   const byId=targetLayers.find(l=>l.id===e.layer);
+   if(byId&&(!srcLayer||!srcLayer.characterId||byId.characterId===srcLayer.characterId)){mapping[e.id]=byId.id;continue}
+   const charId=srcLayer&&srcLayer.characterId;
+   if(charId){
+    const same=targetLayers.filter(l=>l.characterId===charId);
+    if(same.length===1){mapping[e.id]=same[0].id;continue}
+    if(!same.length)issues.push('这句的画面里没有「'+(srcLayer.name||e.layer)+'」这一层');
+    else issues.push('「'+(srcLayer.name||e.layer)+'」在这句里对应 '+same.length+' 个图层，需要指定映射');
+    continue;
+   }
+   issues.push('这句的画面里没有「'+(srcLayer?srcLayer.name:e.layer)+'」这一层');
+  }
+  if(mode==='append'&&!issues.length){
+   const keys=new Set((node.effects||[]).map(e=>e.layer+'/'+e.type));
+   for(const e of effects){
+    const lid=mapping[e.id];
+    if(keys.has(lid+'/'+e.type))issues.push('这句在这一层已经有同类演出（'+(e.type)+'），追加会冲突；请改用「替换」或先删掉原有演出');
+   }
+  }
+  targets.push({
+   nodeId:id,ok:issues.length===0,issues,
+   mapping,
+   effects:effects.map(e=>Object.assign(clone(e),{id:makeId(),layer:mapping[e.id]||e.layer})),
+   removed:(mode==='replace'?(node.effects||[]).length:0)
+  });
+ }
+ return {ok:true,sourceId,mode:mode==='append'?'append':'replace',effects,targets};
+}
+function applyPasteEffects(p,plan,onlySafe){
+ const makeId=id;
+ const applied=[];
+ for(const t of plan.targets||[]){
+  if(!t.ok)continue;
+  const node=p.nodes.find(n=>n.id===t.nodeId);
+  if(!node)continue;
+  node.effects=plan.mode==='append'
+   ?[...(node.effects||[]),...t.effects.map(e=>Object.assign(clone(e),{id:id()}))]
+   :t.effects.map(e=>clone(e));
+  applied.push(t.nodeId);
+ }
+ return applied;
+}
+
+/* ---------- TXT 文本解析（纯函数，导入前预览用） ---------- */
  /* 只认 # 章节、## 段落、以及「名字：台词」。不推断选项、结局或分支。 */
  function parseScript(text,characters){
   const lines=String(text==null?'':text).replace(/\r\n?/g,'\n').split('\n');
@@ -439,6 +664,6 @@ function entryPath(p,nodeId,actualTrail){
  return {clone,id,validate,migrate,scene,castAlong,stage,characterIn,expressionIn,speakerOf,characterUsage,expressionUsage,edges,analyze,makeNode,blank,sample,assetForImport,defaultLayer,appendAssetLayer,
   tree,checkChapters,paragraphMap,chapterOf,paragraphIds,orderSuccessor,orderDiff,flattenOrder,
   moveNodeToParagraph,moveImpact,moveParagraph,moveChapter,applyTreeOrder,removeParagraph,removeChapter,addParagraph,addChapter,
-  entryPath,entryPlan,followGraph,parseScript,applyScriptPlan};
+  entryPath,entryPlan,followGraph,sceneFor,sceneForCast,planBatch,applyBatch,planPasteScene,applyPasteScene,planPasteEffects,applyPasteEffects,parseScript,applyScriptPlan};
 }
 if(typeof module!=='undefined')module.exports=createVNCore;

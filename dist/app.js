@@ -32,7 +32,9 @@ let treeDrag=null;
 function treeNodeRow(id){
  const idx=p.nodes.findIndex(n=>n.id===id);const n=p.nodes[idx];if(!n)return '';
  const kind={say:'对话',choice:'分支',end:'结局'}[n.type];
- return '<button class="node '+(n.id===selected?'active':'')+'" data-id="'+esc(n.id)+'" draggable="true" title="'+esc((n.name||'旁白')+'：'+(n.text||'尚未填写文本'))+'">'
+ const picked=batch.on&&batch.ids.has(id);
+ return '<button class="node '+(n.id===selected?'active':'')+(batch.on?' batch':'')+(picked?' picked':'')+'" data-id="'+esc(n.id)+'" draggable="'+(!batch.on)+'" title="'+esc((n.name||'旁白')+'：'+(n.text||'尚未填写文本'))+'">'
+  +(batch.on?'<span class="pick'+(picked?' on':'')+'" data-pick="'+esc(id)+'" role="checkbox" aria-checked="'+picked+'"></span>':'')
   +'<span class="num">'+String(idx+1).padStart(2,'0')+'</span>'
   +'<span class="node-main"><b>'+esc(n.name||'旁白')+'</b><em>'+kind+'</em>'
   +'<span class="node-text">'+esc(n.text||'尚未填写文本')+'</span></span></button>';
@@ -44,19 +46,27 @@ function paragraphBlock(g){
   +'<button class="caret" data-toggle-paragraph="'+esc(g.id)+'" aria-label="'+(g.collapsed?'展开':'折叠')+'段落">'+(g.collapsed?'▸':'▾')+'</button>'
   +'<span class="paragraph-title" title="'+esc(g.title)+'">'+esc(g.title)+'</span>'
   +'<span class="count-pill">'+count+'</span>'
+  +(batch.on?'<span class="pick-badge'+(g.nodes.filter(id=>batch.ids.has(id)).length?' on':'')+'">已选 '+g.nodes.filter(id=>batch.ids.has(id)).length+'</span>':'')
   +'<span class="mini-actions">'
+  +(batch.on?'<button data-pick-paragraph="'+esc(g.id)+'" title="选中/取消本段全部句子">全选</button>':'')
   +'<button data-rename-paragraph="'+esc(g.id)+'" title="重命名段落">改名</button>'
   +'<button data-move-paragraph="'+esc(g.id)+'" title="移动到其他章节">移动</button>'
   +'<button data-del-paragraph="'+esc(g.id)+'" class="danger" title="删除段落（保留剧情）">删</button>'
   +'</span></div>'
   +(g.collapsed?'':'<div class="paragraph-body" data-drop-paragraph="'+esc(g.id)+'">'
+   +((batch.on&&count)?'<p class="hint pick-hint">本段已选 '+g.nodes.filter(id=>batch.ids.has(id)).length+' / '+count+' 句</p>':'')
    +(count?g.nodes.map(treeNodeRow).join(''):'<p class="empty-hint">这个段落还没有台词。把句子拖进来，或用「移动到…」。</p>')
    +'</div>')
   +'</div>';
 }
 function renderList(){
  const t=C.tree(p);
+ batchPrune();
  $('#count').textContent=p.nodes.length+' 句 · '+t.chapters.length+' 章';
+ $('#batchBar').hidden=!batch.on;
+ $('#batchToggle').classList.toggle('primary',batch.on);
+ $('#batchToggle').textContent=batch.on?'退出批量':'批量编辑';
+ if(batch.on){$('#batchCount').textContent=batchInfoText();$('#batchPasteScene').disabled=!batch.scene;$('#batchPasteFx').disabled=!batch.effects}
  let html=t.chapters.map(c=>{
   const total=c.paragraphs.reduce((s,g)=>s+g.nodes.length,0);
   return '<div class="chapter" data-chapter="'+esc(c.id)+'">'
@@ -80,6 +90,7 @@ function renderList(){
   html+='<div class="chapter ungrouped"><div class="chapter-head"><span class="chapter-title">未分组</span>'
    +'<span class="count-pill">'+t.ungrouped.length+'</span></div>'
    +'<div class="chapter-body" data-drop-paragraph="">'
+   +'<p class="hint ungrouped-note">此处仅集中显示，实际播放位置保持原样。</p>'
    +t.ungrouped.map(treeNodeRow).join('')+'</div></div>';
  }
  $('#list').innerHTML=html||'<p class="empty-hint">还没有剧情。点下面的「＋ 对话」开始，或到「文本导入」预览粘贴的稿子。</p>';
@@ -168,10 +179,18 @@ function removeChapterConfirm(id){
  $('#confirmRemoveChapter').onclick=()=>{$('#modal').close();edit(()=>{C.removeChapter(p,id)});toast('章节已删除，剧情保留在「未分组」')};
 }
 $('#list').addEventListener('click',e=>{
- const hit=e.target.closest('[data-id],[data-toggle-chapter],[data-toggle-paragraph],[data-add-paragraph],[data-rename-chapter],[data-rename-paragraph],[data-move-paragraph],[data-del-chapter],[data-del-paragraph],[data-up-chapter],[data-down-chapter]');
+ const hit=e.target.closest('[data-pick],[data-pick-paragraph],[data-id],[data-toggle-chapter],[data-toggle-paragraph],[data-add-paragraph],[data-rename-chapter],[data-rename-paragraph],[data-move-paragraph],[data-del-chapter],[data-del-paragraph],[data-up-chapter],[data-down-chapter]');
  if(!hit)return;
  const d=hit.dataset;
- if(d.id){selectNode(d.id);return}
+ if(d.pick){if(e.shiftKey)batchRangeTo(d.pick);else batchToggle(d.pick);return}
+ if(d.pickParagraph){batchPickParagraph(d.pickParagraph);return}
+ if(d.id){
+  if(batch.on){
+   if(e.shiftKey){selectNode(d.id);batchRangeTo(d.id)}
+   else{selectNode(d.id);batchToggle(d.id)}
+  }else selectNode(d.id);
+  return;
+ }
  if(d.toggleChapter){const c=p.chapters.find(x=>x.id===d.toggleChapter);if(c){c.collapsed=!c.collapsed;revision++;queueSave();render()}return}
  if(d.toggleParagraph){const g=C.paragraphMap(p).get(d.toggleParagraph);if(g){g.paragraph.collapsed=!g.paragraph.collapsed;revision++;queueSave();render()}return}
  if(d.addParagraph){
@@ -194,6 +213,7 @@ $('#list').addEventListener('click',e=>{
 function clearDropMarks(){for(const x of $('#list').querySelectorAll('.drop-before,.drop-after,.drop-into'))x.classList.remove('drop-before','drop-after','drop-into')}
 $('#list').addEventListener('dragstart',e=>{
  const head=e.target.closest('[data-chapter-head]'),para=e.target.closest('[data-paragraph-head]'),row=e.target.closest('.node');
+ if(batch.on){e.preventDefault();return}
  treeDrag=head?{kind:'chapter',id:head.dataset.chapterHead}:para?{kind:'paragraph',id:para.dataset.paragraphHead}:row?{kind:'node',id:row.dataset.id}:null;
  if(!treeDrag){e.preventDefault();return}
  if(e.dataTransfer){e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',treeDrag.kind+':'+treeDrag.id)}catch{}}
@@ -419,7 +439,7 @@ function previewImport(){
  };
 }
 $('#parse').onclick=()=>previewImport();
-async function download(data,name,type){const ext=String(name).toLowerCase(),kind=ext.endsWith('.png')?'png':ext.endsWith('.json')?'json':'html';if(H){try{let payload={kind,name};if(data instanceof Blob){const bytes=new Uint8Array(await data.arrayBuffer());let s='';for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));payload.base64=btoa(s)}else payload.text=String(data);const r=await H.saveFile(payload);if(r&&!r.cancelled)toast('已保存到：'+r.path)}catch(e){toast('导出失败：'+(e.message||e))}return}const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}const filename=()=>(p.title||'我的故事').replace(/[\\/:*?"<>|]/g,'_');async function applyOpened(r){if(!r||r.cancelled)return;const out=await loadProject(r.project);edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});H.applyState(r);$('#saved').textContent='已打开 · '+(r.label||'工程');if(r.imported)toast('旧工程已导入到新目录，原文件未改动');if(r.notice)toast(r.notice)}
+async function download(data,name,type){const ext=String(name).toLowerCase(),kind=ext.endsWith('.png')?'png':ext.endsWith('.json')?'json':'html';if(H){try{let payload={kind,name};if(data instanceof Blob){const bytes=new Uint8Array(await data.arrayBuffer());let s='';for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));payload.base64=btoa(s)}else payload.text=String(data);const r=await H.saveFile(payload);if(r&&!r.cancelled)toast('已保存到：'+r.path)}catch(e){toast('导出失败：'+(e.message||e))}return}const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}const filename=()=>(p.title||'我的故事').replace(/[\\/:*?"<>|]/g,'_');async function applyOpened(r){if(!r||r.cancelled)return;const out=await loadProject(r.project);batch={on:false,ids:new Set(),anchor:null,scene:null,effects:null};edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});H.applyState(r);$('#saved').textContent='已打开 · '+(r.label||'工程');if(r.imported)toast('旧工程已导入到新目录，原文件未改动');if(r.notice)toast(r.notice)}
 $('#save').onclick=()=>{if(H){H.save(p).then(r=>{if(r.cancelled)return;H.applyState(r);$('#saved').textContent='已保存';toast('工程已保存到目录，素材与备份完整')}).catch(e=>{$('#saved').textContent='保存失败';toast('保存失败：'+e.message)});return}download(JSON.stringify(p,null,2),filename()+'.paper.json','application/json');toast('已下载完整 V0.3 工程，包含全部图层与图片')};
 $('#open').onclick=()=>{if(H){H.open().then(applyOpened).catch(e=>toast('打开失败：'+e.message));return}pick('.json,application/json',async f=>{if(f.size>80*1024*1024)throw Error('工程请小于 80MB');const out=await loadProject(JSON.parse(await f.text()));if(!confirm('替换当前工程？可撤销，建议先下载当前工程。'))return;edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});toast('工程已打开，旧版工程已自动兼容转换')})};
 $('#new').onclick=()=>{if(H){H.newProject().then(r=>{if(r.cancelled)return;edit(()=>{p=r.project;selected=p.nodes[0]?.id??null;selectedLayer=null});H.applyState(r);$('#saved').textContent='新建工程';toast('已新建工程目录')}).catch(e=>toast('新建失败：'+e.message));return}if(!confirm('新建空白工程？可撤销，建议先下载当前工程。'))return;edit(()=>{p=C.blank();selected=null;selectedLayer=null})};
@@ -447,7 +467,7 @@ $('#check').onclick=()=>{
 $('#slotSave').onclick=()=>{slot={revision,current,trail:[...trail]};toast('已存档（当前编辑会话）')};$('#slotLoad').onclick=()=>{if(!slot)return toast('暂无试玩存档');if(slot.revision!==revision)return toast('工程已变化，请重新试玩并存档');current=slot.current;trail=[...slot.trail];playbackAnimate=false;renderCanvas();toast('已读取试玩存档')};
 $('#flatten').onclick=async()=>{if(effectMode!=='layout')return toast('请先返回布局。PNG 合成导出只包含原始布局；演出效果保留在试玩网页中。');const ls=C.clone(displayed());if(!ls.some(l=>!l.hidden))return;try{const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d');for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)throw Error('图片丢失');const im=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('图片无法解码'));img.src=a.data});ctx.save();const x=l.x*12.8,y=l.y*7.2,w=l.w*12.8,h=l.h*7.2;ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.globalAlpha=l.opacity/100;if(l.fit==='fill')ctx.drawImage(im,x,y,w,h);else{const f=l.fit==='cover'?Math.max(w/im.width,h/im.height):Math.min(w/im.width,h/im.height);ctx.drawImage(im,x+(w-im.width*f)/2,y+(h-im.height*f)/2,im.width*f,im.height*f)}ctx.restore()}canvas.toBlob(blob=>{if(blob)download(blob,filename()+'-合成场景.png','image/png')},'image/png');toast('导出 1280×720 场景合成图（透明底，不含对话框）')}catch(e){toast('导出失败：'+e.message)}};
 $('#export').onclick=()=>{const report=C.analyze(p);if(report.errors.length){$('#check').click();return}let html;try{html=buildGameHTML(p,{player:paperPlayer,coreFactory:createVNCore,effectFactory:createPaperEffects,css:paperPlayerCSS,esc})}catch(e){toast('导出失败：'+e.message);return}download(html,filename()+'.html','text/html');toast('已导出独立 HTML，包含图层、效果、位置与全部分支')};
-$('#help').onclick=()=>modal('V0.4.2 · 章节、角色与台词演出','<ol><li>左栏是章节树：章节 → 段落 → 句子。拖动句子可以换段落，拖动段落可以换章节；也可以用「移动到…」「↑↓」按钮。章节顺序就是播放顺序，改动「按顺序继续」时会先列出受影响的句子。</li><li>删除章节或段落默认保留剧情，句子会进入「未分组」；删除单句会先告诉你有多少跳转指向它。都可以撤销。</li><li>「文本导入」先出预览：识别 # 章节、## 段落、「角色：台词」，列出新增句数、识别到的章节段落和读不懂的行；取消不改工程，确认后一次撤销即可还原。</li><li>在左侧「角色」建立林悠、林澈这样的角色：填名字、姓名颜色，逐个添加表情（透明立绘）。表情只是替换现有角色图层的图片，不会移动位置或复制图层。</li><li>录入台词时在「角色与表情」选择谁在说话、本句用哪个表情；同场的另一个角色也可以单独设表情。留空则沿用上一句，自由填写说话人和旁白仍然可用。</li><li>上传角色立绘后可在图层属性里指定「图片属于角色」，让这张图跟随角色表情切换。</li><li>在「效果与演出」选择目标图层，添加效果或使用预设。可设置起点、终点、时长、延迟、缓动和缩放中心。点击舞台上方预览、终态或拖动时间条；返回布局后可继续拖动素材。</li><li>持续效果在推进时按目标值结算；本句结束恢复的效果离开即移除；自动恢复效果在播放后回到起点。独立场景重置此前持续效果。读档和后退显示本句终态。</li><li>「▶ 从本句 / ▶ 从本段」可以从指定位置试玩，背景、表情和持续演出按前面的句子还原；前面有分支时会提示这是近似还原。选中剧情节点，上传背景或角色。支持多个角色和背景素材叠加。</li><li>在舞台拖动图片；选中边框右下角可等比缩放。也可输入 X/Y、宽高，或用「填满画布」。隐藏对话框更方便编辑底部。</li><li>右侧图层从上到下就是前景到背景。可隐藏、锁定、调整层级。锁定底图后更容易选前景。</li><li>新对话默认沿用上一画面；第一次修改会生成独立副本。编辑模式按脚本顺序预览，试玩按实际走过的路径继承。</li><li>选项数量可增加，目标可以是普通对话。使用「生成局部分支并汇合」快速创建各选项的对话，并统一跳回主线。</li><li>撤销／重做支持图层、文本和剧情结构（最多 60 步）。输入框里 Ctrl+Z 使用原生文本撤销；页面按钮撤销工程修改。</li><li>场景可存为预设，也可导出不含对话框的合成 PNG。保存工程包含原始图层，导出试玩生成独立离线 HTML。</li></ol><p class="hint">支持打开 V0.1 / V0.2 工程。旧工程保留原来的两结局结构，不会强制替换。暂无 AI 动作、配音、音乐或 EXE 打包。浏览器数据清理会删除草稿，请下载备份。</p>');
+$('#help').onclick=()=>modal('V0.4.3 · 批量编辑、章节与台词演出','<ol><li>左栏「批量编辑」可一次勾选多句（Shift 连选、点段落「全选」），折叠的段落不会丢掉已选，段落标题上会显示已选数量。勾选不会误触拖动排序。</li><li>「角色 / 表情…」只改勾选的字段：说话角色、本句说话表情、指定在场角色的表情。没勾的字段保持原样，预览里会先列出前后变化、跳过与冲突的句子。</li><li>「复制场景 / 粘贴场景」只替换画面布局，台词、跳转与演出都不动；「复制演出 / 粘贴演出」可以选择替换或追加，追加遇到同图层同类型会先告诉你冲突。</li><li>每次批量写入只产生一条撤销记录，撤销一次退回整批，重做一次恢复整批。取消预览不会改动工程。</li><li>左栏是章节树：章节 → 段落 → 句子。拖动句子可以换段落，拖动段落可以换章节；也可以用「移动到…」「↑↓」按钮。章节顺序就是播放顺序，改动「按顺序继续」时会先列出受影响的句子。</li><li>删除章节或段落默认保留剧情，句子会进入「未分组」；删除单句会先告诉你有多少跳转指向它。都可以撤销。</li><li>「文本导入」先出预览：识别 # 章节、## 段落、「角色：台词」，列出新增句数、识别到的章节段落和读不懂的行；取消不改工程，确认后一次撤销即可还原。</li><li>在左侧「角色」建立林悠、林澈这样的角色：填名字、姓名颜色，逐个添加表情（透明立绘）。表情只是替换现有角色图层的图片，不会移动位置或复制图层。</li><li>录入台词时在「角色与表情」选择谁在说话、本句用哪个表情；同场的另一个角色也可以单独设表情。留空则沿用上一句，自由填写说话人和旁白仍然可用。</li><li>上传角色立绘后可在图层属性里指定「图片属于角色」，让这张图跟随角色表情切换。</li><li>在「效果与演出」选择目标图层，添加效果或使用预设。可设置起点、终点、时长、延迟、缓动和缩放中心。点击舞台上方预览、终态或拖动时间条；返回布局后可继续拖动素材。</li><li>持续效果在推进时按目标值结算；本句结束恢复的效果离开即移除；自动恢复效果在播放后回到起点。独立场景重置此前持续效果。读档和后退显示本句终态。</li><li>「▶ 从本句 / ▶ 从本段」可以从指定位置试玩，背景、表情和持续演出按前面的句子还原；前面有分支时会提示这是近似还原。选中剧情节点，上传背景或角色。支持多个角色和背景素材叠加。</li><li>在舞台拖动图片；选中边框右下角可等比缩放。也可输入 X/Y、宽高，或用「填满画布」。隐藏对话框更方便编辑底部。</li><li>右侧图层从上到下就是前景到背景。可隐藏、锁定、调整层级。锁定底图后更容易选前景。</li><li>新对话默认沿用上一画面；第一次修改会生成独立副本。编辑模式按脚本顺序预览，试玩按实际走过的路径继承。</li><li>选项数量可增加，目标可以是普通对话。使用「生成局部分支并汇合」快速创建各选项的对话，并统一跳回主线。</li><li>撤销／重做支持图层、文本和剧情结构（最多 60 步）。输入框里 Ctrl+Z 使用原生文本撤销；页面按钮撤销工程修改。</li><li>场景可存为预设，也可导出不含对话框的合成 PNG。保存工程包含原始图层，导出试玩生成独立离线 HTML。</li></ol><p class="hint">支持打开 V0.1 / V0.2 工程。旧工程保留原来的两结局结构，不会强制替换。暂无 AI 动作、配音、音乐或 EXE 打包。浏览器数据清理会删除草稿，请下载备份。</p>');
 function effectNode(){return node()?.effects?.find(e=>e.id===effectId)}
 function effectTargets(){return displayed()}
 function renderEffectUI(){const n=node();if(!n)return;const ls=effectTargets(),prev=$('#effectTarget').value;$('#effectTarget').innerHTML='<option value="">选择当前画面的图层…</option>'+ls.map(l=>'<option value="'+esc(l.id)+'">'+esc(l.name)+'（'+(l.kind==='bg'?'背景':'角色')+'）</option>').join('');$('#effectTarget').value=ls.some(l=>l.id===selectedLayer)?selectedLayer:prev;$('#effectCount').textContent=n.effects.length;$('#effectList').innerHTML=n.effects.map(e=>{const l=ls.find(l=>l.id===e.layer);return '<div class="effect-row '+(e.id===effectId?'active':'')+'"><button data-effect="'+esc(e.id)+'"><b>'+esc(F.types[e.type].name)+'</b> · '+esc(l?.name||'图层不在当前预览中')+'<small>'+e.delay+'s 延迟 / '+e.duration+'s · '+({hold:'持续',sentence:'本句结束恢复',auto:'自动恢复'}[e.policy])+'</small></button><button data-enable-effect="'+esc(e.id)+'" aria-label="'+(e.enabled?'停用':'启用')+'效果">'+(e.enabled?'停用':'启用')+'</button></div>'}).join('');$('#effectList').querySelectorAll('[data-effect]').forEach(b=>b.onclick=()=>{effectId=b.dataset.effect;renderEffectUI()});$('#effectList').querySelectorAll('[data-enable-effect]').forEach(b=>b.onclick=()=>edit(()=>{const e=node().effects.find(e=>e.id===b.dataset.enableEffect);e.enabled=!e.enabled}));let e=effectNode();$('#effectProps').hidden=!e;if(!e)return;$('#effectName').textContent=F.types[e.type].name+' · '+F.types[e.type].unit;$('#effectTarget').value=e.layer;$('#effectAutoFrom').checked=e.from===null;$('#effectMoveY').hidden=e.type!=='move';$('#effectPivot').hidden=!['scale','rotate'].includes(e.type);$('#effectReturnLabel').hidden=e.policy!=='auto';const base=F.before(p,C,n.id)[e.layer]||F.neutral(),key=e.type==='move'?'x':e.type;const values={effectFrom:e.from??base[key],effectTo:e.to,effectFromY:e.fromY??base.y,effectToY:e.toY,effectOriginX:e.originX,effectOriginY:e.originY,effectDuration:e.duration,effectDelay:e.delay,effectReturn:e.returnDuration,effectPolicy:e.policy,effectEasing:e.easing};for(const [id,v]of Object.entries(values))if(document.activeElement!==$('#'+id))$('#'+id).value=v;for(const id of ['effectFrom','effectTo']){const meta=F.types[e.type];$('#'+id).min=meta.min;$('#'+id).max=meta.max;$('#'+id).step='0.1'}$('#effectFrom').disabled=e.from===null;$('#effectFromY').disabled=e.fromY===null;}
@@ -694,5 +714,210 @@ $('#addPara').onclick=()=>{
  askName('重命名段落',g.title,v=>edit(()=>{const t=C.paragraphMap(p).get(g.id);if(t)t.paragraph.title=v}));
 };
 $('#moveNode').onclick=()=>{if(!node())return toast('请先选中一句剧情');openMoveDialog('node',selected)};
+
+/* ---------- V0.4.3 批量编辑 ---------- */
+let batch={on:false,ids:new Set(),anchor:null,scene:null,effects:null};
+
+function batchNodes(){return p.nodes.filter(n=>batch.ids.has(n.id))}
+function batchPrune(){for(const id of [...batch.ids])if(!p.nodes.some(n=>n.id===id))batch.ids.delete(id);if(batch.anchor&&!p.nodes.some(n=>n.id===batch.anchor))batch.anchor=null}
+function batchParagraphs(){return new Set(batchNodes().map(n=>n.paragraphId)).size}
+function batchInfoText(){
+ const n=batch.ids.size;
+ return n?('已选 '+n+' 句 · 跨 '+batchParagraphs()+' 段'):'还没有选择句子';
+}
+function batchToggle(id){if(batch.ids.has(id))batch.ids.delete(id);else batch.ids.add(id);batch.anchor=id;render()}
+function batchRangeTo(id){
+ const order=p.nodes.map(n=>n.id),a=order.indexOf(batch.anchor==null?selected:batch.anchor),b=order.indexOf(id);
+ if(a<0||b<0)return;
+ const [lo,hi]=a<b?[a,b]:[b,a];
+ for(let i=lo;i<=hi;i++)batch.ids.add(order[i]);
+ batch.anchor=id;render();
+}
+function batchPickParagraph(gid){
+ const ids=p.nodes.filter(n=>n.paragraphId===gid).map(n=>n.id);
+ const all=ids.length&&ids.every(id=>batch.ids.has(id));
+ for(const id of ids){if(all)batch.ids.delete(id);else batch.ids.add(id)}
+ batch.anchor=ids[0]||batch.anchor;render();
+}
+function batchClear(){batch.ids.clear();batch.anchor=null;render()}
+function batchSetOn(on){
+ batch.on=on;if(!on){batch.ids.clear();batch.anchor=null}
+ render();toast(on?'批量编辑：勾选句子，或用 Shift 连选、点段落「全选」':'已退出批量编辑');
+}
+function optionHtml(list,selected){return list.map(o=>'<option value="'+esc(o.value)+'"'+(o.value===selected?' selected':'')+'>'+esc(o.label)+'</option>').join('')}
+function uniqueBy(list,key){const seen=new Set();return list.filter(x=>{const k=key(x);if(seen.has(k))return false;seen.add(k);return true})}
+
+/* ---------- 批量字段面板 ---------- */
+function openBatchFields(){
+ const nodes=batchNodes();
+ if(!nodes.length)return toast('先勾选要修改的句子');
+ const say=nodes.filter(n=>n.type==='say');
+ if(!say.length)return toast('选中的句子都是选项或结局，批量修改只作用于对话/旁白');
+ const speakers=(p.characters||[]).map(c=>({value:c.id,label:c.name}));
+ const speakerValues=uniqueBy(say.map(n=>n.speakerId||''),x=>x);
+ const exprValues=uniqueBy(say.map(n=>n.expressionId||''),x=>x);
+ const speakerMixed=speakerValues.length>1;
+ const exprMixed=exprValues.length>1;
+ const curSpeaker=speakerMixed?'__mixed':(speakerValues[0]||'');
+ const curExpr=exprMixed?'__mixed':(exprValues[0]||'');
+ modal('批量设置角色与表情',
+  '<p class="hint">只有勾选的字段会被修改；没勾选的字段保持原样。选项与结局节点会自动跳过。</p>'
+  +'<div class="batch-field"><label class="check-label"><input type="checkbox" id="fSpeaker">说话角色</label>'
+  +'<select id="vSpeaker">'+ (speakerMixed?'<option value="__mixed" selected>多种值</option>':'')
+  +optionHtml([{value:'',label:'旁白 / 自由文本（清空角色）'},...speakers],curSpeaker)+'</select></div>'
+  +'<div class="batch-field"><label class="check-label"><input type="checkbox" id="fSpeakerExpr">本句说话角色的表情</label>'
+  +'<select id="vSpeakerExpr">'+ (exprMixed?'<option value="__mixed" selected>多种值</option>':'')
+  +'<option value="">沿用画面表情（清空）</option></select></div>'
+  +'<div class="batch-field"><label class="check-label"><input type="checkbox" id="fCast">指定在场角色的表情</label>'
+  +'<select id="vCastChar">'+optionHtml(speakers,'')+'</select>'
+  +'<select id="vCastExpr"><option value="">清除该角色在本句的表情</option></select></div>'
+  +'<p class="hint">「在场角色」只更新这句里该角色已有图层对应的绑定，不新增图层、不动位置与其他角色。</p>'
+  +'<div class="stack"><button id="batchPreview" class="primary">预览修改</button></div>');
+ const exprFor=c=>{
+  const e=document.querySelector('#vSpeakerExpr');
+  const keep=e.value==='__mixed'?'__mixed':'';
+  e.innerHTML=(exprMixed?'<option value="__mixed">多种值</option>':'')+'<option value="">沿用画面表情（清空）</option>'
+   +(c&&c.expressions?c.expressions.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join(''):'');
+  e.value=keep;
+ };
+ const castCharSel=document.querySelector('#vCastChar');
+ const castExprSel=document.querySelector('#vCastExpr');
+ const fillCastExpr=()=>{
+  const c=(p.characters||[]).find(x=>x.id===castCharSel.value);
+  castExprSel.innerHTML='<option value="">清除该角色在本句的表情</option>'
+   +(c?c.expressions.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join(''):'');
+ };
+ castCharSel.onchange=fillCastExpr;fillCastExpr();
+ const spSel=document.querySelector('#vSpeaker');
+ spSel.onchange=()=>{const c=(p.characters||[]).find(x=>x.id===spSel.value);if(document.querySelector('#fSpeaker').checked)exprFor(c)};
+ document.querySelector('#fSpeaker').onchange=e=>{
+  if(!e.target.checked)return;
+  const c=(p.characters||[]).find(x=>x.id===spSel.value);
+  exprFor(c);
+ };
+ document.querySelector('#batchPreview').onclick=()=>{
+  const fields={};
+  if(document.querySelector('#fSpeaker').checked)fields.speaker={characterId:spSel.value==='__mixed'?'':spSel.value};
+  if(document.querySelector('#fSpeakerExpr').checked){
+   const v=document.querySelector('#vSpeakerExpr').value;
+   if(v==='__mixed')return toast('「多种值」不能直接应用，请选择一个表情或清空');
+   fields.speakerExpression={expressionId:v};
+  }
+  if(document.querySelector('#fCast').checked){
+   if(!castCharSel.value)return toast('请选择在场的角色');
+   fields.cast={characterId:castCharSel.value,expressionId:castExprSel.value};
+  }
+  if(!Object.keys(fields).length)return toast('至少勾选一个要修改的字段');
+  previewBatch(fields);
+ };
+}
+
+/* ---------- 批量预览与应用 ---------- */
+function batchSignature(fields){return JSON.stringify({ids:[...batch.ids].sort(),fields})}
+function previewBatch(fields,signature){
+ const plan=C.planBatch(p,[...batch.ids],fields);
+ const sig=signature||batchSignature(fields);
+ const sample=plan.changes.slice(0,5);
+ const describe=ch=>{
+  const name=id=>{const n=p.nodes.find(x=>x.id===id);return n?('第 '+(p.nodes.indexOf(n)+1)+' 句'):'（不存在）'}
+  const c=id=>(p.characters||[]).find(x=>x.id===id);
+  const sn=ch.after.speakerId?(c(ch.after.speakerId)?c(ch.after.speakerId).name:''):'旁白';
+  const old=c(ch.before.speakerId)?c(ch.before.speakerId).name:(ch.before.speakerId?'（角色已删除）':'旁白');
+  const ex=(cid,eid)=>{const cc=c(cid);const e=cc&&cc.expressions.find(x=>x.id===eid);return e?e.name:''};
+  const beforeEx=ex(ch.before.speakerId,ch.before.expressionId)||'沿用';
+  const afterEx=ex(ch.after.speakerId,ch.after.expressionId)||'沿用';
+  const castDiff=JSON.stringify(ch.before.cast)!==JSON.stringify(ch.after.cast)
+   ?'；在场表情：'+ch.after.cast.map(x=>{const cc=c(x.characterId);return (cc?cc.name:'?')+'·'+(ex(x.characterId,x.expressionId)||'沿用')}).join('、')
+   :'';
+  return '<li>'+describeNode(ch.nodeId)+'：'+old+' · '+beforeEx+' → <b>'+sn+' · '+afterEx+'</b>'+castDiff+'</li>';
+ };
+ const fieldText=Object.keys(fields).map(k=>{
+  if(k==='speaker'){const c=(p.characters||[]).find(x=>x.id===fields.speaker.characterId);return '说话角色 → '+(c?c.name:'旁白 / 自由文本')}
+  if(k==='speakerExpression'){const id=fields.speakerExpression.expressionId;const c=(p.characters||[]).find(x=>x.expressions.some(e=>e.id===id));const e=c&&c.expressions.find(x=>x.id===id);return '说话表情 → '+(e?e.name:'沿用画面表情')}
+  const c=(p.characters||[]).find(x=>x.id===fields.cast.characterId);const e=c&&c.expressions.find(x=>x.id===fields.cast.expressionId);
+  return '在场「'+(c?c.name:'?')+'」表情 → '+(e?e.name:'清除');
+ }).join('；');
+ const skipped=plan.skipped.slice(0,20).map(x=>'<li>'+describeNode(x.nodeId)+'：'+esc(x.reason)+'</li>').join('');
+ const conflicts=plan.conflicts.slice(0,20).map(x=>'<li>'+describeNode(x.nodeId)+'：'+esc(x.reason)+'</li>').join('');
+ modal('批量修改预览',
+  '<p><b>已选 '+plan.total+' 句</b> · 可修改 <b>'+plan.changes.length+'</b> 句 · 跳过 '+plan.skipped.length+' 句 · 冲突 '+plan.conflicts.length+' 句</p>'
+  +'<p class="hint">修改内容：'+esc(fieldText)+'</p>'
+  +(plan.changes.length?'<p class="hint">前几句的变化：</p><ul class="issue-list">'+sample.map(describe).join('')+'</ul>'
+    +(plan.changes.length>sample.length?'<details><summary>展开全部 '+plan.changes.length+' 句</summary><ul class="issue-list">'+plan.changes.map(describe).join('')+'</ul></details>':''):'')
+  +(skipped?'<p class="hint">跳过：</p><ul class="issue-list">'+skipped+'</ul>':'')
+  +(conflicts?'<p class="hint">冲突（这些句子不会写入）：</p><ul class="issue-list">'+conflicts+'</ul>':'')
+  +'<div class="stack">'
+  +(plan.changes.length?'<button id="batchApply" class="primary">应用到 '+plan.changes.length+' 句</button>':'<button class="primary" disabled>没有可应用的修改</button>')
+  +'</div>');
+ const btn=document.querySelector('#batchApply');
+ if(btn)btn.onclick=()=>{
+  /* 应用前重新计算，防止预览之后数据被改动 */
+  const again=C.planBatch(p,[...batch.ids],fields);
+  if(JSON.stringify(again.changes)!==JSON.stringify(plan.changes)){
+   toast('预览后数据有变化，已重新生成预览');
+   previewBatch(fields,sig);
+   return;
+  }
+  $('#modal').close();
+  if(!again.changes.length){toast('没有需要修改的内容，未记录撤销');return}
+  edit(()=>{C.applyBatch(p,again)});
+  toast('已修改 '+again.changes.length+' 句，可一次撤销');
+ };
+}
+
+/* ---------- 场景 / 演出复制粘贴 ---------- */
+function batchCopyScene(){
+ const n=node();if(!n)return toast('先选中要复制场景的句子');
+ if(n.sceneMode!=='own')return toast('这句沿用了上一画面。请先用「独立画面」把它变成独立场景，再复制。');
+ batch.scene={sourceId:n.id,layers:C.clone(n.layers||[])};
+ toast('已复制这句的场景布局（'+batch.scene.layers.length+' 个图层），台词与演出不会一起复制');
+}
+function pastePlansToModal(title,plan,apply){
+ const ok=plan.targets.filter(t=>t.ok).length,bad=plan.targets.length-ok;
+ const issues='<ul class="issue-list">'+plan.targets.filter(t=>!t.ok).map(t=>'<li>'+describeNode(t.nodeId)+'：'+esc((t.issues||[t.reason]).join('；'))+'</li>').join('')+'</ul>';
+ modal(title,
+  '<p>可应用 <b>'+ok+'</b> 句，跳过 '+bad+' 句。</p>'
+  +(bad?'<p class="hint">下面这些句子不会写入：</p>'+issues:'')
+  +'<p class="hint">应用会作为一次操作，可整体撤销。</p>'
+  +'<div class="stack">'+(ok?'<button id="pasteApply" class="primary">应用到 '+ok+' 句</button>':'<button class="primary" disabled>没有可应用的目标</button>')+'</div>');
+ const btn=document.querySelector('#pasteApply');
+ if(btn)btn.onclick=()=>{$('#modal').close();edit(()=>apply(true));toast('已应用 '+ok+' 句')};
+}
+function batchPasteScene(){
+ if(!batch.scene)return toast('先「复制场景」');
+ const ids=[...batch.ids];
+ if(!ids.length)return toast('先勾选要粘贴到的句子');
+ const plan=C.planPasteScene(p,batch.scene.sourceId,ids);
+ if(!plan.ok)return toast(plan.reason);
+ pastePlansToModal('粘贴场景到 '+ids.length+' 句',plan,onlySafe=>C.applyPasteScene(p,plan,onlySafe));
+}
+function batchCopyEffects(){
+ const n=node();if(!n)return toast('先选中要复制演出的句子');
+ if(!(n.effects||[]).length)return toast('这句没有演出可以复制');
+ batch.effects={sourceId:n.id,effects:C.clone(n.effects)};
+ toast('已复制 '+batch.effects.effects.length+' 条演出（不含场景与台词）');
+}
+function batchPasteEffects(){
+ if(!batch.effects)return toast('先「复制演出」');
+ const ids=[...batch.ids];
+ if(!ids.length)return toast('先勾选要粘贴到的句子');
+ const build=mode=>{
+  const plan=C.planPasteEffects(p,batch.effects.sourceId,ids,mode);
+  if(!plan.ok)return toast(plan.reason);
+  pastePlansToModal((mode==='append'?'追加':'替换')+'演出到 '+ids.length+' 句',plan,onlySafe=>C.applyPasteEffects(p,plan,onlySafe));
+ };
+ modal('粘贴演出的方式','<p>替换会清掉目标句原有的演出；追加会保留原有演出，并在冲突时停下来。</p>'
+  +'<div class="stack"><button id="fxReplace" class="primary">替换原有演出</button><button id="fxAppend">追加到原有演出</button></div>');
+ document.querySelector('#fxReplace').onclick=()=>{$('#modal').close();build('replace')};
+ document.querySelector('#fxAppend').onclick=()=>{$('#modal').close();build('append')};
+}
+
+$('#batchToggle').onclick=()=>batchSetOn(!batch.on);
+$('#batchFields').onclick=openBatchFields;
+$('#batchCopyScene').onclick=batchCopyScene;
+$('#batchPasteScene').onclick=batchPasteScene;
+$('#batchCopyFx').onclick=batchCopyEffects;
+$('#batchPasteFx').onclick=batchPasteEffects;
+$('#batchClear').onclick=batchClear;
 
 render();initialize();
