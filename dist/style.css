@@ -125,6 +125,7 @@ body.tree-dragging .node,body.tree-dragging .chapter-head,body.tree-dragging .pa
 .audio-mixers .check-label{display:flex;grid-template-columns:none}
 .audio-status{font-size:10px;color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
 .audio-status.audio-error{color:var(--danger)}
+.audio-legacy-note{color:#8a6231;background:#fffaf0;border:1px solid #d9b98f;border-radius:5px;padding:7px 8px;margin:8px 0 0}
 #nodeAudioPanel{margin:18px 0;padding:12px 10px;border:1px solid #d6dfd0;border-radius:7px;background:#f7f9f3}
 #nodeAudioPanel>summary{cursor:pointer;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
 #audioCueCount{font:10px monospace;color:var(--accent);background:#e6ecdf;padding:1px 7px;border-radius:10px}
