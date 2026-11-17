@@ -6,15 +6,113 @@ function createVNCore(){
  /* Schema 4 adds characters/expressions. Migration is additive: every older
     工程 keeps its nodes, layers and effects exactly as they are, and simply
     gains empty character fields. Nothing is guessed from the speaker text. */
- function migrate(input){const p=clone(input);if(p.schema===5)return p;if(p.schema===4)return toV5(p);if(p.schema===2){p.schema=3;for(const n of p.nodes)n.effects=[];return toV5(toV4(p))}if(p.schema===3)return toV5(toV4(p));if(p.schema!==1)throw Error('不支持的工程版本');p.schema=2;p.id=id();p.presets=[];for(const n of p.nodes){n.sceneMode='own';n.layers=[];if(n.bg)n.layers.push({id:id(),asset:n.bg,name:'背景',kind:'bg',x:0,y:0,w:100,h:100,fit:'cover',opacity:100,hidden:false,locked:false,motion:'none'});if(n.char){const a=p.assets.find(a=>a.id===n.char);let h=n.scale||85,w=Math.min(90,h*9/16*((a?.width&&a?.height)?a.width/a.height:.65));n.layers.push({id:id(),asset:n.char,name:'角色立绘',kind:'char',x:n.align==='left'?4:n.align==='right'?96-w:50-w/2,y:100-h,w,h,fit:'contain',opacity:100,hidden:false,locked:false,motion:n.motion||'none',legacy:true})}delete n.bg;delete n.char;delete n.align;delete n.scale;delete n.motion;n.effects=[]}p.schema=3;return toV5(toV4(p))}
+ /* V0.5 音频不改变 schema 版本号：audioAssets / node.audio 都是可选增量字段，
+    旧工程缺这些字段就等价于「无音频」，画面、剧情、分支与存档行为完全不变。
+    迁移只把缺省补齐，不猜测、不生成任何播放任务。 */
+ function toAudio(p){if(!Array.isArray(p.audioAssets))p.audioAssets=[];for(const n of p.nodes||[]){if(n.audio===undefined)n.audio=null;if(n.audio&&!Array.isArray(n.audio.sfx))n.audio.sfx=[]}return p}
+ function migrate(input){const p=clone(input);if(p.schema===5)return toAudio(p);if(p.schema===4)return toAudio(toV5(p));if(p.schema===2){p.schema=3;for(const n of p.nodes)n.effects=[];return toAudio(toV5(toV4(p)))}if(p.schema===3)return toAudio(toV5(toV4(p)));if(p.schema!==1)throw Error('不支持的工程版本');p.schema=2;p.id=id();p.presets=[];for(const n of p.nodes){n.sceneMode='own';n.layers=[];if(n.bg)n.layers.push({id:id(),asset:n.bg,name:'背景',kind:'bg',x:0,y:0,w:100,h:100,fit:'cover',opacity:100,hidden:false,locked:false,motion:'none'});if(n.char){const a=p.assets.find(a=>a.id===n.char);let h=n.scale||85,w=Math.min(90,h*9/16*((a?.width&&a?.height)?a.width/a.height:.65));n.layers.push({id:id(),asset:n.char,name:'角色立绘',kind:'char',x:n.align==='left'?4:n.align==='right'?96-w:50-w/2,y:100-h,w,h,fit:'contain',opacity:100,hidden:false,locked:false,motion:n.motion||'none',legacy:true})}delete n.bg;delete n.char;delete n.align;delete n.scale;delete n.motion;n.effects=[]}p.schema=3;return toAudio(toV5(toV4(p)))}
  function upgradeLayer(l){if(!l||typeof l!=='object')return l;if(typeof l.characterId!=='string')l.characterId='';if(typeof l.expressionId!=='string')l.expressionId='';return l}
  function toV4(p){p.schema=4;if(!Array.isArray(p.characters))p.characters=[];for(const n of p.nodes||[]){if(typeof n.speakerId!=='string')n.speakerId='';if(typeof n.expressionId!=='string')n.expressionId='';if(!Array.isArray(n.cast))n.cast=[];for(const l of n.layers||[])upgradeLayer(l)}for(const t of p.presets||[])for(const l of t.layers||[])upgradeLayer(l);return p}
  /* Schema 5 增加章节/段落分组。分组只补充「归属」与「显示结构」，不改 p.nodes
     的播放顺序：旧工程整体进入一个默认章节与默认段落，节点顺序、分支与演出原样保留。 */
  function toV5(p){p.schema=5;if(!Array.isArray(p.chapters))p.chapters=[];if(!p.chapters.length){p.chapters=[{id:'ch_'+id(),title:'第一章',collapsed:false,paragraphs:[{id:'pg_'+id(),title:'默认段落',collapsed:false}]}]}for(const c of p.chapters){if(typeof c.collapsed!=='boolean')c.collapsed=false;if(!Array.isArray(c.paragraphs))c.paragraphs=[]}const known=new Set(paragraphIds(p));const first=known.size?[...known][0]:'';for(const n of p.nodes||[]){if(typeof n.paragraphId!=='string'||!known.has(n.paragraphId))n.paragraphId=first}return p}
  function paragraphIds(p){const out=[];for(const c of p.chapters||[])for(const g of c.paragraphs||[])out.push(g.id);return out}
- function validate(p){if(!p||![1,2,3,4,5].includes(p.schema)||typeof p.title!=='string'||!Array.isArray(p.nodes)||!Array.isArray(p.assets))throw Error('不是有效的纸间工程');if(p.nodes.length>20000||p.assets.length>1000)throw Error('工程超过体验版限制');const ids=new Set();for(const n of p.nodes){if(!n||typeof n.id!=='string'||ids.has(n.id)||!['say','choice','end'].includes(n.type)||typeof n.name!=='string'||typeof n.text!=='string')throw Error('剧情节点格式错误');ids.add(n.id);if(n.next!=null&&typeof n.next!=='string')throw Error('跳转目标格式错误');if(n.type==='choice'&&(!Array.isArray(n.options)||n.options.length>100||n.options.some(o=>!o||typeof o.text!=='string'||typeof o.target!=='string')))throw Error('选项格式错误');if(p.schema>=3&&!Array.isArray(n.effects))throw Error('缺少演出列表');if(p.schema>=4&&(typeof n.speakerId!=='string'||typeof n.expressionId!=='string'||!Array.isArray(n.cast)||n.cast.length>20))throw Error('说话人绑定格式错误');if(p.schema>=5&&typeof n.paragraphId!=='string')throw Error('段落归属格式错误');if(p.schema>=2){if(!['own','inherit'].includes(n.sceneMode)||!Array.isArray(n.layers)||n.layers.length>100)throw Error('场景格式错误');checkLayers(n.layers)}}const aids=new Set();for(const a of p.assets){if(!a||typeof a.id!=='string'||aids.has(a.id)||typeof a.name!=='string'||!['bg','char'].includes(a.kind)||typeof a.data!=='string'||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(a.data))throw Error('图片素材格式错误');aids.add(a.id)}if(p.schema>=2){if(typeof p.id!=='string'||!Array.isArray(p.presets)||p.presets.length>200)throw Error('工程信息格式错误');for(const t of p.presets){if(!t||typeof t.id!=='string'||typeof t.name!=='string'||!Array.isArray(t.layers)||t.layers.length>100)throw Error('预设格式错误');checkLayers(t.layers)}}if(p.schema>=4)checkCharacters(p);if(p.schema>=5)checkChapters(p);return true}
+ function validate(p){if(!p||![1,2,3,4,5].includes(p.schema)||typeof p.title!=='string'||!Array.isArray(p.nodes)||!Array.isArray(p.assets))throw Error('不是有效的纸间工程');if(p.nodes.length>20000||p.assets.length>1000)throw Error('工程超过体验版限制');const ids=new Set();for(const n of p.nodes){if(!n||typeof n.id!=='string'||ids.has(n.id)||!['say','choice','end'].includes(n.type)||typeof n.name!=='string'||typeof n.text!=='string')throw Error('剧情节点格式错误');ids.add(n.id);if(n.next!=null&&typeof n.next!=='string')throw Error('跳转目标格式错误');if(n.type==='choice'&&(!Array.isArray(n.options)||n.options.length>100||n.options.some(o=>!o||typeof o.text!=='string'||typeof o.target!=='string')))throw Error('选项格式错误');if(p.schema>=3&&!Array.isArray(n.effects))throw Error('缺少演出列表');if(p.schema>=4&&(typeof n.speakerId!=='string'||typeof n.expressionId!=='string'||!Array.isArray(n.cast)||n.cast.length>20))throw Error('说话人绑定格式错误');if(p.schema>=5&&typeof n.paragraphId!=='string')throw Error('段落归属格式错误');if(p.schema>=2){if(!['own','inherit'].includes(n.sceneMode)||!Array.isArray(n.layers)||n.layers.length>100)throw Error('场景格式错误');checkLayers(n.layers)}}const aids=new Set();for(const a of p.assets){if(!a||typeof a.id!=='string'||aids.has(a.id)||typeof a.name!=='string'||!['bg','char'].includes(a.kind)||typeof a.data!=='string'||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(a.data))throw Error('图片素材格式错误');aids.add(a.id)}if(p.schema>=2){if(typeof p.id!=='string'||!Array.isArray(p.presets)||p.presets.length>200)throw Error('工程信息格式错误');for(const t of p.presets){if(!t||typeof t.id!=='string'||typeof t.name!=='string'||!Array.isArray(t.layers)||t.layers.length>100)throw Error('预设格式错误');checkLayers(t.layers)}}if(p.schema>=4)checkCharacters(p);if(p.schema>=5)checkChapters(p);checkAudio(p);return true}
  function checkLayers(ls){const ids=new Set();for(const l of ls){if(!l||typeof l.id!=='string'||ids.has(l.id)||typeof l.asset!=='string'||typeof l.name!=='string'||!['bg','char'].includes(l.kind)||!finite(l.x,-500,500)||!finite(l.y,-500,500)||!finite(l.w,1,1000)||!finite(l.h,1,1000)||!finite(l.opacity,0,100)||typeof l.hidden!=='boolean'||typeof l.locked!=='boolean'||!['contain','cover','fill'].includes(l.fit)||!['none','breathe','sway'].includes(l.motion))throw Error('图层设置格式错误');if(l.characterId!=null&&typeof l.characterId!=='string')throw Error('图层角色绑定格式错误');if(l.expressionId!=null&&typeof l.expressionId!=='string')throw Error('图层表情绑定格式错误');ids.add(l.id)}}
+ /* ---------- V0.5 基础音频：数据校验与纯状态推导 ----------
+    音频与图片完全分表：audioAssets 用 data:audio/... 内嵌，磁盘另存 assets/audio/。
+    图片专用的 kind/data 校验不会作用到音频素材上。 */
+ const AUDIO_CATS=['bgm','sfx','voice'];
+ const AUDIO_DATA_RE=/^data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=\r\n]+$/i;
+ const AUDIO_MAX_BYTES=16*1024*1024;
+ const okNum=(x,a,b)=>Number.isFinite(x)&&x>=a&&x<=b;
+ function checkNodeAudio(a,where){
+  if(a==null)return;
+  if(!a||typeof a!=='object'||Array.isArray(a))throw Error(where+'音频设置格式错误');
+  const b=a.bgm;
+  if(b!=null){
+   if(!b||typeof b!=='object'||!['play','stop'].includes(b.action))throw Error(where+'背景音乐指令格式错误');
+   if(b.action==='play'){
+    if(typeof b.audioId!=='string'||!b.audioId)throw Error(where+'背景音乐未指定素材');
+    if(!okNum(b.volume,0,1)||typeof b.loop!=='boolean'||!okNum(b.fadeIn,0,10)||!okNum(b.fadeOut,0,10))throw Error(where+'背景音乐参数格式错误');
+   }else if(!okNum(b.fadeOut,0,10))throw Error(where+'停止音乐参数格式错误');
+  }
+  if(a.sfx!=null){
+   if(!Array.isArray(a.sfx)||a.sfx.length>16)throw Error(where+'音效列表格式错误');
+   const ids=new Set();
+   for(const s of a.sfx){
+    if(!s||typeof s.id!=='string'||!s.id||ids.has(s.id)||typeof s.audioId!=='string'||!s.audioId||!okNum(s.volume,0,1)||!okNum(s.delay,0,20))throw Error(where+'音效参数格式错误');
+    ids.add(s.id);
+   }
+  }
+  if(a.voice!=null){
+   const v=a.voice;
+   if(!v||typeof v!=='object'||typeof v.audioId!=='string'||!v.audioId||!okNum(v.volume,0,1))throw Error(where+'台词语音格式错误');
+  }
+ }
+ function checkAudio(p){
+  if(p.audioAssets===undefined)return;               /* 旧工程：完全无音频 */
+  if(!Array.isArray(p.audioAssets)||p.audioAssets.length>200)throw Error('音频素材列表格式错误');
+  const ids=new Set();
+  for(const a of p.audioAssets){
+   if(!a||typeof a.id!=='string'||!a.id||ids.has(a.id)||typeof a.name!=='string'||
+    !Array.isArray(a.categories)||!a.categories.length||a.categories.some(c=>!AUDIO_CATS.includes(c))||
+    typeof a.mime!=='string'||typeof a.ext!=='string'||!AUDIO_DATA_RE.test(a.data)||
+    !Number.isInteger(a.bytes)||a.bytes<0||a.bytes>AUDIO_MAX_BYTES||
+    !(a.duration===null||okNum(a.duration,0,86400)))throw Error('音频素材格式错误');
+   ids.add(a.id);
+  }
+  for(const [i,n]of p.nodes.entries())checkNodeAudio(n.audio,'第 '+(i+1)+' 节：');
+ }
+ /* 逐句音频指令：缺省 / null 都表示「沿用」，绝不按节点数组顺序推断。 */
+ function audioCue(p,n){
+  const a=n&&n.audio;
+  if(!a)return {bgm:null,sfx:[],voice:null};
+  return {bgm:a.bgm||null,sfx:Array.isArray(a.sfx)?a.sfx:[],voice:a.voice||null};
+ }
+ function hasBgmInstruction(n){const c=audioCue(null,n);return !!(c.bgm&&(c.bgm.action==='play'||c.bgm.action==='stop'))}
+ /* 沿真实路线结算 BGM。与 scene/castAlong 不同：sceneMode:'own' 不重置音乐，
+    只有显式 play / stop 才改变状态。返回的是「状态」，不是播放任务。 */
+ function audioStateAlong(p,ids){
+  let state=null;
+  for(const nid of ids||[]){
+   const n=p.nodes.find(x=>x.id===nid);if(!n)continue;
+   const c=audioCue(p,n);
+   if(!c.bgm)continue;
+   if(c.bgm.action==='stop')state=null;
+   else state={audioId:c.bgm.audioId,volume:c.bgm.volume,loop:!!c.bgm.loop,
+    fadeIn:c.bgm.fadeIn,fadeOut:c.bgm.fadeOut,at:nid};
+  }
+  return state;
+ }
+ function bgmAt(p,nodeId,trail){
+  const ids=Array.isArray(trail)?[...trail]:p.nodes.slice(0,p.nodes.findIndex(n=>n.id===nodeId)).map(n=>n.id);
+  return audioStateAlong(p,[...ids,nodeId]);
+ }
+ function audioUsage(p,audioId){
+  const uses=[];
+  for(const [i,n]of p.nodes.entries()){
+   const c=audioCue(p,n),at='第 '+(i+1)+' 句 · '+(n.name||'旁白')+'：'+(n.text||'').slice(0,14);
+   if(c.bgm&&c.bgm.action==='play'&&c.bgm.audioId===audioId)uses.push({nodeId:n.id,index:i,where:'背景音乐',label:at});
+   for(const s of c.sfx)if(s.audioId===audioId)uses.push({nodeId:n.id,index:i,where:'音效',label:at});
+   if(c.voice&&c.voice.audioId===audioId)uses.push({nodeId:n.id,index:i,where:'台词语音',label:at});
+  }
+  return uses;
+ }
+ /* 同内容文件复用底层资源，不产生重复素材 ID；分类只是「用途」标签，可合并，
+    引用端只按 audioId，因此同一文件可以同时被 BGM / 音效 / 语音使用。 */
+ function assetForAudioImport(p,{id:newId,name,categories,data,mime,ext,bytes,duration,durationNote}){
+  const same=(p.audioAssets||[]).find(a=>a.data===data);
+  if(same){
+   const merged=[...new Set([...(same.categories||[]),...(categories||[])])];
+   return {asset:same,reused:true,categories:merged};
+  }
+  const a={id:newId,name,categories:[...new Set(categories||[])],data,mime,ext,bytes,
+   duration:Number.isFinite(duration)?duration:null};
+  if(durationNote)a.durationNote=durationNote;
+  return {asset:a,reused:false,categories:a.categories};
+ }
+ function audioAsset(p,id){return (p.audioAssets||[]).find(a=>a.id===id)||null}
  /* 角色身份、表情身份、素材用途和场景图层是四个不同层次：同一个 ID 只表达
     一件事。校验只保证引用自洽，不回头按名字猜测或合并两个人。 */
  function checkCharacters(p){if(!Array.isArray(p.characters)||p.characters.length>80)throw Error('角色列表格式错误');const byId=new Map();for(const c of p.characters){if(!c||typeof c.id!=='string'||!c.id||byId.has(c.id)||typeof c.name!=='string'||!c.name.trim())throw Error('角色格式错误');if(typeof c.color!=='string'||(c.color&&!/^#[0-9a-fA-F]{6}$/.test(c.color)))throw Error('姓名颜色格式错误');if(!Array.isArray(c.expressions)||c.expressions.length>60)throw Error('角色表情列表格式错误');const eids=new Set();for(const e of c.expressions){if(!e||typeof e.id!=='string'||!e.id||eids.has(e.id)||typeof e.name!=='string'||!e.name.trim()||typeof e.assetId!=='string'||!e.assetId)throw Error('表情格式错误');eids.add(e.id)}if(typeof c.defaultExpressionId!=='string'||(c.defaultExpressionId&&!eids.has(c.defaultExpressionId)))throw Error('默认表情无效');byId.set(c.id,{character:c,expressions:eids})}
@@ -78,6 +176,15 @@ function createVNCore(){
    if(!c.expressions.length)add('warn','角色「'+c.name+'」还没有表情，无法在台词里切换。',{kind:'cast'});
    else if(!c.defaultExpressionId)add('warn','角色「'+c.name+'」没有设置默认表情。',{kind:'cast'});
    for(const e of c.expressions)if(!aids.has(e.assetId))add('error','角色「'+c.name+'」的表情「'+e.name+'」缺少图片，请重新导入或删除该表情。',{kind:'cast'});
+  }
+  /* 音频引用失效必须说出来：静默跳过会让作者以为这一句已经配好音。 */
+  const audioIds=new Set((p.audioAssets||[]).map(a=>a.id));
+  for(const [i,n]of p.nodes.entries()){
+   const at='第 '+(i+1)+' 节：',cue=audioCue(p,n);
+   const need=(audioId,what)=>{if(audioId&&!audioIds.has(audioId))add('error',at+what+'引用的音频素材已删除或丢失，请重新选择或清除。',{nodeId:n.id,kind:'audio'})};
+   if(cue.bgm&&cue.bgm.action==='play')need(cue.bgm.audioId,'背景音乐');
+   for(const s of cue.sfx)need(s.audioId,'音效');
+   if(cue.voice)need(cue.voice.audioId,'台词语音');
   }
   const visited=new Set(),queue=p.nodes.length?[p.nodes[0].id]:[];
   while(queue.length){const at=queue.pop();if(visited.has(at))continue;visited.add(at);const n=p.nodes.find(n=>n.id===at);if(n)queue.push(...edges(p,n))}
@@ -270,18 +377,30 @@ function walkPaths(g,from,to,limit,budget){
  }
  return out;
 }
-/* 归一化：最后一个独立场景（或起点）之后的部分才决定目标句的状态。 */
+/* 归一化：画面看最后一个独立场景，音频看最后一个显式音乐指令，两者取更早的起点。
+   画面独立（sceneMode:'own'）不代表音乐独立：同一个画面入口前的不同路线可能播放过
+   不同的 BGM，因此绝不能遇到 own 就把音频历史丢掉。trail 从更早的锚点开始，
+   既保证 scene/effects/cast 能还原，也保证 audioStateAlong 能拿到完整音乐指令。 */
 function normalizeRoute(p,path){
- let last=0;
+ let last=0,audioAt=-1;
  for(let i=0;i<path.length-1;i++){
   const n=p.nodes.find(x=>x.id===path[i]);
   if(n&&n.sceneMode==='own')last=i;
  }
- /* trail 必须包含进入点本身（scene/effects/cast 沿它回溯），但判定「是否同一状态」时
-    只比较进入点之后的尾巴：进入点会重置图层、表情与持续效果，之前的路径不再影响。 */
+ for(let i=0;i<path.length;i++){
+  const n=p.nodes.find(x=>x.id===path[i]);
+  if(n&&hasBgmInstruction(n))audioAt=i;
+ }
+ const start=audioAt>=0?Math.min(last,audioAt):last;
+ const bgm=audioStateAlong(p,path);
+ const bgmKey=bgm?[bgm.audioId,bgm.volume,bgm.loop?1:0,bgm.at].join('@'):'none';
+ /* trail 必须包含画面进入点本身；判定等价时同时比较画面尾巴与音乐状态。 */
  const suffix=path.slice(last+1,path.length-1);
- return {anchorId:path[last],trail:path.slice(last,path.length-1),suffix,key:path[last]+'|'+suffix.join('>'),path};
+ return {anchorId:path[last],audioAnchorId:audioAt>=0?path[audioAt]:'',
+  trail:path.slice(start,path.length-1),suffix,
+  key:path[last]+'|'+suffix.join('>')+'#'+bgmKey,path,bgm,bgmKey,start};
 }
+function hasAnyAudio(p){return (p.audioAssets||[]).length>0||p.nodes.some(hasBgmInstruction)}
 function entryPlan(p,nodeId,actualTrail){
  const node=p.nodes.find(n=>n.id===nodeId);
  if(!node)return null;
@@ -292,43 +411,64 @@ function entryPlan(p,nodeId,actualTrail){
   const succ=last?(last.type==='end'?[]:last.type==='choice'
    ?(last.options||[]).map(o=>o.target)
    :[last.next||p.nodes[p.nodes.indexOf(last)+1]?.id]):[];
-  if(succ.includes(nodeId))return {trail:[...actualTrail],anchorId:'',source:'actual',ambiguous:false,options:[],fromOwn:node.sceneMode==='own'};
+  if(succ.includes(nodeId))return {trail:[...actualTrail],anchorId:'',source:'actual',ambiguous:false,options:[],fromOwn:node.sceneMode==='own',bgm:audioStateAlong(p,[...actualTrail,nodeId])};
  }
- if(node.sceneMode==='own'){
-  return {trail:[],anchorId:node.id,source:'scene',ambiguous:false,options:[],fromOwn:true};
+ /* 无音频工程保持原来的独立场景快速路径；只要工程里有音频，即使目标句是 own，
+    也要枚举路线，否则会丢掉画面入口之前播放过的音乐。 */
+ if(node.sceneMode==='own'&&!hasAnyAudio(p)){
+  return {trail:[],anchorId:node.id,source:'scene',ambiguous:false,options:[],fromOwn:true,bgm:null};
  }
  const g=followGraph(p);
+ const firstId=p.nodes[0]?.id||'';
+ /* 锚点只用独立画面入口与故事开头。把「有音乐指令的节点」也当锚点会造出
+    音频历史不完整的短路径，反而会把生效音乐判错。 */
  const anchors=p.nodes.filter(n=>n.sceneMode==='own').map(n=>n.id);
- if(p.nodes[0]&&!anchors.includes(p.nodes[0].id))anchors.push(p.nodes[0].id);
+ if(firstId&&!anchors.includes(firstId))anchors.push(firstId);
  const budget={steps:0,routes:0,maxSteps:WALK_MAX_STEPS,truncated:false};
  const routes=[];
  for(const a of anchors){
+  if(a===nodeId&&a!==firstId)continue;         /* 以目标句自身为起点不构成前置路线 */
   for(const path of walkPaths(g,a,nodeId,WALK_PER_ANCHOR,budget)){
-   routes.push(normalizeRoute(p,path));
+   if(path.length<2&&a!==firstId)continue;
+   routes.push(Object.assign(normalizeRoute(p,path),{fromStart:a===firstId}));
    if(routes.length>=WALK_MAX_ROUTES){budget.truncated=true;break}
   }
   if(budget.truncated)break;
  }
+ /* 只有「从故事开头可达」的路线带有完整音乐历史；有完整路线时优先采用，
+    否则不把不完整的短路径当成确定状态。 */
+ const complete=routes.filter(r=>r.fromStart);
+ const usable=complete.length?complete:routes;
  const unique=new Map();
- for(const r of routes){
+ for(const r of usable){
   if(!unique.has(r.key))unique.set(r.key,{...r,count:0});
   unique.get(r.key).count++;
  }
  const options=[...unique.values()];
+ if(!complete.length&&options.length){
+  return {trail:[...options[0].trail],anchorId:options[0].anchorId,source:'incomplete',ambiguous:true,options,
+   fromOwn:false,truncated:budget.truncated,audioAgrees:false,bgm:null,
+   reason:'无法从故事开头还原这句之前播放过的音乐。请从更靠前的入口（开始播放音乐的那句）试玩，或在下面选择一条路线。'};
+ }
  if(!options.length){
-  return {trail:[],anchorId:'',source:'none',ambiguous:true,options:[],fromOwn:false,
-   reason:'找不到从任何独立场景到这句的路径；请从更靠前的场景入口开始试玩。'};
+  return {trail:[],anchorId:'',source:'none',ambiguous:true,options:[],fromOwn:false,bgm:null,
+   reason:'找不到从任何入口到这句的路径；请从更靠前的场景入口开始试玩。'};
  }
  /* 枚举被预算截断时，即使只看到一条也不能断言唯一 */
  if(options.length===1&&!budget.truncated){
   const only=options[0];
-  return {trail:[...only.trail],anchorId:only.anchorId,source:'graph',ambiguous:false,options:[],fromOwn:false,path:only.path};
+  return {trail:[...only.trail],anchorId:only.anchorId,source:'graph',ambiguous:false,options:[],fromOwn:false,path:only.path,bgm:only.bgm};
  }
  if(options.length===1&&budget.truncated){
-  return {trail:[...options[0].trail],anchorId:options[0].anchorId,source:'truncated',ambiguous:true,options,fromOwn:false,truncated:true,
-   reason:'这句之前的路线太多或存在循环，已停止枚举。请从更明确的场景入口（独立场景第一句）开始试玩。'};
+  return {trail:[...options[0].trail],anchorId:options[0].anchorId,source:'truncated',ambiguous:true,options,fromOwn:false,truncated:true,bgm:null,
+   reason:'这句之前的路线太多或存在循环，已停止枚举。请从更明确的入口（独立场景第一句或开始播放音乐的那句）开始试玩。'};
  }
- return {trail:[...options[0].trail],anchorId:options[0].anchorId,source:'ambiguous',ambiguous:true,options,fromOwn:false,truncated:budget.truncated};
+ /* 路线可能因为画面/表情不唯一而有歧义，但各条路线的音乐可能相同：
+    这时仍要让作者选画面路线，同时明确告诉他当前生效的是哪首音乐。 */
+ const keys=options.map(o=>{const b=o.bgm;return b?[b.audioId,b.volume,b.loop].join('@'):'none'});
+ const audioAgrees=keys.every(k=>k===keys[0]);
+ return {trail:[...options[0].trail],anchorId:options[0].anchorId,source:'ambiguous',ambiguous:true,options,
+  fromOwn:false,truncated:budget.truncated,audioAgrees,bgm:audioAgrees?options[0].bgm:null};
 }
 /* 兼容旧调用：只返回一条路径与是否确定。 */
 function entryPath(p,nodeId,actualTrail){
@@ -633,8 +773,8 @@ function applyPasteEffects(p,plan,onlySafe){
   }
   return created;
  }
- function makeNode(type='say'){return {id:id(),type,name:'',text:'',next:'',sceneMode:'inherit',layers:[],effects:[],speakerId:'',expressionId:'',cast:[],paragraphId:'',...(type==='choice'?{options:[{text:'选项一',target:''},{text:'选项二',target:''}]}:{})}}
- function blank(){const p={schema:5,id:id(),title:'未命名的故事',assets:[],nodes:[],presets:[],characters:[],chapters:[]};const g={id:'pg_'+id(),title:'默认段落',collapsed:false};p.chapters.push({id:'ch_'+id(),title:'第一章',collapsed:false,paragraphs:[g]});return p}
+ function makeNode(type='say'){return {id:id(),type,name:'',text:'',next:'',sceneMode:'inherit',layers:[],effects:[],speakerId:'',expressionId:'',cast:[],paragraphId:'',audio:null,...(type==='choice'?{options:[{text:'选项一',target:''},{text:'选项二',target:''}]}:{})}}
+ function blank(){const p={schema:5,id:id(),title:'未命名的故事',assets:[],audioAssets:[],nodes:[],presets:[],characters:[],chapters:[]};const g={id:'pg_'+id(),title:'默认段落',collapsed:false};p.chapters.push({id:'ch_'+id(),title:'第一章',collapsed:false,paragraphs:[g]});return p}
  function sample(){const p=blank();p.title='晚风来信 · 局部分支示例';const a=makeNode(),b=makeNode('choice'),c=makeNode(),d=makeNode(),e=makeNode(),merge=makeNode(),end=makeNode('end');a.sceneMode='own';a.name='旁白';a.text='放学后的走廊，风把书页轻轻翻开。';b.name='澪';b.text='要不要一起走一段？';c.name='我';c.text='先去图书馆吧。我想给你看一本书。';d.name='我';d.text='绕操场走走？今天的晚风很舒服。';e.name='我';e.text='我们到门口等一等，看看天边的云。';merge.name='旁白';merge.text='聊着不同的话题，我们还是并肩走出了校门。';end.name='结局';end.text='这一次，选择改变了沿途的谈话，却没有改变共同的约定。';b.options=[{text:'去图书馆',target:c.id},{text:'绕操场走走',target:d.id},{text:'在门口看云',target:e.id}];c.next=d.next=e.next=merge.id;p.nodes=[a,b,c,d,e,merge,end];const pid=p.chapters[0].paragraphs[0].id;for(const n of p.nodes)n.paragraphId=pid;return p}
  /* 素材查重按「图片数据 + 用途」而不是只看图片数据：同一张图既能当背景也能当角色，
     只按 data 复用会把先导入那一次的 kind 带回新图层，用途就错了。 */
@@ -664,6 +804,7 @@ function applyPasteEffects(p,plan,onlySafe){
  return {clone,id,validate,migrate,scene,castAlong,stage,characterIn,expressionIn,speakerOf,characterUsage,expressionUsage,edges,analyze,makeNode,blank,sample,assetForImport,defaultLayer,appendAssetLayer,
   tree,checkChapters,paragraphMap,chapterOf,paragraphIds,orderSuccessor,orderDiff,flattenOrder,
   moveNodeToParagraph,moveImpact,moveParagraph,moveChapter,applyTreeOrder,removeParagraph,removeChapter,addParagraph,addChapter,
-  entryPath,entryPlan,followGraph,sceneFor,sceneForCast,planBatch,applyBatch,planPasteScene,applyPasteScene,planPasteEffects,applyPasteEffects,parseScript,applyScriptPlan};
+  entryPath,entryPlan,followGraph,sceneFor,sceneForCast,planBatch,applyBatch,planPasteScene,applyPasteScene,planPasteEffects,applyPasteEffects,parseScript,applyScriptPlan,
+  checkAudio,checkNodeAudio,audioCue,hasBgmInstruction,hasAnyAudio,audioStateAlong,bgmAt,audioUsage,assetForAudioImport,audioAsset,AUDIO_CATS,AUDIO_MAX_BYTES};
 }
 if(typeof module!=='undefined')module.exports=createVNCore;

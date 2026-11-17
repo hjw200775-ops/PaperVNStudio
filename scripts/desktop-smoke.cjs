@@ -17,7 +17,7 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwA
 const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const APP_URL = 'paper://app/index.html';
-const CSP = "default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'";
+const CSP = "default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'";
 const ALLOWED = {
   '/index.html': 'text/html; charset=utf-8',
   '/style.css': 'text/css; charset=utf-8',
@@ -26,6 +26,7 @@ const ALLOWED = {
   '/player.js': 'text/javascript; charset=utf-8',
   '/app.js': 'text/javascript; charset=utf-8',
   '/export.js': 'text/javascript; charset=utf-8',
+  '/audio.js': 'text/javascript; charset=utf-8',
   '/desktop-bridge.js': 'text/javascript; charset=utf-8'
 };
 
@@ -55,6 +56,7 @@ function registerIPC() {
     name: '烟测背景.png', size: 68, type: 'image/png',
     dataUrl: 'data:image/png;base64,' + PNG, id: 'a_smoke_' + assetKind
   } }));
+  ipcMain.handle('file:pickAudio', () => ok({ cancelled: true }));
   ipcMain.handle('file:pickText', () => ok({ cancelled: false, file: {
     name: '剧本.txt', size: 40, type: 'text/plain', text: '旁白：烟测导入的第一句。\n澪：烟测导入的第二句。'
   } }));

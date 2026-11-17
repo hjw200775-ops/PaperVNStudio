@@ -52,6 +52,7 @@
     openRecent: index => call(() => api.openRecent(index)),
     recent: () => call(() => api.recent()),
     pickImage: assetKind => api.pickImage(assetKind).then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
+    pickAudio: () => api.pickAudio().then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
     pickText: () => api.pickText().then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
     saveFile: payload => api.saveFile(payload).then(r => { const v = ok(r); return v.cancelled ? null : v; }),
     onCommand: handler => api.onCommand(handler),

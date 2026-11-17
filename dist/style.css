@@ -101,3 +101,46 @@ body.tree-dragging .node,body.tree-dragging .chapter-head,body.tree-dragging .pa
 .check-label input[type=checkbox]{width:auto;margin:0}
 .pick-badge{font:10px/1 monospace;padding:2px 6px;border-radius:9px;background:#fff;border:1px solid var(--line);color:var(--muted);flex:none}
 .pick-badge.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* V0.5 基础音频：素材区 + 逐句音频面板 */
+#audio-tab{padding:0 14px 18px;overflow:auto;max-height:620px}
+#audio-tab>.stack{grid-template-columns:1fr 1fr;align-items:center}
+#audio-tab>.stack button{font-size:11px;padding:8px 6px}
+#audio-tab>.stack select{font-size:11px;padding:7px 6px}
+.audio-filter{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0;font-size:10px;color:var(--muted)}
+.audio-filter label{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.audio-filter select{width:auto;font-size:10px;padding:4px 6px}
+.audio-assets{display:grid;gap:6px;margin:8px 0 14px}
+.audio-asset-row{border:1px solid var(--line);border-radius:6px;background:#fff;padding:8px 9px}
+.audio-asset-row.playing{border-color:var(--accent);background:var(--soft)}
+.audio-asset-row .audio-name{display:flex;justify-content:space-between;gap:6px;font-size:11px;font-weight:600;overflow-wrap:anywhere}
+.audio-asset-row .audio-name em{font-style:normal;font:9px/1.4 monospace;color:var(--accent);background:#e6ecdf;padding:1px 5px;border-radius:8px;white-space:nowrap}
+.audio-asset-row small{display:block;font-size:9px;color:var(--muted);margin:3px 0 6px}
+.audio-asset-row .audio-actions{display:flex;gap:4px}
+.audio-asset-row .audio-actions button{flex:1;font-size:9px;padding:4px 3px}
+.audio-mixers{display:grid;gap:6px;margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:6px;background:#fbfcf8}
+.audio-mixers label{display:grid;grid-template-columns:52px 1fr 34px;align-items:center;gap:6px;font-size:10px;margin:0}
+.audio-mixers label input[type=range]{width:100%;margin:0;padding:0}
+.audio-mixers label span{text-align:right;font:10px monospace;color:var(--muted)}
+.audio-mixers .check-label{display:flex;grid-template-columns:none}
+.audio-status{font-size:10px;color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
+.audio-status.audio-error{color:var(--danger)}
+#nodeAudioPanel{margin:18px 0;padding:12px 10px;border:1px solid #d6dfd0;border-radius:7px;background:#f7f9f3}
+#nodeAudioPanel>summary{cursor:pointer;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+#audioCueCount{font:10px monospace;color:var(--accent);background:#e6ecdf;padding:1px 7px;border-radius:10px}
+#nodeAudioPanel>label{margin-top:12px;font-size:11px}
+#nodeAudioPanel label>input[type=range]{display:block;width:100%;margin-top:6px}
+.audio-effective{font-size:10px;line-height:1.6;padding:7px 8px;background:#fff;border:1px solid var(--line);border-radius:5px;margin:10px 0;overflow-wrap:anywhere}
+.audio-effective.warn{border-color:#d9b98f;background:#fffaf0;color:#8a6231}
+.audio-modes{display:grid;gap:4px;margin:10px 0;padding:8px;background:#fff;border:1px solid var(--line);border-radius:5px}
+.audio-modes .check-label{font-size:11px}
+.audio-advanced{margin:10px 0;border-top:1px dashed var(--line);padding-top:8px}
+.audio-advanced summary{cursor:pointer;font-size:10px;color:var(--muted)}
+.audio-advanced .two{margin-top:9px}
+.audio-advanced label{font-size:10px!important}
+.sfx-row{border:1px solid var(--line);border-radius:5px;background:#fff;padding:8px;margin:7px 0}
+.sfx-row label{font-size:10px;margin:0 0 6px}
+.sfx-row label>input[type=range],.sfx-row label>select{display:block;width:100%;margin-top:4px}
+.sfx-row>button{width:100%;font-size:9px;padding:3px}
+#audioCueStatus.audio-error{color:var(--danger)}
+.audio-issue-list{max-height:40vh;overflow:auto;font-size:11px}

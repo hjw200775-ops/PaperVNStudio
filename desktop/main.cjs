@@ -9,14 +9,18 @@ const path = require('node:path');
 const fs = require('node:fs');
 const createProjectStore = require('./project-store.cjs');
 const createVNCore = require('../dist/core.js');
+const createPaperAudio = require('../dist/audio.js');
 
 const C = createVNCore();
+const AUDIO_PURE = createPaperAudio().pure;
 const store = createProjectStore();
-const { MAIN_FILE, AUTOSAVE_REL, MAX_IMAGE_BYTES } = store.constants;
+const { MAIN_FILE, AUTOSAVE_REL, MAX_IMAGE_BYTES, MAX_AUDIO_BYTES } = store.constants;
+const AUDIO_EXT_MIME = { wav: 'audio/wav', wave: 'audio/wav', mp3: 'audio/mpeg', ogg: 'audio/ogg',
+  oga: 'audio/ogg', m4a: 'audio/mp4', aac: 'audio/aac', flac: 'audio/flac', webm: 'audio/webm' };
 const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const APP_URL = 'paper://app/index.html';
-const CSP = "default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'";
+const CSP = "default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'";
 const ALLOWED = {
   '/index.html': 'text/html; charset=utf-8',
   '/style.css': 'text/css; charset=utf-8',
@@ -25,6 +29,7 @@ const ALLOWED = {
   '/player.js': 'text/javascript; charset=utf-8',
   '/app.js': 'text/javascript; charset=utf-8',
   '/export.js': 'text/javascript; charset=utf-8',
+  '/audio.js': 'text/javascript; charset=utf-8',
   '/desktop-bridge.js': 'text/javascript; charset=utf-8'
 };
 
@@ -349,6 +354,31 @@ function registerIPC() {
     return reply({ cancelled: false, file: {
       name: path.basename(file), size: buf.length, type: mime, dataUrl,
       id: store.newAssetId(assetKind, dataUrl)
+    } });
+  });
+
+  /* V0.5：音频选文件与图片完全分离，主进程只做扩展名/容量/WAV 结构校验。
+     非 WAV 能否解码由渲染进程用真实 Audio 元素判断，不在这里承诺。 */
+  handle('file:pickAudio', async () => {
+    const picked = await dialog.showOpenDialog(win, {
+      title: '选择音频（将复制到工程音频目录）', properties: ['openFile'],
+      filters: [{ name: '音频', extensions: ['wav', 'wave', 'mp3', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'webm'] }]
+    });
+    if (picked.canceled || !picked.filePaths[0]) return reply({ cancelled: true });
+    const file = picked.filePaths[0];
+    const buf = fs.readFileSync(file);
+    const ext = path.extname(file).toLowerCase().replace(/^\./, '');
+    const mime = AUDIO_EXT_MIME[ext];
+    if (!mime) throw new Error('不支持的音频格式；本版可靠支持 PCM WAV');
+    if (!buf.length || buf.length > MAX_AUDIO_BYTES) throw new Error('音频为空或超过 16MB');
+    const dataUrl = 'data:' + mime + ';base64,' + buf.toString('base64');
+    const check = AUDIO_PURE.checkImport({ name: path.basename(file), mime,
+      bytes: new Uint8Array(buf), ext, totalBytes: 0, canPlayType: () => 'probably' });
+    if (!check.ok) throw new Error(check.message);
+    store.parseAudioDataUrl(dataUrl);              /* 与落盘共用同一道 WAV 头校验 */
+    return reply({ cancelled: false, file: {
+      name: path.basename(file), size: buf.length, type: mime, dataUrl,
+      id: store.newAudioAssetId(dataUrl)
     } });
   });
 

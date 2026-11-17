@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('paperDesktop', {
   openRecent: index => call('project:openRecent', index),
   recent: () => call('project:recent'),
   pickImage: assetKind => call('file:pickImage', assetKind),
+  pickAudio: () => call('file:pickAudio'),
   pickText: () => call('file:pickText'),
   saveFile: payload => call('file:save', payload),
   onCommand: handler => ipcRenderer.on('app:command', (_event, command) => handler(command)),

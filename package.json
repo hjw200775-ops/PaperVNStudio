@@ -1,6 +1,6 @@
 {
   "name": "paper-vn-studio",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "private": true,
   "description": "纸间 PaperVNStudio — 视觉小说 / 文字冒险创作工具：Electron 桌面版与自包含 HTML 导出",
   "author": "wenwenwen817",
@@ -29,7 +29,8 @@
     "net:check": "node scripts/check-network.cjs",
     "chapters:acceptance": "node scripts/desktop.cjs --chapters",
     "branch:evidence": "node scripts/desktop.cjs --branch",
-    "batch:acceptance": "node scripts/desktop.cjs --batch"
+    "batch:acceptance": "node scripts/desktop.cjs --batch",
+    "audio:acceptance": "node scripts/desktop.cjs --audio"
   },
   "engines": {
     "node": ">=20"

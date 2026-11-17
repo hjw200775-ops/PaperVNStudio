@@ -8,11 +8,14 @@
  *   my-story/
  *     project.paper.json          metadata, relative asset paths only
  *     assets/images/<sha256>.png  immutable, never overwritten or removed
- *     backups/<stamp>/...         metadata snapshots; images stay shared
+ *     assets/audio/<sha256>.wav   V0.5: content-addressed PCM WAV / decodable audio
+ *     backups/<stamp>/...         metadata snapshots; assets stay shared
  *     backups/autosave/...        crash-recovery copy
  *
- * Because image file names are the sha256 of their bytes and are never
- * deleted, any metadata backup can always resolve the images it references.
+ * Because asset file names are the sha256 of their bytes and are never
+ * deleted, any metadata backup can always resolve the files it references.
+ * Audio uses its own path pattern and its own validation: image-specific
+ * kind / data-URL / intrinsic-size checks must never be applied to audio.
  */
 
 const path = require('node:path');
@@ -20,26 +23,39 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 const createVNCore = require('../dist/core.js');
 const createPaperEffects = require('../dist/effects.js');
+const createPaperAudio = require('../dist/audio.js');
+const AUDIO_PURE = createPaperAudio().pure;
 
 const FORMAT = 'paper-desktop';
 const FORMAT_VERSION = 1;
 const MAIN_FILE = 'project.paper.json';
 const IMAGES_REL = 'assets/images';
+const AUDIO_REL = 'assets/audio';
 const BACKUPS_REL = 'backups';
 const LATEST_REL = 'backups/latest';
 const AUTOSAVE_REL = 'backups/autosave';
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 16 * 1024 * 1024;
+const MAX_AUDIO_TOTAL = 96 * 1024 * 1024;
 const MAX_PROJECT_BYTES = 80 * 1024 * 1024;
 const MAX_BACKUPS = 20;
 const ASSET_FILE_RE = /^assets\/images\/([a-f0-9]{64})\.(png|jpg|webp)$/;
+const AUDIO_FILE_RE = /^assets\/audio\/([a-f0-9]{64})\.(wav|wave|mp3|ogg|oga|m4a|aac|flac|webm)$/;
+const AUDIO_CATEGORIES = ['bgm', 'sfx', 'voice'];
 /* Legacy projects may contain arbitrary short ids; only path-like/control values are unsafe. */
 function safeAssetId(id) {
   return typeof id === 'string' && id.length > 0 && id.length <= 128 &&
     !/[\\/\0]/.test(id) && !id.includes('..') && !/^(file|app|paper|blob|data|https?):/i.test(id);
 }
 const DATA_URL_RE = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=\r\n]+)$/;
+const AUDIO_DATA_URL_RE = /^data:(audio\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\r\n]+)$/i;
 const MIME_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
 const EXT_MIME = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' };
+const AUDIO_EXT_MIME = { wav: 'audio/wav', wave: 'audio/wav', mp3: 'audio/mpeg', ogg: 'audio/ogg',
+  oga: 'audio/ogg', m4a: 'audio/mp4', aac: 'audio/aac', flac: 'audio/flac', webm: 'audio/webm' };
+const AUDIO_MIME_EXT = { 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/wave': 'wav',
+  'audio/mpeg': 'mp3', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/aac': 'aac',
+  'audio/flac': 'flac', 'audio/webm': 'webm' };
 
 function friendlyError(stage, err) {
   const code = err && err.code ? err.code : '';
@@ -131,14 +147,18 @@ function createProjectStore(options = {}) {
   }
 
   function assetPath(root, rel) {
-    if (typeof rel !== 'string' || !ASSET_FILE_RE.test(rel)) {
-      throw new Error('素材路径无效：只允许工程内 assets/images/<sha256>.<ext>');
+    if (typeof rel !== 'string') throw new Error('素材路径无效');
+    const image = ASSET_FILE_RE.exec(rel), audio = AUDIO_FILE_RE.exec(rel);
+    if (!image && !audio) {
+      throw new Error('素材路径无效：只允许工程内 assets/images/ 或 assets/audio/ 下的内容寻址文件');
     }
     if (rel.includes('\\') || rel.includes('..') || rel.includes('\0')) {
       throw new Error('素材路径包含不安全字符');
     }
-    const [, hash, ext] = ASSET_FILE_RE.exec(rel);
-    return { abs: realInside(root, rel), hash, ext, mime: EXT_MIME[ext] };
+    const m = image || audio;
+    const [, hash, ext] = m;
+    return { abs: realInside(root, rel), hash, ext,
+      mime: audio ? AUDIO_EXT_MIME[ext] : EXT_MIME[ext], kind: audio ? 'audio' : 'image' };
   }
 
   function rejectUnsafeLinks(value, where) {
@@ -157,6 +177,43 @@ function createProjectStore(options = {}) {
     const buf = Buffer.from(m[2], 'base64');
     if (!buf.length || buf.length > MAX_IMAGE_BYTES) throw new Error('图片为空或超过 12MB');
     return { buf, mime, hash: sha256(buf) };
+  }
+
+  /* 音频走独立校验：不检查图片的 kind / 尺寸，也不接受图片 data URL。 */
+  function parseAudioDataUrl(data) {
+    const m = typeof data === 'string' ? AUDIO_DATA_URL_RE.exec(data) : null;
+    if (!m) throw new Error('音频素材不是有效的内嵌 audio data URL');
+    const mime = m[1].toLowerCase();
+    const ext = AUDIO_MIME_EXT[mime];
+    if (!ext) throw new Error('不支持的音频类型：' + mime);
+    const buf = Buffer.from(m[2], 'base64');
+    if (!buf.length || buf.length > MAX_AUDIO_BYTES) throw new Error('音频为空或超过 16MB');
+    /* 第二道防线：手工改坏的 PCM WAV 不能写进工程。与导入端共用同一个解析器。 */
+    if (ext === 'wav' || ext === 'wave') {
+      try { AUDIO_PURE.wavInfo(buf); }
+      catch (err) { throw new Error('音频素材已损坏：' + err.message); }
+    }
+    return { buf, mime, ext, hash: sha256(buf) };
+  }
+
+  /* 同内容音频在运行时已合并为一条；这里防御性折叠同 ID 同内容的重复条目。 */
+  function dedupeAudio(input) {
+    const list = Array.isArray(input.audioAssets) ? input.audioAssets : undefined;
+    if (!list) return input;
+    const byId = new Map(), out = [];
+    let total = 0;
+    for (const a of list) {
+      const prev = byId.get(a && a.id);
+      if (prev) {
+        if (String(prev.data) !== String(a.data)) throw new Error('音频素材 ID 重复且内容不同：' + a.id);
+        continue;
+      }
+      byId.set(a && a.id, a);
+      total += Number(a && a.bytes) || 0;
+      out.push(a);
+    }
+    if (total > MAX_AUDIO_TOTAL) throw new Error('音频素材总量超过 96MB');
+    return Object.assign({}, input, { audioAssets: out });
   }
 
   /* Asset ids are content addressed, so importing the same picture twice
@@ -186,7 +243,7 @@ function createProjectStore(options = {}) {
 
   function validateRuntime(input) {
     if (!input || typeof input !== 'object') throw new Error('不是有效的纸间工程');
-    const merged = dedupeAssets(input);
+    const merged = dedupeAudio(dedupeAssets(input));
     C.validate(merged);
     let p = C.migrate(merged);
     if (p.schema !== 5) throw new Error('工程版本无法迁移');
@@ -198,12 +255,21 @@ function createProjectStore(options = {}) {
       if (ids.has(a.id)) throw new Error('素材 ID 重复');
       ids.add(a.id);
     }
+    const audioIds = new Set();
+    for (const a of p.audioAssets) {
+      if (!safeAssetId(a.id)) throw new Error('音频素材 ID 含非法字符：' + a.id);
+      if (audioIds.has(a.id)) throw new Error('音频素材 ID 重复');
+      audioIds.add(a.id);
+      if ('file' in a || 'sha256' in a || 'path' in a || 'src' in a) {
+        throw new Error('运行时音频素材含本地文件路径，请先以工程目录打开');
+      }
+    }
     return p;
   }
 
   function diskAssets(p) {
     /* Decode each data URL exactly once; the result is reused for writing. */
-    const out = [];
+    const out = [], audio = [];
     const used = new Map();
     for (const a of p.assets) {
       const { buf, mime, hash } = parseDataUrl(a.data);
@@ -218,11 +284,25 @@ function createProjectStore(options = {}) {
         mime, file: rel, sha256: hash, bytes: buf.length
       });
     }
-    return { assets: out, used };
+    /* 音频按内容哈希单独存到 assets/audio/，工程元数据只留受控相对路径。 */
+    for (const a of p.audioAssets || []) {
+      const { buf, ext, hash } = parseAudioDataUrl(a.data);
+      const mime = AUDIO_EXT_MIME[ext];
+      const rel = AUDIO_REL + '/' + hash + '.' + ext;
+      used.set(rel, { buf, hash });
+      const item = {
+        id: a.id, name: a.name, categories: [...(a.categories || [])],
+        mime, ext, duration: a.duration == null ? null : a.duration,
+        file: rel, sha256: hash, bytes: buf.length
+      };
+      if (a.durationNote) item.durationNote = a.durationNote;
+      audio.push(item);
+    }
+    return { assets: out, audioAssets: audio, used };
   }
 
   function toDisk(p) {
-    const { assets, used } = diskAssets(p);
+    const { assets, audioAssets, used } = diskAssets(p);
     const disk = {
       format: FORMAT,
       formatVersion: FORMAT_VERSION,
@@ -231,6 +311,7 @@ function createProjectStore(options = {}) {
       id: p.id,
       title: p.title,
       assets,
+      audioAssets,
       nodes: p.nodes,
       presets: p.presets,
       characters: p.characters || [],
@@ -252,6 +333,33 @@ function createProjectStore(options = {}) {
     }
     if (disk.chapters !== undefined && !Array.isArray(disk.chapters)) {
       throw new Error('桌面工程章节列表格式错误');
+    }
+    if (disk.audioAssets !== undefined) {
+      if (!Array.isArray(disk.audioAssets) || disk.audioAssets.length > 200) {
+        throw new Error('桌面工程音频素材列表格式错误');
+      }
+      const audioIds = new Set();
+      let total = 0;
+      for (const a of disk.audioAssets) {
+        if (!a || !safeAssetId(a.id) || audioIds.has(a.id) || typeof a.name !== 'string' ||
+            !Array.isArray(a.categories) || !a.categories.length ||
+            a.categories.some(c => !AUDIO_CATEGORIES.includes(c)) ||
+            typeof a.mime !== 'string' || typeof a.ext !== 'string' ||
+            typeof a.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(a.sha256) ||
+            !Number.isInteger(a.bytes) || a.bytes < 0 || a.bytes > MAX_AUDIO_BYTES ||
+            !(a.duration === null || (Number.isFinite(a.duration) && a.duration >= 0))) {
+          throw new Error('音频素材元数据格式错误');
+        }
+        if ('data' in a) throw new Error('桌面工程不应包含内嵌音频数据');
+        audioIds.add(a.id);
+        total += a.bytes;
+        rejectUnsafeLinks(a.file, '音频素材路径');
+        const m = AUDIO_FILE_RE.exec(a.file || '');
+        if (!m || m[1] !== a.sha256 || AUDIO_EXT_MIME[m[2]] !== a.mime || AUDIO_EXT_MIME[a.ext] !== a.mime) {
+          throw new Error('音频素材路径或校验值不匹配：' + String(a.file));
+        }
+      }
+      if (total > MAX_AUDIO_TOTAL) throw new Error('音频素材总量超过 96MB');
     }
     if (disk.nodes.length > 20000 || disk.assets.length > 1000 || disk.presets.length > 200) {
       throw new Error('工程超过体验版限制');
@@ -303,10 +411,31 @@ function createProjectStore(options = {}) {
         data: 'data:' + info.mime + ';base64,' + buf.toString('base64')
       });
     }
+    const audioAssets = [];
+    for (const a of disk.audioAssets || []) {
+      const info = assetPath(root, a.file);
+      if (info.kind !== 'audio' || info.hash !== a.sha256) throw new Error('音频素材校验值不匹配：' + a.file);
+      let buf;
+      try { buf = io.readFileSync(info.abs); } catch {
+        missing.push(a.name + '（' + a.file + '）');
+        continue;
+      }
+      if (buf.length !== a.bytes || sha256(buf) !== a.sha256) {
+        missing.push(a.name + '（' + a.file + '，内容已变化）');
+        continue;
+      }
+      const item = {
+        id: a.id, name: a.name, categories: [...a.categories],
+        data: 'data:' + info.mime + ';base64,' + buf.toString('base64'),
+        mime: info.mime, ext: info.ext, bytes: buf.length, duration: a.duration
+      };
+      if (a.durationNote) item.durationNote = a.durationNote;
+      audioAssets.push(item);
+    }
     if (missing.length) throw new Error('工程引用的素材缺失，可从备份恢复：' + missing.join('、'));
     const runtime = {
       schema: disk.schema || 4, id: disk.id, title: disk.title,
-      assets, nodes: disk.nodes, presets: disk.presets,
+      assets, audioAssets, nodes: disk.nodes, presets: disk.presets,
       characters: Array.isArray(disk.characters) ? disk.characters : [],
       chapters: Array.isArray(disk.chapters) ? disk.chapters : []
     };
@@ -316,8 +445,10 @@ function createProjectStore(options = {}) {
   /* ---------- low-level writes ---------- */
 
   function writeAssets(root, used) {
-    const imagesDir = realInside(root, IMAGES_REL);
-    io.mkdirSync(imagesDir, { recursive: true });
+    io.mkdirSync(realInside(root, IMAGES_REL), { recursive: true });
+    if ([...used.keys()].some(r => r.startsWith(AUDIO_REL + '/'))) {
+      io.mkdirSync(realInside(root, AUDIO_REL), { recursive: true });
+    }
     for (const [rel, entry] of used) {
       const abs = realInside(root, rel);
       if (io.existsSync(abs)) {
@@ -433,7 +564,7 @@ function createProjectStore(options = {}) {
     for (const dir of candidates) {
       try {
         const disk = readDisk(dir, MAIN_FILE);
-        for (const a of disk.assets) {
+        for (const a of [...(disk.assets || []), ...(disk.audioAssets || [])]) {
           const info = assetPath(root, a.file);
           const buf = io.readFileSync(info.abs);
           if (sha256(buf) !== a.sha256) throw new Error('素材校验失败');
@@ -518,7 +649,7 @@ function createProjectStore(options = {}) {
     const root = path.resolve(dir);
     const draftFile = path.join(AUTOSAVE_REL, MAIN_FILE);
     const disk = readDisk(root, draftFile);
-    for (const a of disk.assets) {
+    for (const a of [...(disk.assets || []), ...(disk.audioAssets || [])]) {
       const info = assetPath(root, a.file);
       if (sha256(io.readFileSync(info.abs)) !== a.sha256) throw new Error('自动保存的素材不可用，未覆盖主工程');
     }
@@ -554,15 +685,28 @@ function createProjectStore(options = {}) {
     const { hash } = parseDataUrl(dataUrl);
     return 'a_' + sha256(Buffer.from(kind + ':' + hash)).slice(0, 16);
   }
+  /* 音频 ID 只由内容决定：重复导入同一个文件复用同一条素材，不产生第二个 ID。 */
+  function newAudioAssetId(dataUrl) {
+    const { hash } = parseAudioDataUrl(dataUrl);
+    return 'au_' + hash.slice(0, 16);
+  }
 
   function inspectReferences(p) {
     const ids = new Set(p.assets.map(a => a.id));
+    const audioIds = new Set((p.audioAssets || []).map(a => a.id));
     const layers = new Set(p.nodes.flatMap(n => (n.layers || []).map(l => l.id)));
     const brokenAssets = p.nodes.flatMap(n => (n.layers || [])
       .filter(l => !ids.has(l.asset)).map(l => n.id + '/' + l.name));
     const brokenEffects = p.nodes.flatMap(n => (n.effects || [])
       .filter(e => !layers.has(e.layer)).map(e => n.id + '/' + e.type));
-    return { brokenAssets, brokenEffects };
+    const brokenAudio = [];
+    for (const n of p.nodes) {
+      const c = C.audioCue(p, n);
+      if (c.bgm && c.bgm.action === 'play' && !audioIds.has(c.bgm.audioId)) brokenAudio.push(n.id + '/bgm');
+      for (const s of c.sfx) if (!audioIds.has(s.audioId)) brokenAudio.push(n.id + '/sfx');
+      if (c.voice && !audioIds.has(c.voice.audioId)) brokenAudio.push(n.id + '/voice');
+    }
+    return { brokenAssets, brokenEffects, brokenAudio };
   }
 
   /* ---------- recent projects (in Electron userData, never in Git) ---------- */
@@ -597,14 +741,15 @@ function createProjectStore(options = {}) {
   }
 
   return {
-    FORMAT, FORMAT_VERSION, MAIN_FILE, AUTOSAVE_REL, MAX_IMAGE_BYTES,
-    constants: { FORMAT, FORMAT_VERSION, MAIN_FILE, IMAGES_REL, BACKUPS_REL, AUTOSAVE_REL },
+    FORMAT, FORMAT_VERSION, MAIN_FILE, AUTOSAVE_REL, MAX_IMAGE_BYTES, MAX_AUDIO_BYTES,
+    constants: { FORMAT, FORMAT_VERSION, MAIN_FILE, IMAGES_REL, AUDIO_REL, BACKUPS_REL, AUTOSAVE_REL },
     createProject, openProject, saveProject, autoSave, promoteAutosave, saveAsProject,
-    importLegacy, validateRuntime, validateDisk, toDisk, diskToRuntime, parseDataUrl,
-    imageSize, newAssetId, inspectReferences, listBackups, findRestorableBackup,
+    importLegacy, validateRuntime, validateDisk, toDisk, diskToRuntime, parseDataUrl, parseAudioDataUrl,
+    imageSize, newAssetId, newAudioAssetId, inspectReferences, listBackups, findRestorableBackup,
     readRecent, touchRecent, writeRecent, assetPath, friendlyError
   };
 }
 
 module.exports = createProjectStore;
-module.exports.constants = { FORMAT, FORMAT_VERSION, MAIN_FILE, IMAGES_REL, BACKUPS_REL, AUTOSAVE_REL, MAX_IMAGE_BYTES };
+module.exports.constants = { FORMAT, FORMAT_VERSION, MAIN_FILE, IMAGES_REL, AUDIO_REL,
+  BACKUPS_REL, AUTOSAVE_REL, MAX_IMAGE_BYTES, MAX_AUDIO_BYTES };

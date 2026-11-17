@@ -1,5 +1,5 @@
 'use strict';
-const C=createVNCore(),F=createPaperEffects(),$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const C=createVNCore(),F=createPaperEffects(),A=createPaperAudio(),$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const H=window.PaperHost||null; /* desktop adapter; null keeps the original web behaviour */
 let p=C.sample(),selected=p.nodes[0].id,selectedLayer=null,playing=false,current=selected,trail=[],db,saveTimer,toastTimer,hideDialogue=false,drag=null;
 let effectId=null,effectMode='layout',effectCancel=()=>{},playbackAnimate=true;
@@ -9,7 +9,7 @@ const displayed=()=>C.scene(p,playing?current:selected,playing?trail:undefined);
 /* 舞台渲染用 C.stage：几何来自图层，素材按本句表情替换，不改写原图层。 */
 const staged=()=>C.stage(p,playing?current:selected,playing?trail:undefined);
 const layer=()=>displayed().find(l=>l.id===selectedLayer),asset=id=>p.assets.find(a=>a.id===id);
-function snapshot(){return {...p,nodes:C.clone(p.nodes),assets:[...p.assets],presets:C.clone(p.presets),characters:C.clone(p.characters||[]),chapters:C.clone(p.chapters||[]),selected,selectedLayer}}
+function snapshot(){return {...p,nodes:C.clone(p.nodes),assets:[...p.assets],audioAssets:C.clone(p.audioAssets||[]),presets:C.clone(p.presets),characters:C.clone(p.characters||[]),chapters:C.clone(p.chapters||[]),selected,selectedLayer}}
 function restore(s){const {selected:sel,selectedLayer:ls,...project}=s;p=project;selected=sel;selectedLayer=ls;playing=false;trail=[];revision++;queueSave();render()}
 function checkpoint(key=''){const now=Date.now();if(!key||key!==group||now-groupTime>900){past.push(snapshot());if(past.length>60)past.shift()}group=key;groupTime=now;future=[];}
 function edit(fn,key=''){if(playing)return toast('请先退出试玩再编辑');checkpoint(key);fn();revision++;queueSave();render()}
@@ -24,7 +24,7 @@ function queueSave(){$('#saved').textContent='正在保存…';clearTimeout(save
 function persist(){if(H){H.autoSave(p).then(r=>{$('#saved').textContent=r.ok?'已自动保存':'自动保存失败 · '+(r.message||'')}).catch(e=>{$('#saved').textContent='自动保存失败';toast(e.message||'自动保存失败')});return}if(!db){$('#saved').textContent='请下载工程备份';return}try{const tx=db.transaction('projects','readwrite');tx.objectStore('projects').put(p,'draft');tx.oncomplete=()=>$('#saved').textContent='已保存在此浏览器';tx.onerror=()=>{$('#saved').textContent='自动保存失败';toast('浏览器空间不足，请保存工程文件备份。')}}catch{$('#saved').textContent='请下载工程备份'}}
 async function decodeAsset(a){if(a.width&&a.height)return;await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{a.width=im.naturalWidth;a.height=im.naturalHeight;resolve()};im.onerror=()=>reject(Error('图片「'+a.name+'」无法解码'));im.src=a.data})}
 async function loadProject(raw){C.validate(raw);const x=C.clone(raw);await Promise.all(x.assets.map(decodeAsset));const out=C.migrate(x);C.validate(out);out.nodes.forEach(n=>F.validate(n.effects));return out}
-async function initialize(){if(H){const started=revision;try{const s=await H.bootstrap();H.applyState(s);if(s.notice)toast(s.notice);if(s.project){const restored=await loadProject(s.project);if(revision!==started)return;p=restored;selected=p.nodes[0]?.id;selectedLayer=null;render();$('#saved').textContent=s.currentDir?'已打开工程':'已恢复草稿 · 请另存为'}else $('#saved').textContent='准备就绪 · 保存工程以创建目录'}catch(e){toast('启动恢复失败：'+e.message);$('#saved').textContent='请手动保存工程'}return}try{const req=indexedDB.open('paper-vn-studio',1);req.onupgradeneeded=()=>req.result.createObjectStore('projects');req.onsuccess=()=>{db=req.result;const started=revision,r=db.transaction('projects').objectStore('projects').get('draft');r.onsuccess=async()=>{if(!r.result)return;try{const restored=await loadProject(r.result);if(revision!==started)return;p=restored;selected=p.nodes[0]?.id;selectedLayer=null;render();$('#saved').textContent='已恢复本地工程'+(r.result.schema<3?' · 已兼容升级':'')}catch(e){toast('本地工程未覆盖：'+e.message)}}};req.onerror=()=>$('#saved').textContent='请下载工程备份'}catch{$('#saved').textContent='请下载工程备份'}}
+async function initialize(){if(H){const started=revision;try{const s=await H.bootstrap();H.applyState(s);if(s.notice)toast(s.notice);if(s.project){const restored=await loadProject(s.project);if(revision!==started)return;p=restored;selected=p.nodes[0]?.id;selectedLayer=null;audioStopAll();render();$('#saved').textContent=s.currentDir?'已打开工程':'已恢复草稿 · 请另存为'}else $('#saved').textContent='准备就绪 · 保存工程以创建目录'}catch(e){toast('启动恢复失败：'+e.message);$('#saved').textContent='请手动保存工程'}return}try{const req=indexedDB.open('paper-vn-studio',1);req.onupgradeneeded=()=>req.result.createObjectStore('projects');req.onsuccess=()=>{db=req.result;const started=revision,r=db.transaction('projects').objectStore('projects').get('draft');r.onsuccess=async()=>{if(!r.result)return;try{const restored=await loadProject(r.result);if(revision!==started)return;p=restored;selected=p.nodes[0]?.id;selectedLayer=null;audioStopAll();render();$('#saved').textContent='已恢复本地工程'+(r.result.schema<3?' · 已兼容升级':'')}catch(e){toast('本地工程未覆盖：'+e.message)}}};req.onerror=()=>$('#saved').textContent='请下载工程备份'}catch{$('#saved').textContent='请下载工程备份'}}
 function indexLabel(id){const i=p.nodes.findIndex(n=>n.id===id);if(i<0)return '目标已删除';const n=p.nodes[i];return String(i+1).padStart(2,'0')+' · '+(n.type==='end'?'结局':n.type==='choice'?'选择':n.name||'旁白')+' / '+(n.text||'空文本').slice(0,16)}
 function targets(value='',auto=true){let out='<option value="">'+(auto?'按顺序继续':'请选择对话 / 主线 / 结局')+'</option>';if(value&&!p.nodes.some(n=>n.id===value))out+='<option selected value="'+esc(value)+'">目标已删除，请重新设置</option>';return out+p.nodes.map(n=>'<option value="'+esc(n.id)+'" '+(n.id===value?'selected':'')+'>'+esc(indexLabel(n.id))+'</option>').join('')}
 /* ---------- 章节 / 段落树 ---------- */
@@ -301,10 +301,10 @@ $('#inherit').checked=n.sceneMode==='inherit';$('#assetReuse').innerHTML='<optio
 function drawSelection(){const l=layer(),box=$('#selectionBox');box.hidden=playing||effectMode!=='layout'||!l||l.hidden||l.locked;if(box.hidden)return;Object.assign(box.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%'});box.querySelector('span').textContent=l.name}
 function renderCanvas(){const n=active(),ls=staged();$('#layersCanvas').replaceChildren();for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)continue;const wrap=document.createElement('div');wrap.className='visual-layer'+(l.locked?' locked':'');wrap.dataset.layer=l.id;Object.assign(wrap.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%',opacity:l.opacity/100});const im=document.createElement('img');im.src=a.data;im.alt=l.name;im.className=l.motion;im.style.objectFit=l.fit;im.draggable=false;wrap.appendChild(im);$('#layersCanvas').appendChild(wrap)}$('#placeholder').hidden=ls.some(l=>!l.hidden&&asset(l.asset));const say=n?C.speakerOf(p,n):{name:'',color:''};$('#speaker').style.color=n&&say.color?say.color:'';$('#speaker').textContent=n?(say.name||(n.type==='end'?'故事结束':'')):'';$('#line').textContent=n?.text||'添加一句对话，故事就从这里开始。';$('#choices').replaceChildren();if(n?.type==='choice')for(const o of n.options){const b=document.createElement('button');b.textContent=o.text||'未命名选项';b.onclick=e=>{e.stopPropagation();if(playing)go(o.target);else toast('从头试玩即可体验分支；目标在右侧设置。')};$('#choices').appendChild(b)}$('#nextHint').textContent=n?.type==='end'?'故事结束':n?.type==='choice'?'选项可进入普通对话，并再次汇合':playing?'点击舞台 / 空格继续 ▸':'编辑模式 · 可隐藏对话框方便拖动';$('#modeLabel').textContent=playing?'试玩中 · 使用实际经过的画面':'编辑模式 · 16:9';$('#sceneStatus').textContent=n?(n.sceneMode==='inherit'?'沿用上一画面'+(playing?'':' · 按脚本顺序预览'):'本节点独立画面'):'空白舞台';$('#selectionTitle').textContent=n?.type==='choice'?'不同的回答，也能汇回同一段故事。':'拖动图层，安排这一幕的演出。';$('#position').textContent=n?String(p.nodes.indexOf(n)+1).padStart(2,'0')+' / '+String(p.nodes.length).padStart(2,'0'):'空白舞台';$('#play').textContent=playing?'↻ 重新试玩':'▷ 从头试玩';$('#prev').disabled=playing?!trail.length:p.nodes.findIndex(n=>n.id===selected)<=0;$('#next').disabled=!n||n.type!=='say'||!C.edges(p,n).length;$('#stop').disabled=!playing;$('#slotSave').disabled=!playing;$('#slotLoad').disabled=!playing;document.body.classList.toggle('playing',playing);document.body.classList.toggle('hide-dialogue',hideDialogue);$('#toggleUI').textContent=hideDialogue?'显示对话框':'隐藏对话框';$('#toggleUI').disabled=playing;$('#flatten').disabled=playing||!ls.some(l=>!l.hidden);drawSelection();runStageEffects()}
 function updateHistory(){$('#undo').disabled=playing||!past.length;$('#redo').disabled=playing||!future.length}
-function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind()}
-function go(id){if(!p.nodes.some(n=>n.id===id))return toast('这个分支尚未设置有效目标');trail.push(current);current=id;playbackAnimate=true;renderCanvas()}
+function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind();renderAudioUI()}
+function go(id){if(!p.nodes.some(n=>n.id===id))return toast('这个分支尚未设置有效目标');trail.push(current);current=id;playbackAnimate=true;renderCanvas();if(playing)enterAudioInto(id,'enter')}
 function next(){const n=active();if(n?.type!=='say')return;const id=C.edges(p,n)[0];if(!id)return;if(playing)go(id);else selectNode(id)}
-function stop(){playing=false;trail=[];$('#entryNotice').hidden=true;render()}
+function stop(){playing=false;trail=[];$('#entryNotice').hidden=true;audioStopAll();render()}
 function describeNode(id){const n=p.nodes.find(x=>x.id===id);if(!n)return '这句';const i=p.nodes.indexOf(n);const g=C.paragraphMap(p).get(n.paragraphId);return (g?g.paragraph.title+' · ':'')+'第 '+(i+1)+' 句'}
 /* 前置状态沿用现有 scene/effects/cast 解析：把「到本句为止的脚本顺序」当作路径。
    前面出现分支或跳转时明确告诉作者这是近似还原，而不是假装走了真实路径。 */
@@ -315,7 +315,9 @@ function routeLabel(o){
 function startPlayAt(nodeId,pathIds,note){
  /* 参数不能命名成 trail：会遮住同名全局变量，导致试玩路径被丢掉。 */
  playing=true;current=nodeId;trail=[...pathIds];selectedLayer=null;effectId=null;effectMode='layout';playbackAnimate=true;
+ audioStopAll();
  render();
+ enterAudioInto(nodeId,'rebuild');          /* 定点试玩：按选定路线结算 BGM，从曲首启动 */
  const notice=$('#entryNotice');
  notice.hidden=false;notice.textContent=note;
  if($('#stage').focus)$('#stage').focus();
@@ -332,8 +334,8 @@ function playFrom(nodeId){
    toast(plan.reason||'无法确定这句之前的状态');
    return;
   }
-  modal('这句前面有多条路线',
-   '<p>「'+esc(describeNode(nodeId))+'」之前有分支，不同路线会带来不同的表情与持续演出。请选择一条路线，或从独立场景的第一句重新开始。</p>'
+   modal('这句前面有多条路线',
+   '<p>「'+esc(describeNode(nodeId))+'」之前有分支，不同路线可能播放过不同的背景音乐，也会带来不同的表情与持续演出。请选择一条路线，或从更早的音乐入口 / 独立场景第一句重新开始。</p>'
    +'<ul class="issue-list">'+plan.options.map((o,i)=>'<li><button data-route="'+i+'" class="issue"><em>路线 '+(i+1)+'</em>'+esc(routeLabel(o))+'</button></li>').join('')+'</ul>'
    +'<p class="hint">所选路线只影响这次试玩，不会改动剧情。</p>');
   $('#modalBody').querySelectorAll('[data-route]').forEach(b=>b.onclick=()=>{
@@ -362,7 +364,7 @@ $('#playPara').onclick=()=>{
  }
  toast('这句还不在任何段落里，先用「移动到…」放进段落');
 };
-$('#play').onclick=()=>{if(!p.nodes.length)return toast('请先添加剧情');playing=true;playbackAnimate=true;current=p.nodes[0].id;trail=[];selectedLayer=null;render();$('#stage').focus()};$('#stop').onclick=stop;$('#next').onclick=next;$('#prev').onclick=()=>{if(playing){if(trail.length)current=trail.pop();playbackAnimate=false;renderCanvas()}else{const i=p.nodes.findIndex(n=>n.id===selected);if(i>0)selectNode(p.nodes[i-1].id)}};
+$('#play').onclick=()=>{if(!p.nodes.length)return toast('请先添加剧情');playing=true;playbackAnimate=true;current=p.nodes[0].id;trail=[];selectedLayer=null;audioStopAll();render();enterAudioInto(current,'rebuild');$('#stage').focus()};$('#stop').onclick=stop;$('#next').onclick=next;$('#prev').onclick=()=>{if(playing){if(trail.length)current=trail.pop();playbackAnimate=false;renderCanvas();enterAudioInto(current,'rebuild')}else{const i=p.nodes.findIndex(n=>n.id===selected);if(i>0)selectNode(p.nodes[i-1].id)}};
 $('#stage').onclick=e=>{if(playing&&e.target.tagName!=='BUTTON')next()};$('#stage').onkeydown=e=>{if(playing&&e.target.tagName!=='BUTTON'&&(e.key===' '||e.key==='Enter')){e.preventDefault();next()}};$('#toggleUI').onclick=()=>{hideDialogue=!hideDialogue;renderCanvas()};
 $('#title').oninput=e=>{checkpoint('title');p.title=e.target.value;revision++;queueSave();updateHistory()};for(const [id,key]of [['name','name'],['body','text']])$('#'+id).oninput=e=>{const n=node();if(!n||playing)return;checkpoint(n.id+'-'+key);n[key]=e.target.value;revision++;queueSave();renderList();renderFlow();renderCanvas();updateHistory()};$('#type').onchange=e=>edit(()=>{const n=node();n.type=e.target.value;if(n.type==='choice'&&!n.options)n.options=[{text:'选项一',target:''},{text:'选项二',target:''}]});$('#jump').onchange=e=>edit(()=>node().next=e.target.value);$('#addOption').onclick=()=>edit(()=>node().options.push({text:'新选项',target:''}));
 function add(type){edit(()=>{const cur=node();const pid=cur&&cur.paragraphId?cur.paragraphId:(p.chapters[0]&&p.chapters[0].paragraphs[0]?p.chapters[0].paragraphs[0].id:'');const n=C.makeNode(type);n.paragraphId=pid;const i=p.nodes.findIndex(x=>x.id===selected);p.nodes.splice(i+1,0,n);selected=n.id;selectedLayer=null})}$('#add').onclick=()=>add('say');$('#addChoice').onclick=()=>add('choice');$('#addEnd').onclick=()=>add('end');
@@ -386,7 +388,7 @@ $('#duplicate').onclick=()=>{if(!node())return;edit(()=>{const n=C.clone(node())
 $('#inherit').onchange=e=>{const inherit=e.target.checked;if(inherit&&node().sceneMode==='own'&&node().layers.length&&!confirm('改为沿用上一画面？本节点的独立画面将被替换，可撤销。')){e.target.checked=false;return}edit(()=>{if(inherit){node().sceneMode='inherit';node().layers=[]}else makeOwn();selectedLayer=null})};
 function defaultLayer(a){return C.defaultLayer(a)}
 function addAssetLayer(a,bind){makeOwn();const l=C.appendAssetLayer(node(),a,bind);selectedLayer=l.id}
-function pick(accept,callback,assetKind){if(H){const task=String(accept).includes('image')?H.pickImage(assetKind||'bg'):H.pickText();task.then(async f=>{if(!f)return;try{await callback(f)}catch(e){toast(e.message||'读取失败')}}).catch(e=>toast(e.message||'读取失败'));return}const f=$('#file');f.value='';f.accept=accept;f.onchange=async()=>{if(f.files[0])try{await callback(f.files[0])}catch(e){toast(e.message||'读取失败')}};f.click()}
+function pick(accept,callback,assetKind){if(H){const task=accept==='audio'?H.pickAudio():String(accept).includes('image')?H.pickImage(assetKind||'bg'):H.pickText();task.then(async f=>{if(!f)return;try{await callback(f)}catch(e){toast(e.message||'读取失败')}}).catch(e=>toast(e.message||'读取失败'));return}const f=$('#file');f.value='';f.accept=accept==='audio'?'audio/*,.wav,.wave,.mp3,.ogg,.oga,.m4a,.aac,.flac,.webm':accept;f.onchange=async()=>{if(f.files[0])try{await callback(f.files[0])}catch(e){toast(e.message||'读取失败')}};f.click()}
 function upload(kind){if(!node())return toast('请先添加剧情');const target=selected;pick('image/png,image/jpeg,image/webp',async f=>{if(f.size>12*1024*1024)throw Error('请使用小于 12MB 的图片');if(!['image/png','image/jpeg','image/webp'].includes(f.type))throw Error('仅支持 PNG、JPEG、WebP');const data=H?f.dataUrl:await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('图片读取失败'));r.readAsDataURL(f)});if(!data)throw Error('图片读取失败');const picked=C.assetForImport(p,{id:H&&f.id?f.id:C.id(),name:f.name,kind,data});const a=picked.asset;await decodeAsset(a);if(selected!==target||playing)throw Error('当前节点已变化，请重新导入图片');edit(()=>{if(!picked.reused)p.assets.push(a);const nn=node();let bind=null;if(kind==='char'&&nn&&nn.speakerId){const c=C.characterIn(p,nn.speakerId);if(c)bind={characterId:c.id,expressionId:nn.expressionId||((c.expressions||[]).find(e=>e.assetId===a.id)||{}).id||''}}addAssetLayer(a,bind)});toast('已添加图层：拖动画面调整位置，右下角缩放。'+(picked.reused?'（复用已有素材）':''))},kind)}$('#uploadBg').onclick=()=>upload('bg');$('#uploadChar').onclick=()=>upload('char');$('#reuse').onclick=()=>{const a=asset($('#assetReuse').value);if(!a)return toast('请先选择已导入素材');edit(()=>addAssetLayer(a))};
 for(const [id,key]of [['layerName','name'],['lx','x'],['ly','y'],['lw','w'],['lh','h'],['opacity','opacity'],['motion','motion']]){const e=$('#'+id);e.addEventListener(id==='motion'?'change':'input',()=>{const l=layer();if(!l||l.locked||playing)return;let v=key==='name'||key==='motion'?e.value:+e.value;if(typeof v==='number'){if(e.value===''||!Number.isFinite(v))return;const min=key==='x'||key==='y'?-500:key==='opacity'?0:1,max=key==='x'||key==='y'?500:key==='opacity'?100:1000;if(v<min||v>max)return}checkpoint('layer-'+l.id+'-'+key);const own=ownLayer();if($('#ratio').checked&&(key==='w'||key==='h')){const other=key==='w'?'h':'w',newOther=own[other]*v/own[key];if(newOther<1||newOther>1000)return;own[other]=newOther}own[key]=v;revision++;queueSave();renderLayerUI();renderCanvas();updateHistory()})}
 function layerEdit(fn){if(!layer()||layer().locked)return;edit(()=>fn(ownLayer()))}
@@ -399,7 +401,7 @@ function finishDrag(e){if(!drag||e.pointerId!==drag.pointer)return;const moved=d
 $('#savePreset').onclick=()=>{if(!displayed().length)return toast('请先添加图层');const name=prompt('为当前场景预设命名：','我的场景');if(!name?.trim())return;edit(()=>p.presets.push({id:C.id(),name:name.trim(),layers:C.clone(displayed())}));toast('已保存预设，可应用到其他节点')};$('#applyPreset').onclick=()=>{const preset=p.presets.find(t=>t.id===$('#presets').value);if(!preset)return toast('先选择场景预设');edit(()=>{node().sceneMode='own';node().layers=C.clone(preset.layers);node().layers.forEach(l=>l.id=C.id());selectedLayer=null})};
 $('#buildBranch').onclick=()=>{const n=node();if(!n||n.type!=='choice')return;if(!n.options.length)return toast('先添加至少一个选项');modal('生成对话分支，并汇回主线','<p>每个选项会获得一段可编辑的对话，结束后跳到你选择的共同节点。现有选项目标将被替换，可撤销。</p><div class="stack"><label>共同主线<select id="mergeTarget">'+targets('',false)+'</select></label><button id="confirmBranches" class="primary">创建 '+n.options.length+' 段分支</button></div>');$('#mergeTarget').querySelector('option[value="'+n.id+'"]').remove();$('#confirmBranches').onclick=()=>{const target=$('#mergeTarget').value;if(!target||target===n.id)return toast('请选择有效的共同主线');edit(()=>{const branches=n.options.map(o=>{const b=C.makeNode();b.name='';b.text='【'+o.text+'】在这里填写这条分支的对话。';b.next=target;o.target=b.id;return b});p.nodes.splice(p.nodes.indexOf(n)+1,0,...branches)});$('#modal').close();toast('分支已建立，每段结尾均已指向共同主线')};};
 $('#branchDemo').onclick=()=>{if(!confirm('用三选项汇合示例替换当前工程？可撤销，建议先保存备份。'))return;edit(()=>{p=C.sample();selected=p.nodes[0].id;selectedLayer=null})};
-$('.tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('.tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));for(const name of ['nodes','text','flow','cast'])$('#'+name+'-tab').hidden=b.dataset.tab!==name});$('#txtFile').onclick=()=>pick('.txt,text/plain',async f=>{if(f.size>2*1024*1024)throw Error('文本请小于 2MB');$('#importText').value=await f.text();toast('已载入 UTF-8 文本，请检查后解析')});function defaultParagraphId(){const n=node();if(n&&n.paragraphId)return n.paragraphId;const c=p.chapters[0];return c&&c.paragraphs[0]?c.paragraphs[0].id:''}
+$('.tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('.tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));for(const name of ['nodes','text','flow','cast','audio'])$('#'+name+'-tab').hidden=b.dataset.tab!==name});$('#txtFile').onclick=()=>pick('.txt,text/plain',async f=>{if(f.size>2*1024*1024)throw Error('文本请小于 2MB');$('#importText').value=await f.text();toast('已载入 UTF-8 文本，请检查后解析')});function defaultParagraphId(){const n=node();if(n&&n.paragraphId)return n.paragraphId;const c=p.chapters[0];return c&&c.paragraphs[0]?c.paragraphs[0].id:''}
 function previewImport(){
  const text=$('#importText').value;
  if(!text.trim())return toast('请先输入文本');
@@ -439,10 +441,10 @@ function previewImport(){
  };
 }
 $('#parse').onclick=()=>previewImport();
-async function download(data,name,type){const ext=String(name).toLowerCase(),kind=ext.endsWith('.png')?'png':ext.endsWith('.json')?'json':'html';if(H){try{let payload={kind,name};if(data instanceof Blob){const bytes=new Uint8Array(await data.arrayBuffer());let s='';for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));payload.base64=btoa(s)}else payload.text=String(data);const r=await H.saveFile(payload);if(r&&!r.cancelled)toast('已保存到：'+r.path)}catch(e){toast('导出失败：'+(e.message||e))}return}const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}const filename=()=>(p.title||'我的故事').replace(/[\\/:*?"<>|]/g,'_');async function applyOpened(r){if(!r||r.cancelled)return;const out=await loadProject(r.project);batch={on:false,ids:new Set(),anchor:null,scene:null,effects:null};edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});H.applyState(r);$('#saved').textContent='已打开 · '+(r.label||'工程');if(r.imported)toast('旧工程已导入到新目录，原文件未改动');if(r.notice)toast(r.notice)}
+async function download(data,name,type){const ext=String(name).toLowerCase(),kind=ext.endsWith('.png')?'png':ext.endsWith('.json')?'json':'html';if(H){try{let payload={kind,name};if(data instanceof Blob){const bytes=new Uint8Array(await data.arrayBuffer());let s='';for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));payload.base64=btoa(s)}else payload.text=String(data);const r=await H.saveFile(payload);if(r&&!r.cancelled)toast('已保存到：'+r.path)}catch(e){toast('导出失败：'+(e.message||e))}return}const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}const filename=()=>(p.title||'我的故事').replace(/[\\/:*?"<>|]/g,'_');async function applyOpened(r){if(!r||r.cancelled)return;const out=await loadProject(r.project);batch={on:false,ids:new Set(),anchor:null,scene:null,effects:null};audioStopAll();edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});H.applyState(r);$('#saved').textContent='已打开 · '+(r.label||'工程');if(r.imported)toast('旧工程已导入到新目录，原文件未改动');if(r.notice)toast(r.notice)}
 $('#save').onclick=()=>{if(H){H.save(p).then(r=>{if(r.cancelled)return;H.applyState(r);$('#saved').textContent='已保存';toast('工程已保存到目录，素材与备份完整')}).catch(e=>{$('#saved').textContent='保存失败';toast('保存失败：'+e.message)});return}download(JSON.stringify(p,null,2),filename()+'.paper.json','application/json');toast('已下载完整 V0.3 工程，包含全部图层与图片')};
-$('#open').onclick=()=>{if(H){H.open().then(applyOpened).catch(e=>toast('打开失败：'+e.message));return}pick('.json,application/json',async f=>{if(f.size>80*1024*1024)throw Error('工程请小于 80MB');const out=await loadProject(JSON.parse(await f.text()));if(!confirm('替换当前工程？可撤销，建议先下载当前工程。'))return;edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});toast('工程已打开，旧版工程已自动兼容转换')})};
-$('#new').onclick=()=>{if(H){H.newProject().then(r=>{if(r.cancelled)return;edit(()=>{p=r.project;selected=p.nodes[0]?.id??null;selectedLayer=null});H.applyState(r);$('#saved').textContent='新建工程';toast('已新建工程目录')}).catch(e=>toast('新建失败：'+e.message));return}if(!confirm('新建空白工程？可撤销，建议先下载当前工程。'))return;edit(()=>{p=C.blank();selected=null;selectedLayer=null})};
+$('#open').onclick=()=>{if(H){H.open().then(applyOpened).catch(e=>toast('打开失败：'+e.message));return}pick('.json,application/json',async f=>{if(f.size>80*1024*1024)throw Error('工程请小于 80MB');const out=await loadProject(JSON.parse(await f.text()));if(!confirm('替换当前工程？可撤销，建议先下载当前工程。'))return;audioStopAll();edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});toast('工程已打开，旧版工程已自动兼容转换')})};
+$('#new').onclick=()=>{if(H){H.newProject().then(r=>{if(r.cancelled)return;audioStopAll();edit(()=>{p=r.project;selected=p.nodes[0]?.id??null;selectedLayer=null});H.applyState(r);$('#saved').textContent='新建工程';toast('已新建工程目录')}).catch(e=>toast('新建失败：'+e.message));return}if(!confirm('新建空白工程？可撤销，建议先下载当前工程。'))return;edit(()=>{p=C.blank();selected=null;selectedLayer=null})};
 if(H){
  $('#saveAs').onclick=()=>H.saveAs(p).then(r=>{if(r.cancelled)return;H.applyState(r);$('#saved').textContent='已另存为';toast('已复制到新工程目录，旧工程未改动')}).catch(e=>toast('另存为失败：'+e.message));
  $('#exportJson').onclick=()=>H.saveFile({kind:'json',name:filename()+'.paper.json',text:JSON.stringify(p,null,2)}).then(r=>{if(r&&!r.cancelled)toast('工程 JSON 备份已保存：'+r.path)}).catch(e=>toast('备份失败：'+e.message));
@@ -464,10 +466,26 @@ $('#check').onclick=()=>{
   else toast('这条问题不对应具体句子，请按文字说明处理');
  });
 };
-$('#slotSave').onclick=()=>{slot={revision,current,trail:[...trail]};toast('已存档（当前编辑会话）')};$('#slotLoad').onclick=()=>{if(!slot)return toast('暂无试玩存档');if(slot.revision!==revision)return toast('工程已变化，请重新试玩并存档');current=slot.current;trail=[...slot.trail];playbackAnimate=false;renderCanvas();toast('已读取试玩存档')};
+$('#slotSave').onclick=()=>{slot={revision,current,trail:[...trail]};toast('已存档（当前编辑会话）')};$('#slotLoad').onclick=()=>{if(!slot)return toast('暂无试玩存档');if(slot.revision!==revision)return toast('工程已变化，请重新试玩并存档');current=slot.current;trail=[...slot.trail];playbackAnimate=false;renderCanvas();enterAudioInto(current,'rebuild');toast('已读取试玩存档')};
 $('#flatten').onclick=async()=>{if(effectMode!=='layout')return toast('请先返回布局。PNG 合成导出只包含原始布局；演出效果保留在试玩网页中。');const ls=C.clone(displayed());if(!ls.some(l=>!l.hidden))return;try{const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d');for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)throw Error('图片丢失');const im=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('图片无法解码'));img.src=a.data});ctx.save();const x=l.x*12.8,y=l.y*7.2,w=l.w*12.8,h=l.h*7.2;ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.globalAlpha=l.opacity/100;if(l.fit==='fill')ctx.drawImage(im,x,y,w,h);else{const f=l.fit==='cover'?Math.max(w/im.width,h/im.height):Math.min(w/im.width,h/im.height);ctx.drawImage(im,x+(w-im.width*f)/2,y+(h-im.height*f)/2,im.width*f,im.height*f)}ctx.restore()}canvas.toBlob(blob=>{if(blob)download(blob,filename()+'-合成场景.png','image/png')},'image/png');toast('导出 1280×720 场景合成图（透明底，不含对话框）')}catch(e){toast('导出失败：'+e.message)}};
-$('#export').onclick=()=>{const report=C.analyze(p);if(report.errors.length){$('#check').click();return}let html;try{html=buildGameHTML(p,{player:paperPlayer,coreFactory:createVNCore,effectFactory:createPaperEffects,css:paperPlayerCSS,esc})}catch(e){toast('导出失败：'+e.message);return}download(html,filename()+'.html','text/html');toast('已导出独立 HTML，包含图层、效果、位置与全部分支')};
-$('#help').onclick=()=>modal('V0.4.3 · 批量编辑、章节与台词演出','<ol><li>左栏「批量编辑」可一次勾选多句（Shift 连选、点段落「全选」），折叠的段落不会丢掉已选，段落标题上会显示已选数量。勾选不会误触拖动排序。</li><li>「角色 / 表情…」只改勾选的字段：说话角色、本句说话表情、指定在场角色的表情。没勾的字段保持原样，预览里会先列出前后变化、跳过与冲突的句子。</li><li>「复制场景 / 粘贴场景」只替换画面布局，台词、跳转与演出都不动；「复制演出 / 粘贴演出」可以选择替换或追加，追加遇到同图层同类型会先告诉你冲突。</li><li>每次批量写入只产生一条撤销记录，撤销一次退回整批，重做一次恢复整批。取消预览不会改动工程。</li><li>左栏是章节树：章节 → 段落 → 句子。拖动句子可以换段落，拖动段落可以换章节；也可以用「移动到…」「↑↓」按钮。章节顺序就是播放顺序，改动「按顺序继续」时会先列出受影响的句子。</li><li>删除章节或段落默认保留剧情，句子会进入「未分组」；删除单句会先告诉你有多少跳转指向它。都可以撤销。</li><li>「文本导入」先出预览：识别 # 章节、## 段落、「角色：台词」，列出新增句数、识别到的章节段落和读不懂的行；取消不改工程，确认后一次撤销即可还原。</li><li>在左侧「角色」建立林悠、林澈这样的角色：填名字、姓名颜色，逐个添加表情（透明立绘）。表情只是替换现有角色图层的图片，不会移动位置或复制图层。</li><li>录入台词时在「角色与表情」选择谁在说话、本句用哪个表情；同场的另一个角色也可以单独设表情。留空则沿用上一句，自由填写说话人和旁白仍然可用。</li><li>上传角色立绘后可在图层属性里指定「图片属于角色」，让这张图跟随角色表情切换。</li><li>在「效果与演出」选择目标图层，添加效果或使用预设。可设置起点、终点、时长、延迟、缓动和缩放中心。点击舞台上方预览、终态或拖动时间条；返回布局后可继续拖动素材。</li><li>持续效果在推进时按目标值结算；本句结束恢复的效果离开即移除；自动恢复效果在播放后回到起点。独立场景重置此前持续效果。读档和后退显示本句终态。</li><li>「▶ 从本句 / ▶ 从本段」可以从指定位置试玩，背景、表情和持续演出按前面的句子还原；前面有分支时会提示这是近似还原。选中剧情节点，上传背景或角色。支持多个角色和背景素材叠加。</li><li>在舞台拖动图片；选中边框右下角可等比缩放。也可输入 X/Y、宽高，或用「填满画布」。隐藏对话框更方便编辑底部。</li><li>右侧图层从上到下就是前景到背景。可隐藏、锁定、调整层级。锁定底图后更容易选前景。</li><li>新对话默认沿用上一画面；第一次修改会生成独立副本。编辑模式按脚本顺序预览，试玩按实际走过的路径继承。</li><li>选项数量可增加，目标可以是普通对话。使用「生成局部分支并汇合」快速创建各选项的对话，并统一跳回主线。</li><li>撤销／重做支持图层、文本和剧情结构（最多 60 步）。输入框里 Ctrl+Z 使用原生文本撤销；页面按钮撤销工程修改。</li><li>场景可存为预设，也可导出不含对话框的合成 PNG。保存工程包含原始图层，导出试玩生成独立离线 HTML。</li></ol><p class="hint">支持打开 V0.1 / V0.2 工程。旧工程保留原来的两结局结构，不会强制替换。暂无 AI 动作、配音、音乐或 EXE 打包。浏览器数据清理会删除草稿，请下载备份。</p>');
+$('#export').onclick=()=>{
+ const report=C.analyze(p);if(report.errors.length){$('#check').click();return}
+ const doExport=()=>{
+  let html;
+  try{html=buildGameHTML(p,{player:paperPlayer,coreFactory:createVNCore,effectFactory:createPaperEffects,audioFactory:createPaperAudio,css:paperPlayerCSS,esc})}
+  catch(e){toast('导出失败：'+e.message);return}
+  download(html,filename()+'.html','text/html');
+  toast('已导出独立 HTML，含图层、演出、分支'+(p.audioAssets?.length?'与内嵌音频':''));
+ };
+ const size=audioExportSize(p);
+ if(!size.count){doExport();return}
+ modal('导出含音频的离线 HTML',
+  '<p>本工程包含 <b>'+size.count+'</b> 个音频素材，内嵌后约增加 <b>'+esc(size.label)+'</b>（原始 '+esc(A.pure.formatBytes(size.bytes))+'）。</p>'
+  +'<p class="hint">音频会以 data: 内嵌，断网后也能播放；文件较大时生成会稍慢，请耐心等待，不要反复点击。</p>'
+  +'<div class="stack"><button id="confirmAudioExport" class="primary">继续导出自包含 HTML</button></div>');
+ $('#confirmAudioExport').onclick=()=>{$('#modal').close();doExport()};
+};
+$('#help').onclick=()=>modal('V0.5 · 基础音频、批量编辑与章节','<ol><li>左栏「音频」导入背景音乐 / 音效 / 语音：选好分类再导入，同一文件重复导入会复用素材，也能同时用于不同用途。列表显示名称、分类、时长、大小与引用处数；「试听」再点一次停止。被句子引用的素材不能直接删除，会先列出引用位置。</li><li>右侧「音频」分区给每句配音：音乐三种状态要分清——「沿用音乐」不重启正在播的曲子，「播放 / 切换音乐」一律从曲首开始（同一首也是），「停止音乐」淡出后停止。独立画面不会自动停止音乐。音效可加多条并设触发延迟，台词语音每句最多一条、手动选择，不按角色自动配音。</li><li>总音量、音乐 / 音效 / 语音音量与静音属于本机播放偏好，不写进工程；每句里的音量属于工程内容。浏览器第一次播放需要点「启用声音」，播放失败会在音频状态栏用中文说明原因。</li><li>左栏「批量编辑」可一次勾选多句（Shift 连选、点段落「全选」），折叠的段落不会丢掉已选，段落标题上会显示已选数量。勾选不会误触拖动排序。</li><li>「角色 / 表情…」只改勾选的字段：说话角色、本句说话表情、指定在场角色的表情。没勾的字段保持原样，预览里会先列出前后变化、跳过与冲突的句子。</li><li>「复制场景 / 粘贴场景」只替换画面布局，台词、跳转与演出都不动；「复制演出 / 粘贴演出」可以选择替换或追加，追加遇到同图层同类型会先告诉你冲突。</li><li>每次批量写入只产生一条撤销记录，撤销一次退回整批，重做一次恢复整批。取消预览不会改动工程。</li><li>左栏是章节树：章节 → 段落 → 句子。拖动句子可以换段落，拖动段落可以换章节；也可以用「移动到…」「↑↓」按钮。章节顺序就是播放顺序，改动「按顺序继续」时会先列出受影响的句子。</li><li>删除章节或段落默认保留剧情，句子会进入「未分组」；删除单句会先告诉你有多少跳转指向它。都可以撤销。</li><li>「文本导入」先出预览：识别 # 章节、## 段落、「角色：台词」，列出新增句数、识别到的章节段落和读不懂的行；取消不改工程，确认后一次撤销即可还原。</li><li>在左侧「角色」建立林悠、林澈这样的角色：填名字、姓名颜色，逐个添加表情（透明立绘）。表情只是替换现有角色图层的图片，不会移动位置或复制图层。</li><li>录入台词时在「角色与表情」选择谁在说话、本句用哪个表情；同场的另一个角色也可以单独设表情。留空则沿用上一句，自由填写说话人和旁白仍然可用。</li><li>上传角色立绘后可在图层属性里指定「图片属于角色」，让这张图跟随角色表情切换。</li><li>在「效果与演出」选择目标图层，添加效果或使用预设。可设置起点、终点、时长、延迟、缓动和缩放中心。点击舞台上方预览、终态或拖动时间条；返回布局后可继续拖动素材。</li><li>持续效果在推进时按目标值结算；本句结束恢复的效果离开即移除；自动恢复效果在播放后回到起点。独立场景重置此前持续效果。读档和后退显示本句终态。</li><li>「▶ 从本句 / ▶ 从本段」可以从指定位置试玩，背景、表情和持续演出按前面的句子还原；前面有分支时会提示这是近似还原。选中剧情节点，上传背景或角色。支持多个角色和背景素材叠加。</li><li>在舞台拖动图片；选中边框右下角可等比缩放。也可输入 X/Y、宽高，或用「填满画布」。隐藏对话框更方便编辑底部。</li><li>右侧图层从上到下就是前景到背景。可隐藏、锁定、调整层级。锁定底图后更容易选前景。</li><li>新对话默认沿用上一画面；第一次修改会生成独立副本。编辑模式按脚本顺序预览，试玩按实际走过的路径继承。</li><li>选项数量可增加，目标可以是普通对话。使用「生成局部分支并汇合」快速创建各选项的对话，并统一跳回主线。</li><li>撤销／重做支持图层、文本和剧情结构（最多 60 步）。输入框里 Ctrl+Z 使用原生文本撤销；页面按钮撤销工程修改。</li><li>场景可存为预设，也可导出不含对话框的合成 PNG。保存工程包含原始图层，导出试玩生成独立离线 HTML。</li></ol><p class="hint">支持打开 V0.1 / V0.2 工程。旧工程保留原来的两结局结构，不会强制替换。本版音频为基础功能：不做 TTS、自动配音、口型同步、音频剪辑、复杂叠轨与批量音频绑定；导出的离线 HTML 会内嵌音频，导出前会提示体积。浏览器数据清理会删除草稿，请下载备份。</p>');
 function effectNode(){return node()?.effects?.find(e=>e.id===effectId)}
 function effectTargets(){return displayed()}
 function renderEffectUI(){const n=node();if(!n)return;const ls=effectTargets(),prev=$('#effectTarget').value;$('#effectTarget').innerHTML='<option value="">选择当前画面的图层…</option>'+ls.map(l=>'<option value="'+esc(l.id)+'">'+esc(l.name)+'（'+(l.kind==='bg'?'背景':'角色')+'）</option>').join('');$('#effectTarget').value=ls.some(l=>l.id===selectedLayer)?selectedLayer:prev;$('#effectCount').textContent=n.effects.length;$('#effectList').innerHTML=n.effects.map(e=>{const l=ls.find(l=>l.id===e.layer);return '<div class="effect-row '+(e.id===effectId?'active':'')+'"><button data-effect="'+esc(e.id)+'"><b>'+esc(F.types[e.type].name)+'</b> · '+esc(l?.name||'图层不在当前预览中')+'<small>'+e.delay+'s 延迟 / '+e.duration+'s · '+({hold:'持续',sentence:'本句结束恢复',auto:'自动恢复'}[e.policy])+'</small></button><button data-enable-effect="'+esc(e.id)+'" aria-label="'+(e.enabled?'停用':'启用')+'效果">'+(e.enabled?'停用':'启用')+'</button></div>'}).join('');$('#effectList').querySelectorAll('[data-effect]').forEach(b=>b.onclick=()=>{effectId=b.dataset.effect;renderEffectUI()});$('#effectList').querySelectorAll('[data-enable-effect]').forEach(b=>b.onclick=()=>edit(()=>{const e=node().effects.find(e=>e.id===b.dataset.enableEffect);e.enabled=!e.enabled}));let e=effectNode();$('#effectProps').hidden=!e;if(!e)return;$('#effectName').textContent=F.types[e.type].name+' · '+F.types[e.type].unit;$('#effectTarget').value=e.layer;$('#effectAutoFrom').checked=e.from===null;$('#effectMoveY').hidden=e.type!=='move';$('#effectPivot').hidden=!['scale','rotate'].includes(e.type);$('#effectReturnLabel').hidden=e.policy!=='auto';const base=F.before(p,C,n.id)[e.layer]||F.neutral(),key=e.type==='move'?'x':e.type;const values={effectFrom:e.from??base[key],effectTo:e.to,effectFromY:e.fromY??base.y,effectToY:e.toY,effectOriginX:e.originX,effectOriginY:e.originY,effectDuration:e.duration,effectDelay:e.delay,effectReturn:e.returnDuration,effectPolicy:e.policy,effectEasing:e.easing};for(const [id,v]of Object.entries(values))if(document.activeElement!==$('#'+id))$('#'+id).value=v;for(const id of ['effectFrom','effectTo']){const meta=F.types[e.type];$('#'+id).min=meta.min;$('#'+id).max=meta.max;$('#'+id).step='0.1'}$('#effectFrom').disabled=e.from===null;$('#effectFromY').disabled=e.fromY===null;}
@@ -919,5 +937,293 @@ $('#batchPasteScene').onclick=batchPasteScene;
 $('#batchCopyFx').onclick=batchCopyEffects;
 $('#batchPasteFx').onclick=batchPasteEffects;
 $('#batchClear').onclick=batchClear;
+
+/* ================= V0.5 基础音频 =================
+ * 编辑器与导出播放器共用 dist/audio.js 的同一个工厂：工程内容（逐句音频指令）
+ * 与播放偏好（总/分类音量、静音）分开存放，音频生命周期只在这里接线。 */
+let audioRT=null,audioPrefs=loadAudioPrefs(),audioPreviewId=null,cuePreviewOn=false;
+const MIXERS=[['master','volMaster','volMasterVal'],['bgm','volBgm','volBgmVal'],['sfx','volSfx','volSfxVal'],['voice','volVoice','volVoiceVal']];
+function loadAudioPrefs(){try{return A.pure.normalizePrefs(JSON.parse(localStorage.getItem('paper-audio-prefs')||'null'))}catch{return A.pure.normalizePrefs(null)}}
+function persistAudioPrefs(){try{localStorage.setItem('paper-audio-prefs',JSON.stringify(audioPrefs))}catch{}}
+function runtime(){
+ if(!audioRT)audioRT=A.runtime({assetData:id=>{const a=C.audioAsset(p,id);return a?a.data:''},prefs:audioPrefs,onStatus:audioStatus});
+ return audioRT;
+}
+function audioName(id){const a=C.audioAsset(p,id);return a?a.name:(id||'（已删除的素材）')}
+function audioStatus(st){
+ const err=st&&st.errors&&st.errors[0];
+ let text;
+ if(err)text='注意：'+err.title+'（'+(err.label||audioName(err.audioId)||'当前句')+'）。'+err.hint;
+ else if(!st)text=C.hasAnyAudio(p)?'点击「启用声音」后播放':'本工程没有音频';
+ else{
+  const cur=st.bgm&&st.bgm.playing?'正在播放「'+audioName(st.bgm.audioId)+'」':'当前没有背景音乐';
+  text=(st.unlocked?'声音已启用':'点击「启用声音」后播放')+' · '+cur+(st.prefs.muted?' · 已静音':'');
+ }
+ for(const id of ['#audioStatus','#audioCueStatus']){const el=$(id);if(el){el.textContent=text;el.classList.toggle('audio-error',!!err)}}
+ const btn=$('#audioCuePreview');if(btn)btn.textContent=cuePreviewOn?'停止本句试听':'▷ 试听本句音频';
+}
+function audioStopAll(){if(audioRT)audioRT.stopAll();audioPreviewId=null;cuePreviewOn=false}
+/* 进入一句：正常推进沿用当前播放位置；定点试玩 / 返回 / 读档 / 重开按真实路线重建。 */
+function enterAudioInto(nodeId,mode){
+ if(!nodeId||!C.hasAnyAudio(p))return;               /* 无音频旧工程不创建播放任务 */
+ const rt=runtime();
+ if(!rt.isUnlocked()){audioStatus(rt.status());return}
+ const n=p.nodes.find(x=>x.id===nodeId);if(!n)return;
+ audioPreviewId=null;cuePreviewOn=false;
+ const cue=A.pure.normalizeCue(n.audio),rebuild=mode==='rebuild';
+ const bgmState=rebuild?C.bgmAt(p,nodeId,trail):null;
+ rt.enter(cue,{rebuild,bgmState,label:describeNode(nodeId)});
+}
+function syncMixerUI(){
+ for(const [key,id,valId]of MIXERS){
+  const el=$('#'+id);if(!el)continue;
+  if(document.activeElement!==el)el.value=String(Math.round(audioPrefs[key]*100));
+  const out=$('#'+valId);if(out)out.textContent=el.value+'%';
+ }
+ const m=$('#muteAll');if(m)m.checked=!!audioPrefs.muted;
+}
+function renderAudioUI(){renderAudioTab();renderNodeAudio()}
+function renderAudioTab(){
+ const list=p.audioAssets||[],total=list.reduce((s,a)=>s+(a.bytes||0),0);
+ const totalEl=$('#audioTotal');if(totalEl)totalEl.textContent=list.length+' 个素材 · '+A.pure.formatBytes(total);
+ const filter=$('#audioFilter')?$('#audioFilter').value:'all';
+ const shown=filter==='all'?list:list.filter(a=>(a.categories||[]).includes(filter));
+ const box=$('#audioAssets');if(!box)return;
+ box.innerHTML=shown.length?shown.map(a=>{
+  const uses=C.audioUsage(p,a.id),cats=(a.categories||[]).map(c=>A.CATEGORY_NAMES[c]||c).join(' / ');
+  const dur=a.duration==null?'时长未知':A.pure.formatSeconds(a.duration);
+  return '<div class="audio-asset-row'+(audioPreviewId===a.id?' playing':'')+'">'
+   +'<div class="audio-name"><span>'+esc(a.name)+'</span><em>'+esc(cats)+'</em></div>'
+   +'<small>'+esc(dur)+' · '+esc(A.pure.formatBytes(a.bytes))+' · 引用 '+uses.length+' 处'
+   +(a.durationNote?' · '+esc(a.durationNote):'')+'</small>'
+   +'<div class="audio-actions"><button data-audio-preview="'+esc(a.id)+'">'+(audioPreviewId===a.id?'停止试听':'试听')+'</button>'
+   +'<button data-audio-delete="'+esc(a.id)+'" class="danger">删除</button></div></div>';
+ }).join(''):'<p class="hint empty">还没有音频素材。选好分类后点「导入音频」；本版可靠支持 PCM WAV。</p>';
+ box.querySelectorAll('[data-audio-preview]').forEach(b=>b.onclick=()=>toggleAudioPreview(b.dataset.audioPreview));
+ box.querySelectorAll('[data-audio-delete]').forEach(b=>b.onclick=()=>deleteAudioAsset(b.dataset.audioDelete));
+ syncMixerUI();
+}
+function audioAssetOptions(value){
+ const list=p.audioAssets||[],groups=[['bgm','背景音乐'],['sfx','音效'],['voice','语音']],used=new Set();
+ if(!list.length)return '<option value="">（还没有音频素材，先在左栏「音频」导入）</option>';
+ let html='<option value="">（不指定）</option>';
+ for(const [k,label]of groups){
+  const items=list.filter(a=>(a.categories||[])[0]===k);
+  if(!items.length)continue;
+  html+='<optgroup label="'+label+'">'+items.map(a=>{used.add(a.id);
+   return '<option value="'+esc(a.id)+'"'+(a.id===value?' selected':'')+'>'+esc(a.name)+'</option>'}).join('')+'</optgroup>';
+ }
+ const rest=list.filter(a=>!used.has(a.id));
+ if(rest.length)html+='<optgroup label="其他">'+rest.map(a=>'<option value="'+esc(a.id)+'"'+(a.id===value?' selected':'')+'>'+esc(a.name)+'</option>').join('')+'</optgroup>';
+ if(value&&!list.some(a=>a.id===value))html+='<option value="'+esc(value)+'" selected>素材已删除（保留占位）</option>';
+ return html;
+}
+function ensureAudio(n){if(!n.audio||typeof n.audio!=='object')n.audio={bgm:null,sfx:[],voice:null};if(!Array.isArray(n.audio.sfx))n.audio.sfx=[];return n.audio}
+/* 用 normalizeCue 的输出写回：字段齐全，单次编辑形成一条撤销记录。 */
+function setNodeAudio(mutator){
+ const n=node();if(!n)return;
+ const cue=A.pure.normalizeCue(n.audio);
+ mutator(cue);
+ n.audio=(cue.bgm||cue.sfx.length||cue.voice)?cue:null;
+}
+function writeAudio(mutator,key){edit(()=>setNodeAudio(mutator),key||'audio')}
+function audioContinuous(key,mutator){
+ if(playing)return toast('请先退出试玩再编辑');
+ checkpoint(key);setNodeAudio(mutator);revision++;queueSave();updateHistory();
+}
+function renderNodeAudio(){
+ const n=node(),panel=$('#nodeAudioPanel');if(!panel)return;
+ if(!n){panel.hidden=true;return}
+ panel.hidden=false;
+ const cue=A.pure.normalizeCue(n.audio),mode=cue.bgm?cue.bgm.action:'keep';
+ $('#audioCueCount').textContent=(cue.bgm?1:0)+cue.sfx.length+(cue.voice?1:0);
+ document.querySelectorAll('input[name=bgmMode]').forEach(r=>{r.checked=r.value===mode});
+ $('#bgmAsset').innerHTML=audioAssetOptions(cue.bgm&&cue.bgm.audioId||'');
+ $('#bgmVolume').value=String(Math.round((cue.bgm&&cue.bgm.volume!=null?cue.bgm.volume:1)*100));
+ $('#bgmVolumeVal').textContent=$('#bgmVolume').value+'%';
+ $('#bgmLoop').checked=!!(cue.bgm&&cue.bgm.loop);
+ $('#bgmFadeIn').value=cue.bgm&&cue.bgm.fadeIn!=null?cue.bgm.fadeIn:A.DEFAULT_FADE.fadeIn;
+ $('#bgmFadeOut').value=cue.bgm&&cue.bgm.fadeOut!=null?cue.bgm.fadeOut:A.DEFAULT_FADE.fadeOut;
+ /* 当前生效音乐：路线不确定时明确提示，不猜、不按数组顺序拼状态。 */
+ const eff=$('#audioEffective');
+ const plan=C.entryPlan(p,n.id,(playing&&current===n.id&&trail.length)?trail:null);
+ if(plan&&plan.ambiguous&&!plan.audioAgrees){
+  eff.className='audio-effective warn';
+  eff.textContent='这句之前的路线不唯一，无法确定生效音乐。请用「▶ 从本句」选择路线，或从更早的音乐入口开始试玩。';
+ }else{
+  const st=plan&&plan.bgm?plan.bgm:C.bgmAt(p,n.id,plan?plan.trail:undefined);
+  eff.className='audio-effective';
+  eff.textContent=st?'当前生效音乐：「'+audioName(st.audioId)+'」'+(st.loop?'（循环）':''):'当前没有背景音乐（本句若选「沿用」则保持上一句的状态）';
+ }
+ $('#sfxRows').innerHTML=cue.sfx.length?cue.sfx.map((s,i)=>{
+  const sid=s.id||String(i),v=Math.round(s.volume*100);
+  return '<div class="sfx-row" data-sfx="'+esc(sid)+'">'
+   +'<label>音效素材<select data-sfx-asset>'+audioAssetOptions(s.audioId)+'</select></label>'
+   +'<div class="two"><label>音量 <span data-sfx-vol-val>'+v+'%</span><input data-sfx-volume type="range" min="0" max="100" value="'+v+'"></label>'
+   +'<label>延迟（秒）<input data-sfx-delay type="number" min="0" max="20" step="0.1" value="'+s.delay+'"></label></div>'
+   +'<button data-sfx-del>删除这条音效</button></div>';
+ }).join(''):'<p class="hint">这一句还没有音效。进入本句时每条音效各触发一次。</p>';
+ $('#sfxRows').querySelectorAll('.sfx-row').forEach(row=>{
+  const sid=row.dataset.sfx;
+  const sel=row.querySelector('[data-sfx-asset]');
+  sel.onchange=()=>writeAudio(c=>{const s=c.sfx.find(x=>(x.id||'')===sid);if(s)s.audioId=sel.value},'sfx-asset-'+sid);
+  const vol=row.querySelector('[data-sfx-volume]'),out=row.querySelector('[data-sfx-val], [data-sfx-vol-val]');
+  vol.oninput=()=>{const v=+vol.value/100;if(out)out.textContent=vol.value+'%';
+   audioContinuous('sfx-volume-'+sid,c=>{const s=c.sfx.find(x=>(x.id||'')===sid);if(s)s.volume=v})};
+  const delay=row.querySelector('[data-sfx-delay]');
+  delay.onchange=()=>{const v=Math.max(0,Math.min(20,+delay.value||0));delay.value=v;
+   writeAudio(c=>{const s=c.sfx.find(x=>(x.id||'')===sid);if(s)s.delay=v},'sfx-delay-'+sid)};
+  row.querySelector('[data-sfx-del]').onclick=()=>writeAudio(c=>{c.sfx=c.sfx.filter(x=>(x.id||'')!==sid)},'sfx-del-'+sid);
+ });
+ $('#voiceAsset').innerHTML=audioAssetOptions(cue.voice&&cue.voice.audioId||'');
+ $('#voiceVolume').value=String(Math.round((cue.voice?cue.voice.volume:1)*100));
+ $('#voiceVolumeVal').textContent=$('#voiceVolume').value+'%';
+ audioStatus(audioRT?audioRT.status():null);
+}
+/* ---------- 素材导入 / 试听 / 引用保护 ---------- */
+function readDataUrl(f){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('音频读取失败'));r.readAsDataURL(f)})}
+async function audioIdFor(dataUrl){
+ try{
+  const raw=atob(String(dataUrl).split(',')[1]||''),u=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);
+  const h=await globalThis.crypto.subtle.digest('SHA-256',u);
+  return 'au_'+[...new Uint8Array(h)].slice(0,8).map(x=>x.toString(16).padStart(2,'0')).join('');
+ }catch{return 'au_'+C.id().slice(-12)}   /* 回退仍由内容查重复用，不会产生第二个素材 */
+}
+function importAudioAsset(category){
+ const target=selected;
+ pick('audio',async f=>{
+  const data=H?f.dataUrl:await readDataUrl(f);
+  if(!data)throw Error('音频读取失败');
+  let bytes;
+  try{bytes=A.pure.decodeDataUrl(data).bytes}catch(e){throw Error('「'+f.name+'」不是有效音频：'+e.message)}
+  const mime=f.type||'',ext=A.pure.extOf(f.name);
+  const total=(p.audioAssets||[]).reduce((s,a)=>s+(a.bytes||0),0);
+  const probe=()=>{try{return new Audio()}catch{return null}};
+  const can=m=>{const el=probe();return el&&el.canPlayType?el.canPlayType(m):''};
+  const check=A.pure.checkImport({name:f.name,mime,bytes,ext,totalBytes:total,elementFactory:probe,canPlayType:can});
+  if(!check.ok)throw Error(check.message);
+  const meta=await A.pure.readMeta(data,{elementFactory:probe});   /* 时长异步读取 */
+  if(meta.note)toast('「'+f.name+'」：'+meta.note);
+  const picked=C.assetForAudioImport(p,{id:(H&&f.id)?f.id:await audioIdFor(data),
+   name:String(f.name).replace(/\.[^.]+$/,'')||f.name,categories:[category],data,
+   mime:check.mime,ext:check.ext,bytes:bytes.length,duration:meta.duration,durationNote:meta.note});
+  if(selected!==target||playing)throw Error('当前节点已变化，请重新导入音频');
+  edit(()=>{
+   if(picked.reused)picked.asset.categories=picked.categories;
+   else p.audioAssets.push(picked.asset);
+  });
+  toast('已导入「'+picked.asset.name+'」'+(picked.reused?'（复用已有素材）':'')+' · '+A.pure.formatSeconds(meta.duration));
+ });
+}
+function previewAudio(id,toggle){
+ const rt=runtime(),a=C.audioAsset(p,id);if(!a)return;
+ if(!rt.isUnlocked()){toast('请先点击「启用声音」');return}
+ if(toggle&&audioPreviewId===id){rt.stopPreview();audioPreviewId=null;renderAudioTab();audioStatus(rt.status());return}
+ rt.previewAsset(id,(a.categories||[])[0]||'sfx',1).then(r=>{if(!r.ok)toast('试听失败：'+((r.info&&r.info.title)||'素材无法播放'))});
+ audioPreviewId=id;cuePreviewOn=false;
+ renderAudioTab();audioStatus(rt.status());
+}
+function toggleAudioPreview(id){previewAudio(id,true)}
+function deleteAudioAsset(id){
+ const a=C.audioAsset(p,id);if(!a)return;
+ const uses=C.audioUsage(p,id);
+ const remove=()=>{
+  audioStopAll();
+  edit(()=>{
+   for(const n of p.nodes){
+    if(!n.audio)continue;
+    const cue=A.pure.normalizeCue(n.audio);
+    if(cue.bgm&&cue.bgm.action==='play'&&cue.bgm.audioId===id)cue.bgm=null;
+    cue.sfx=cue.sfx.filter(s=>s.audioId!==id);
+    if(cue.voice&&cue.voice.audioId===id)cue.voice=null;
+    n.audio=(cue.bgm||cue.sfx.length||cue.voice)?cue:null;
+   }
+   p.audioAssets=p.audioAssets.filter(x=>x.id!==id);
+  });
+ };
+ if(uses.length){
+  modal('不能删除正在使用的音频素材',
+   '<p>「'+esc(a.name)+'」被 <b>'+uses.length+'</b> 处引用。默认阻止直接删除；请先替换或解除这些引用。</p>'
+   +'<ul class="issue-list audio-issue-list">'+uses.slice(0,20).map(u=>'<li>'+esc(u.label)+' · '+esc(u.where)+'</li>').join('')
+   +(uses.length>20?'<li>…还有 '+(uses.length-20)+' 处</li>':'')+'</ul>'
+   +'<p class="hint">也可以直接解除全部引用再删除（可撤销）。</p>'
+   +'<div class="stack"><button id="audioLocate" class="primary">去修改第一处引用</button>'
+   +'<button id="audioForceDelete" class="danger">解除全部 '+uses.length+' 处引用并删除</button></div>');
+  $('#audioLocate').onclick=()=>{$('#modal').close();locateNode(uses[0].nodeId)};
+  $('#audioForceDelete').onclick=()=>{$('#modal').close();remove();toast('已解除引用并删除素材，可撤销')};
+  return;
+ }
+ modal('删除音频素材','<p>「'+esc(a.name)+'」目前没有被任何句子引用，删除后可以撤销。</p>'
+  +'<div class="stack"><button id="confirmAudioDelete" class="danger">删除这个素材</button></div>');
+ $('#confirmAudioDelete').onclick=()=>{$('#modal').close();remove();toast('已删除音频素材，可撤销')};
+}
+/* ---------- 试听本句 ---------- */
+function toggleCuePreview(){
+ const rt=runtime();
+ if(cuePreviewOn){rt.stopAll();cuePreviewOn=false;audioPreviewId=null;audioStatus(rt.status());renderAudioTab();return}
+ if(!rt.isUnlocked()){toast('请先点击「启用声音」');return}
+ const n=node();if(!n)return;
+ const cue=A.pure.normalizeCue(n.audio),st=C.bgmAt(p,n.id,undefined);
+ rt.enter(cue,{rebuild:true,bgmState:st,label:describeNode(n.id)});
+ cuePreviewOn=true;audioPreviewId=null;
+ audioStatus(rt.status());renderAudioTab();
+}
+/* ---------- 事件：偏好、解锁、导入与逐句控件 ---------- */
+for(const [key,id,valId]of MIXERS){
+ const el=$('#'+id);
+ el.oninput=()=>{const v=Math.max(0,Math.min(100,+el.value||0))/100;
+  audioPrefs=A.pure.normalizePrefs({...audioPrefs,[key]:v});runtime().setPrefs(audioPrefs);persistAudioPrefs();
+  $('#'+valId).textContent=el.value+'%'};
+}
+$('#muteAll').onchange=e=>{audioPrefs=A.pure.normalizePrefs({...audioPrefs,muted:!!e.target.checked});runtime().setPrefs(audioPrefs);persistAudioPrefs();audioStatus(runtime().status())};
+$('#audioUnlock').onclick=async()=>{
+ const r=await runtime().unlock();
+ if(!r.ok)toast('声音未启用：'+(r.title||'播放被拒绝')+'。'+(r.hint||''));
+ else{toast('声音已启用');if(playing)enterAudioInto(current,'rebuild')}
+ audioStatus(runtime().status());
+};
+$('#audioImport').onclick=()=>importAudioAsset($('#audioCategory').value);
+$('#audioFilter').onchange=()=>renderAudioTab();
+document.querySelectorAll('input[name=bgmMode]').forEach(r=>r.onchange=()=>{
+ if(!r.checked)return;
+ const mode=r.value;
+ if(mode==='play'&&!(p.audioAssets||[]).length){toast('请先在左栏「音频」导入音乐素材');renderNodeAudio();return}
+ writeAudio(c=>{
+  if(mode==='keep')c.bgm=null;
+  else if(mode==='stop')c.bgm={action:'stop',fadeOut:A.DEFAULT_FADE.fadeOut};
+  else c.bgm={action:'play',audioId:(p.audioAssets||[])[0].id,volume:1,loop:true,
+   fadeIn:A.DEFAULT_FADE.fadeIn,fadeOut:A.DEFAULT_FADE.fadeOut};
+ },'bgm-mode');
+});
+$('#bgmAsset').onchange=e=>{
+ if(!e.target.value)return;
+ writeAudio(c=>{
+  if(!c.bgm||c.bgm.action!=='play')c.bgm={action:'play',audioId:e.target.value,volume:1,loop:true,
+   fadeIn:A.DEFAULT_FADE.fadeIn,fadeOut:A.DEFAULT_FADE.fadeOut};
+  else c.bgm.audioId=e.target.value;
+ },'bgm-asset');
+};
+$('#bgmVolume').oninput=e=>{const v=+e.target.value; $('#bgmVolumeVal').textContent=v+'%';
+ audioContinuous('bgm-volume',c=>{if(c.bgm&&c.bgm.action==='play')c.bgm.volume=v/100})};
+$('#bgmLoop').onchange=e=>writeAudio(c=>{if(c.bgm&&c.bgm.action==='play')c.bgm.loop=!!e.target.checked},'bgm-loop');
+for(const [id,key]of [['bgmFadeIn','fadeIn'],['bgmFadeOut','fadeOut']]){
+ const el=$('#'+id);
+ el.onchange=()=>{const v=Math.max(0,Math.min(10,+el.value||0));el.value=v;
+  audioContinuous('bgm-'+key,c=>{if(c.bgm)c.bgm[key]=v})};
+}
+$('#addSfx').onclick=()=>{
+ const list=p.audioAssets||[];
+ if(!list.length)return toast('请先在左栏「音频」导入音效素材');
+ writeAudio(c=>{c.sfx.push({id:'sfx_'+C.id(),audioId:list[0].id,volume:1,delay:0})},'sfx-add');
+};
+$('#voiceAsset').onchange=e=>writeAudio(c=>{
+ c.voice=e.target.value?{audioId:e.target.value,volume:1}:null;
+},'voice-asset');
+$('#voiceVolume').oninput=e=>{const v=+e.target.value;$('#voiceVolumeVal').textContent=v+'%';
+ audioContinuous('voice-volume',c=>{if(c.voice)c.voice.volume=v/100})};
+$('#voicePreview').onclick=()=>{const v=$('#voiceAsset').value;if(!v)return toast('先选择语音素材');previewAudio(v,true)};
+$('#voiceClear').onclick=()=>writeAudio(c=>{c.voice=null},'voice-clear');
+$('#audioCuePreview').onclick=toggleCuePreview;
 
 render();initialize();
