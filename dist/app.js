@@ -301,7 +301,7 @@ $('#inherit').checked=n.sceneMode==='inherit';$('#assetReuse').innerHTML='<optio
 function drawSelection(){const l=layer(),box=$('#selectionBox');box.hidden=playing||effectMode!=='layout'||!l||l.hidden||l.locked;if(box.hidden)return;Object.assign(box.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%'});box.querySelector('span').textContent=l.name}
 function renderCanvas(){const n=active(),ls=staged();$('#layersCanvas').replaceChildren();for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)continue;const wrap=document.createElement('div');wrap.className='visual-layer'+(l.locked?' locked':'');wrap.dataset.layer=l.id;Object.assign(wrap.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%',opacity:l.opacity/100});const im=document.createElement('img');im.src=a.data;im.alt=l.name;im.className=l.motion;im.style.objectFit=l.fit;im.draggable=false;wrap.appendChild(im);$('#layersCanvas').appendChild(wrap)}$('#placeholder').hidden=ls.some(l=>!l.hidden&&asset(l.asset));const say=n?C.speakerOf(p,n):{name:'',color:''};$('#speaker').style.color=n&&say.color?say.color:'';$('#speaker').textContent=n?(say.name||(n.type==='end'?'故事结束':'')):'';$('#line').textContent=n?.text||'添加一句对话，故事就从这里开始。';$('#choices').replaceChildren();if(n?.type==='choice')for(const o of n.options){const b=document.createElement('button');b.textContent=o.text||'未命名选项';b.onclick=e=>{e.stopPropagation();if(playing)go(o.target);else toast('从头试玩即可体验分支；目标在右侧设置。')};$('#choices').appendChild(b)}$('#nextHint').textContent=n?.type==='end'?'故事结束':n?.type==='choice'?'选项可进入普通对话，并再次汇合':playing?'点击舞台 / 空格继续 ▸':'编辑模式 · 可隐藏对话框方便拖动';$('#modeLabel').textContent=playing?'试玩中 · 使用实际经过的画面':'编辑模式 · 16:9';$('#sceneStatus').textContent=n?(n.sceneMode==='inherit'?'沿用上一画面'+(playing?'':' · 按脚本顺序预览'):'本节点独立画面'):'空白舞台';$('#selectionTitle').textContent=n?.type==='choice'?'不同的回答，也能汇回同一段故事。':'拖动图层，安排这一幕的演出。';$('#position').textContent=n?String(p.nodes.indexOf(n)+1).padStart(2,'0')+' / '+String(p.nodes.length).padStart(2,'0'):'空白舞台';$('#play').textContent=playing?'↻ 重新试玩':'▷ 从头试玩';$('#prev').disabled=playing?!trail.length:p.nodes.findIndex(n=>n.id===selected)<=0;$('#next').disabled=!n||n.type!=='say'||!C.edges(p,n).length;$('#stop').disabled=!playing;$('#slotSave').disabled=!playing;$('#slotLoad').disabled=!playing;document.body.classList.toggle('playing',playing);document.body.classList.toggle('hide-dialogue',hideDialogue);$('#toggleUI').textContent=hideDialogue?'显示对话框':'隐藏对话框';$('#toggleUI').disabled=playing;$('#flatten').disabled=playing||!ls.some(l=>!l.hidden);drawSelection();runStageEffects()}
 function updateHistory(){$('#undo').disabled=playing||!past.length;$('#redo').disabled=playing||!future.length}
-function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind();renderAudioUI()}
+function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind();renderAudioUI();renderTitleTab()}
 function go(id){if(!p.nodes.some(n=>n.id===id))return toast('这个分支尚未设置有效目标');trail.push(current);current=id;playbackAnimate=true;renderCanvas();if(playing)enterAudioInto(id,'enter')}
 function next(){const n=active();if(n?.type!=='say')return;const id=C.edges(p,n)[0];if(!id)return;if(playing)go(id);else selectNode(id)}
 function stop(){playing=false;trail=[];$('#entryNotice').hidden=true;audioStopAll();render()}
@@ -401,7 +401,7 @@ function finishDrag(e){if(!drag||e.pointerId!==drag.pointer)return;const moved=d
 $('#savePreset').onclick=()=>{if(!displayed().length)return toast('请先添加图层');const name=prompt('为当前场景预设命名：','我的场景');if(!name?.trim())return;edit(()=>p.presets.push({id:C.id(),name:name.trim(),layers:C.clone(displayed())}));toast('已保存预设，可应用到其他节点')};$('#applyPreset').onclick=()=>{const preset=p.presets.find(t=>t.id===$('#presets').value);if(!preset)return toast('先选择场景预设');edit(()=>{node().sceneMode='own';node().layers=C.clone(preset.layers);node().layers.forEach(l=>l.id=C.id());selectedLayer=null})};
 $('#buildBranch').onclick=()=>{const n=node();if(!n||n.type!=='choice')return;if(!n.options.length)return toast('先添加至少一个选项');modal('生成对话分支，并汇回主线','<p>每个选项会获得一段可编辑的对话，结束后跳到你选择的共同节点。现有选项目标将被替换，可撤销。</p><div class="stack"><label>共同主线<select id="mergeTarget">'+targets('',false)+'</select></label><button id="confirmBranches" class="primary">创建 '+n.options.length+' 段分支</button></div>');$('#mergeTarget').querySelector('option[value="'+n.id+'"]').remove();$('#confirmBranches').onclick=()=>{const target=$('#mergeTarget').value;if(!target||target===n.id)return toast('请选择有效的共同主线');edit(()=>{const branches=n.options.map(o=>{const b=C.makeNode();b.name='';b.text='【'+o.text+'】在这里填写这条分支的对话。';b.next=target;o.target=b.id;return b});p.nodes.splice(p.nodes.indexOf(n)+1,0,...branches)});$('#modal').close();toast('分支已建立，每段结尾均已指向共同主线')};};
 $('#branchDemo').onclick=()=>{if(!confirm('用三选项汇合示例替换当前工程？可撤销，建议先保存备份。'))return;edit(()=>{p=C.sample();selected=p.nodes[0].id;selectedLayer=null})};
-$('.tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('.tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));for(const name of ['nodes','text','flow','cast','audio'])$('#'+name+'-tab').hidden=b.dataset.tab!==name});$('#txtFile').onclick=()=>pick('.txt,text/plain',async f=>{if(f.size>2*1024*1024)throw Error('文本请小于 2MB');$('#importText').value=await f.text();toast('已载入 UTF-8 文本，请检查后解析')});function defaultParagraphId(){const n=node();if(n&&n.paragraphId)return n.paragraphId;const c=p.chapters[0];return c&&c.paragraphs[0]?c.paragraphs[0].id:''}
+$('.tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('.tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));for(const name of ['nodes','text','flow','cast','audio','title'])$('#'+name+'-tab').hidden=b.dataset.tab!==name});$('#txtFile').onclick=()=>pick('.txt,text/plain',async f=>{if(f.size>2*1024*1024)throw Error('文本请小于 2MB');$('#importText').value=await f.text();toast('已载入 UTF-8 文本，请检查后解析')});function defaultParagraphId(){const n=node();if(n&&n.paragraphId)return n.paragraphId;const c=p.chapters[0];return c&&c.paragraphs[0]?c.paragraphs[0].id:''}
 function previewImport(){
  const text=$('#importText').value;
  if(!text.trim())return toast('请先输入文本');
@@ -468,8 +468,8 @@ $('#check').onclick=()=>{
 };
 $('#slotSave').onclick=()=>{slot={revision,current,trail:[...trail]};toast('已存档（当前编辑会话）')};$('#slotLoad').onclick=()=>{if(!slot)return toast('暂无试玩存档');if(slot.revision!==revision)return toast('工程已变化，请重新试玩并存档');current=slot.current;trail=[...slot.trail];playbackAnimate=false;renderCanvas();enterAudioInto(current,'rebuild');toast('已读取试玩存档')};
 $('#flatten').onclick=async()=>{if(effectMode!=='layout')return toast('请先返回布局。PNG 合成导出只包含原始布局；演出效果保留在试玩网页中。');const ls=C.clone(displayed());if(!ls.some(l=>!l.hidden))return;try{const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d');for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)throw Error('图片丢失');const im=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('图片无法解码'));img.src=a.data});ctx.save();const x=l.x*12.8,y=l.y*7.2,w=l.w*12.8,h=l.h*7.2;ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.globalAlpha=l.opacity/100;if(l.fit==='fill')ctx.drawImage(im,x,y,w,h);else{const f=l.fit==='cover'?Math.max(w/im.width,h/im.height):Math.min(w/im.width,h/im.height);ctx.drawImage(im,x+(w-im.width*f)/2,y+(h-im.height*f)/2,im.width*f,im.height*f)}ctx.restore()}canvas.toBlob(blob=>{if(blob)download(blob,filename()+'-合成场景.png','image/png')},'image/png');toast('导出 1280×720 场景合成图（透明底，不含对话框）')}catch(e){toast('导出失败：'+e.message)}};
-/* 导出与「完整预览」用同一份自包含 HTML，保证标题页/菜单/设置/播放流程一致。 */
-function exportHTML(){return buildGameHTML(p,{player:paperPlayer,coreFactory:createVNCore,effectFactory:createPaperEffects,audioFactory:createPaperAudio,css:paperPlayerCSS,esc})}
+/* 导出、「完整预览」与内置示例体验共用 dist/game-html.js 的同一个入口。 */
+function exportHTML(project){return buildPlayerHTML(project||p)}
 $('#export').onclick=()=>{
  const report=C.analyze(p);if(report.errors.length){$('#check').click();return}
  const doExport=()=>{
@@ -504,7 +504,7 @@ $('#fullPreview').onclick=()=>{
   setTimeout(()=>URL.revokeObjectURL(url),60000);
  }catch(e){toast('预览失败：'+e.message)}
 };
-$('#help').onclick=()=>modal('V0.6.1 · 标题页、游戏菜单与音频','<ol><li>导出的作品先从标题页开始：「开始游戏」从头进入，「继续游戏」回到最近一次手动存档（没有可用存档时会禁用并说明原因），「设置」可调音量。游戏内点「菜单」或按 Esc 打开菜单，可返回游戏、保存 / 读取进度、设置或返回标题；结局画面也能返回标题。菜单打开时剧情暂停推进，当前演出与声音继续。</li><li>左栏「音频」导入背景音乐 / 音效 / 语音：选好分类再导入，同一文件重复导入会复用素材，也能同时用于不同用途。列表显示名称、分类、时长、大小与引用处数；「试听」再点一次停止。被句子引用的素材不能直接删除，会先列出引用位置。含音频的工程请勿用 0.4.3 及更早版本保存：旧版不认识音频素材列表，保存后会丢失全部音频素材；请保留备份，只在 V0.5 及以上版本编辑。</li><li>右侧「音频」分区给每句配音：音乐三种状态要分清——「沿用音乐」不重启正在播的曲子，「播放 / 切换音乐」一律从曲首开始（同一首也是），「停止音乐」淡出后停止。独立画面不会自动停止音乐。音效可加多条并设触发延迟，台词语音每句最多一条、手动选择，不按角色自动配音。</li><li>总音量、音乐 / 音效 / 语音音量与静音属于本机播放偏好，不写进工程；每句里的音量属于工程内容。浏览器第一次播放需要点「启用声音」，播放失败会在音频状态栏用中文说明原因。</li><li>左栏「批量编辑」可一次勾选多句（Shift 连选、点段落「全选」），折叠的段落不会丢掉已选，段落标题上会显示已选数量。勾选不会误触拖动排序。</li><li>「角色 / 表情…」只改勾选的字段：说话角色、本句说话表情、指定在场角色的表情。没勾的字段保持原样，预览里会先列出前后变化、跳过与冲突的句子。</li><li>「复制场景 / 粘贴场景」只替换画面布局，台词、跳转与演出都不动；「复制演出 / 粘贴演出」可以选择替换或追加，追加遇到同图层同类型会先告诉你冲突。</li><li>每次批量写入只产生一条撤销记录，撤销一次退回整批，重做一次恢复整批。取消预览不会改动工程。</li><li>左栏是章节树：章节 → 段落 → 句子。拖动句子可以换段落，拖动段落可以换章节；也可以用「移动到…」「↑↓」按钮。章节顺序就是播放顺序，改动「按顺序继续」时会先列出受影响的句子。</li><li>删除章节或段落默认保留剧情，句子会进入「未分组」；删除单句会先告诉你有多少跳转指向它。都可以撤销。</li><li>「文本导入」先出预览：识别 # 章节、## 段落、「角色：台词」，列出新增句数、识别到的章节段落和读不懂的行；取消不改工程，确认后一次撤销即可还原。</li><li>在左侧「角色」建立林悠、林澈这样的角色：填名字、姓名颜色，逐个添加表情（透明立绘）。表情只是替换现有角色图层的图片，不会移动位置或复制图层。</li><li>录入台词时在「角色与表情」选择谁在说话、本句用哪个表情；同场的另一个角色也可以单独设表情。留空则沿用上一句，自由填写说话人和旁白仍然可用。</li><li>上传角色立绘后可在图层属性里指定「图片属于角色」，让这张图跟随角色表情切换。</li><li>在「效果与演出」选择目标图层，添加效果或使用预设。可设置起点、终点、时长、延迟、缓动和缩放中心。点击舞台上方预览、终态或拖动时间条；返回布局后可继续拖动素材。</li><li>持续效果在推进时按目标值结算；本句结束恢复的效果离开即移除；自动恢复效果在播放后回到起点。独立场景重置此前持续效果。读档和后退显示本句终态。</li><li>「▶ 从本句 / ▶ 从本段」可以从指定位置试玩，背景、表情和持续演出按前面的句子还原；前面有分支时会提示这是近似还原。选中剧情节点，上传背景或角色。支持多个角色和背景素材叠加。</li><li>在舞台拖动图片；选中边框右下角可等比缩放。也可输入 X/Y、宽高，或用「填满画布」。隐藏对话框更方便编辑底部。</li><li>右侧图层从上到下就是前景到背景。可隐藏、锁定、调整层级。锁定底图后更容易选前景。</li><li>新对话默认沿用上一画面；第一次修改会生成独立副本。编辑模式按脚本顺序预览，试玩按实际走过的路径继承。</li><li>选项数量可增加，目标可以是普通对话。使用「生成局部分支并汇合」快速创建各选项的对话，并统一跳回主线。</li><li>撤销／重做支持图层、文本和剧情结构（最多 60 步）。输入框里 Ctrl+Z 使用原生文本撤销；页面按钮撤销工程修改。</li><li>场景可存为预设，也可导出不含对话框的合成 PNG。保存工程包含原始图层，导出试玩生成独立离线 HTML。</li></ol><p class="hint">支持打开 V0.1 / V0.2 工程。旧工程保留原来的两结局结构，不会强制替换。本版音频为基础功能：不做 TTS、自动配音、口型同步、音频剪辑、复杂叠轨与批量音频绑定；导出的离线 HTML 会内嵌音频，导出前会提示体积。浏览器数据清理会删除草稿，请下载备份。</p>');
+$('#help').onclick=()=>modal('V0.6.2 · 标题页背景、内置示例与游戏菜单','<ol><li>左栏「标题页」可给标题页选一张背景（已有背景素材或新导入图片），引用的是工程内素材 ID，会随工程保存、另存、备份与导出；清除后回到默认标题页样式。背景按 cover 保持比例，标题与按钮由程序渲染，所以缩放窗口不会糊。</li><li>同一标签页里有《晚风经过二楼走廊》内置示例（第一章原作节选 · 45 个节点）：「体验示例」在独立窗口从标题页开始，使用自己的示例存档，不改当前工程、草稿与最近工程；「复制示例开始创作」把示例复制到你选择的新空白目录，并生成新的工程 ID。网页版不能选目录，只提供下载示例工程。</li><li>导出的作品先从标题页开始：「开始游戏」从头进入，「继续游戏」回到最近一次手动存档（没有可用存档时会禁用并说明原因），「设置」可调音量。游戏内点「菜单」或按 Esc 打开菜单，可返回游戏、保存 / 读取进度、设置或返回标题；结局画面也能返回标题。菜单打开时剧情暂停推进，当前演出与声音继续。</li><li>左栏「音频」导入背景音乐 / 音效 / 语音：选好分类再导入，同一文件重复导入会复用素材，也能同时用于不同用途。列表显示名称、分类、时长、大小与引用处数；「试听」再点一次停止。被句子引用的素材不能直接删除，会先列出引用位置。含音频的工程请勿用 0.4.3 及更早版本保存：旧版不认识音频素材列表，保存后会丢失全部音频素材；请保留备份，只在 V0.5 及以上版本编辑。</li><li>右侧「音频」分区给每句配音：音乐三种状态要分清——「沿用音乐」不重启正在播的曲子，「播放 / 切换音乐」一律从曲首开始（同一首也是），「停止音乐」淡出后停止。独立画面不会自动停止音乐。音效可加多条并设触发延迟，台词语音每句最多一条、手动选择，不按角色自动配音。</li><li>总音量、音乐 / 音效 / 语音音量与静音属于本机播放偏好，不写进工程；每句里的音量属于工程内容。浏览器第一次播放需要点「启用声音」，播放失败会在音频状态栏用中文说明原因。</li><li>左栏「批量编辑」可一次勾选多句（Shift 连选、点段落「全选」），折叠的段落不会丢掉已选，段落标题上会显示已选数量。勾选不会误触拖动排序。</li><li>「角色 / 表情…」只改勾选的字段：说话角色、本句说话表情、指定在场角色的表情。没勾的字段保持原样，预览里会先列出前后变化、跳过与冲突的句子。</li><li>「复制场景 / 粘贴场景」只替换画面布局，台词、跳转与演出都不动；「复制演出 / 粘贴演出」可以选择替换或追加，追加遇到同图层同类型会先告诉你冲突。</li><li>每次批量写入只产生一条撤销记录，撤销一次退回整批，重做一次恢复整批。取消预览不会改动工程。</li><li>左栏是章节树：章节 → 段落 → 句子。拖动句子可以换段落，拖动段落可以换章节；也可以用「移动到…」「↑↓」按钮。章节顺序就是播放顺序，改动「按顺序继续」时会先列出受影响的句子。</li><li>删除章节或段落默认保留剧情，句子会进入「未分组」；删除单句会先告诉你有多少跳转指向它。都可以撤销。</li><li>「文本导入」先出预览：识别 # 章节、## 段落、「角色：台词」，列出新增句数、识别到的章节段落和读不懂的行；取消不改工程，确认后一次撤销即可还原。</li><li>在左侧「角色」建立林悠、林澈这样的角色：填名字、姓名颜色，逐个添加表情（透明立绘）。表情只是替换现有角色图层的图片，不会移动位置或复制图层。</li><li>录入台词时在「角色与表情」选择谁在说话、本句用哪个表情；同场的另一个角色也可以单独设表情。留空则沿用上一句，自由填写说话人和旁白仍然可用。</li><li>上传角色立绘后可在图层属性里指定「图片属于角色」，让这张图跟随角色表情切换。</li><li>在「效果与演出」选择目标图层，添加效果或使用预设。可设置起点、终点、时长、延迟、缓动和缩放中心。点击舞台上方预览、终态或拖动时间条；返回布局后可继续拖动素材。</li><li>持续效果在推进时按目标值结算；本句结束恢复的效果离开即移除；自动恢复效果在播放后回到起点。独立场景重置此前持续效果。读档和后退显示本句终态。</li><li>「▶ 从本句 / ▶ 从本段」可以从指定位置试玩，背景、表情和持续演出按前面的句子还原；前面有分支时会提示这是近似还原。选中剧情节点，上传背景或角色。支持多个角色和背景素材叠加。</li><li>在舞台拖动图片；选中边框右下角可等比缩放。也可输入 X/Y、宽高，或用「填满画布」。隐藏对话框更方便编辑底部。</li><li>右侧图层从上到下就是前景到背景。可隐藏、锁定、调整层级。锁定底图后更容易选前景。</li><li>新对话默认沿用上一画面；第一次修改会生成独立副本。编辑模式按脚本顺序预览，试玩按实际走过的路径继承。</li><li>选项数量可增加，目标可以是普通对话。使用「生成局部分支并汇合」快速创建各选项的对话，并统一跳回主线。</li><li>撤销／重做支持图层、文本和剧情结构（最多 60 步）。输入框里 Ctrl+Z 使用原生文本撤销；页面按钮撤销工程修改。</li><li>场景可存为预设，也可导出不含对话框的合成 PNG。保存工程包含原始图层，导出试玩生成独立离线 HTML。</li></ol><p class="hint">支持打开 V0.1 / V0.2 工程。旧工程保留原来的两结局结构，不会强制替换。本版音频为基础功能：不做 TTS、自动配音、口型同步、音频剪辑、复杂叠轨与批量音频绑定；导出的离线 HTML 会内嵌音频，导出前会提示体积。浏览器数据清理会删除草稿，请下载备份。</p>');
 function effectNode(){return node()?.effects?.find(e=>e.id===effectId)}
 function effectTargets(){return displayed()}
 function renderEffectUI(){const n=node();if(!n)return;const ls=effectTargets(),prev=$('#effectTarget').value;$('#effectTarget').innerHTML='<option value="">选择当前画面的图层…</option>'+ls.map(l=>'<option value="'+esc(l.id)+'">'+esc(l.name)+'（'+(l.kind==='bg'?'背景':'角色')+'）</option>').join('');$('#effectTarget').value=ls.some(l=>l.id===selectedLayer)?selectedLayer:prev;$('#effectCount').textContent=n.effects.length;$('#effectList').innerHTML=n.effects.map(e=>{const l=ls.find(l=>l.id===e.layer);return '<div class="effect-row '+(e.id===effectId?'active':'')+'"><button data-effect="'+esc(e.id)+'"><b>'+esc(F.types[e.type].name)+'</b> · '+esc(l?.name||'图层不在当前预览中')+'<small>'+e.delay+'s 延迟 / '+e.duration+'s · '+({hold:'持续',sentence:'本句结束恢复',auto:'自动恢复'}[e.policy])+'</small></button><button data-enable-effect="'+esc(e.id)+'" aria-label="'+(e.enabled?'停用':'启用')+'效果">'+(e.enabled?'停用':'启用')+'</button></div>'}).join('');$('#effectList').querySelectorAll('[data-effect]').forEach(b=>b.onclick=()=>{effectId=b.dataset.effect;renderEffectUI()});$('#effectList').querySelectorAll('[data-enable-effect]').forEach(b=>b.onclick=()=>edit(()=>{const e=node().effects.find(e=>e.id===b.dataset.enableEffect);e.enabled=!e.enabled}));let e=effectNode();$('#effectProps').hidden=!e;if(!e)return;$('#effectName').textContent=F.types[e.type].name+' · '+F.types[e.type].unit;$('#effectTarget').value=e.layer;$('#effectAutoFrom').checked=e.from===null;$('#effectMoveY').hidden=e.type!=='move';$('#effectPivot').hidden=!['scale','rotate'].includes(e.type);$('#effectReturnLabel').hidden=e.policy!=='auto';const base=F.before(p,C,n.id)[e.layer]||F.neutral(),key=e.type==='move'?'x':e.type;const values={effectFrom:e.from??base[key],effectTo:e.to,effectFromY:e.fromY??base.y,effectToY:e.toY,effectOriginX:e.originX,effectOriginY:e.originY,effectDuration:e.duration,effectDelay:e.delay,effectReturn:e.returnDuration,effectPolicy:e.policy,effectEasing:e.easing};for(const [id,v]of Object.entries(values))if(document.activeElement!==$('#'+id))$('#'+id).value=v;for(const id of ['effectFrom','effectTo']){const meta=F.types[e.type];$('#'+id).min=meta.min;$('#'+id).max=meta.max;$('#'+id).step='0.1'}$('#effectFrom').disabled=e.from===null;$('#effectFromY').disabled=e.fromY===null;}
@@ -1246,4 +1246,122 @@ $('#voicePreview').onclick=()=>{const v=$('#voiceAsset').value;if(!v)return toas
 $('#voiceClear').onclick=()=>writeAudio(c=>{c.voice=null},'voice-clear');
 $('#audioCuePreview').onclick=toggleCuePreview;
 
-render();initialize();
+/* ---------- V0.6.2 标题背景与内置示例 ---------- */
+/* 标题背景只存素材 ID：跟工程一起保存、另存、备份与导出，不保存本机路径。 */
+function bgAssets(){return p.assets.filter(a=>a.kind==='bg')}
+function renderTitleTab(){
+ const bg=p.titleBackground?asset(p.titleBackground):null;
+ const thumb=$('#titleBgThumb'),label=$('#titleBgLabel'),box=$('#titleBgPreview'),note=$('#titleBgNote');
+ if(box)box.classList.toggle('has-bg',!!bg);
+ if(thumb){thumb.hidden=!bg;if(bg)thumb.src=bg.data;else thumb.removeAttribute('src')}
+ if(label)label.textContent=bg?bg.name:(p.titleBackground?'标题背景素材缺失 · 当前使用默认样式':'默认标题页样式');
+ if(note)note.textContent=p.titleBackground&&!bg?'标题背景引用的素材已删除或丢失：标题页会回到默认样式，请重新选择。':'';
+ const sel=$('#titleBgAsset');
+ if(sel){
+  const list=bgAssets(),sig=list.map(a=>a.id+'|'+a.name).join('~');
+  if(sel.dataset.sig!==sig){
+   sel.dataset.sig=sig;
+   sel.innerHTML='<option value="">（默认标题页样式）</option>'+list.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');
+  }
+  if(document.activeElement!==sel)sel.value=list.some(a=>a.id===p.titleBackground)?p.titleBackground:'';
+ }
+}
+$('#titleBgApply').onclick=()=>{
+ const id=$('#titleBgAsset').value;
+ if(!id)return toast('请先选择一个背景素材；要恢复默认样式请用「清除标题背景」');
+ if(!p.assets.some(a=>a.id===id))return toast('这个素材已经不存在，请重新选择');
+ edit(()=>{p.titleBackground=id});
+ toast('已设为标题页背景：导出与完整预览都会使用它');
+};
+$('#titleBgClear').onclick=()=>{
+ if(!p.titleBackground)return toast('当前就是默认标题页样式');
+ edit(()=>{p.titleBackground=''});
+ toast('已恢复默认标题页样式');
+};
+$('#titleBgImport').onclick=()=>pick('image/png,image/jpeg,image/webp',async f=>{
+ if(f.size>12*1024*1024)throw Error('请使用小于 12MB 的图片');
+ if(!['image/png','image/jpeg','image/webp'].includes(f.type))throw Error('仅支持 PNG、JPEG、WebP');
+ const data=H?f.dataUrl:await readImageFile(f);
+ if(!data)throw Error('图片读取失败');
+ const picked=C.assetForImport(p,{id:H&&f.id?f.id:C.id(),name:f.name,kind:'bg',data});
+ const a=picked.asset;
+ await decodeAsset(a);
+ edit(()=>{if(!picked.reused)p.assets.push(a);p.titleBackground=a.id});
+ toast((picked.reused?'复用已有素材':'已导入图片')+'，并设为标题页背景');
+},'bg');
+
+let sampleInfo=null,sampleBusy=false;
+function sampleNote(t){const el=$('#sampleNote');if(el)el.textContent=t}
+async function loadSampleInfo(){
+ try{
+  if(H&&H.sampleInfo){
+   const r=await H.sampleInfo();
+   sampleInfo=r.sample;
+  }else{
+   const res=await fetch('samples/wanfeng-ch01/project.paper.json',{cache:'no-store'});
+   if(!res.ok)throw Error('网页版没有附带示例工程');
+   const disk=await res.json();
+   sampleInfo={slug:'wanfeng-ch01',title:disk.title,nodes:disk.nodes.length,images:disk.assets.length};
+  }
+ }catch(e){sampleInfo=null;sampleNote('示例不可用：'+(e.message||e))}
+ if(sampleInfo&&$('#sampleNodes'))$('#sampleNodes').textContent=String(sampleInfo.nodes);
+ const desktop=!!(H&&H.experienceSample);
+ showEl($('#samplePlay'),desktop);
+ showEl($('#sampleCopy'),desktop);
+ showEl($('#sampleDownload'),!desktop&&!!sampleInfo);
+ if(!desktop)sampleNote(sampleInfo
+  ?'网页版无法选择工程目录：请下载示例工程，再用「打开工程」导入。桌面版可直接体验与复制创作。'
+  :'示例不可用：当前页面没有附带示例工程。');
+}
+function showEl(el,on){if(el)el.hidden=!on}
+$('#samplePlay').onclick=async()=>{
+ if(!H||!H.experienceSample||sampleBusy)return;
+ sampleBusy=true;sampleNote('正在打开示例…');
+ try{
+  await H.experienceSample();
+  sampleNote('已在独立窗口打开示例：它使用自己的示例存档，不会改动当前工程或草稿。');
+ }catch(e){sampleNote('体验失败：'+(e.message||e))}
+ finally{sampleBusy=false}
+};
+$('#sampleCopy').onclick=async()=>{
+ if(!H||!H.copySample||sampleBusy)return;
+ sampleBusy=true;sampleNote('请选择一个新的空白目录…');
+ try{
+  const r=await H.copySample();
+  if(!r||r.cancelled){sampleNote('已取消：当前工程与草稿保持不变。');return}
+  await applyOpened(r);
+  sampleNote('已复制为独立工程：新的工程 ID，存档与内置示例互不影响。');
+  const tab=document.querySelector('.tabs [data-tab="nodes"]');
+  if(tab)tab.click();
+ }catch(e){sampleNote('复制失败：'+(e.message||e))}
+ finally{sampleBusy=false}
+};
+/* 网页版替代入口：把模板与素材组装成单文件工程下载，不假装完成桌面式复制。 */
+$('#sampleDownload').onclick=async()=>{
+ if(sampleBusy)return;
+ sampleBusy=true;sampleNote('正在打包示例工程…');
+ try{
+  const base='samples/wanfeng-ch01/';
+  const res=await fetch(base+'project.paper.json',{cache:'no-store'});
+  if(!res.ok)throw Error('网页版没有附带示例工程');
+  const disk=await res.json();
+  const assets=[];
+  for(const a of disk.assets){
+   const r=await fetch(base+a.file,{cache:'no-store'});
+   if(!r.ok)throw Error('示例素材缺失：'+a.file);
+   const bytes=new Uint8Array(await r.arrayBuffer());
+   let s='';for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+   assets.push({id:a.id,name:a.name,kind:a.kind,width:a.width,height:a.height,
+    data:'data:'+a.mime+';base64,'+btoa(s)});
+  }
+  const project=C.migrate({schema:disk.schema,id:disk.id,title:disk.title,
+   titleBackground:disk.titleBackground||'',assets,audioAssets:[],nodes:disk.nodes,
+   presets:disk.presets||[],characters:disk.characters||[],chapters:disk.chapters||[]});
+  C.validate(project);
+  download(JSON.stringify(project),'晚风经过二楼走廊-第一章节选.paper.json','application/json');
+  sampleNote('已下载单文件工程：用「打开工程」选择这个 .paper.json 即可编辑。');
+ }catch(e){sampleNote('下载失败：'+(e.message||e))}
+ finally{sampleBusy=false}
+};
+
+render();initialize();loadSampleInfo();

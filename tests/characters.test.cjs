@@ -221,7 +221,8 @@ const nodes = {};
 const makeElement = tag => ({
   tagName: String(tag).toUpperCase(), children: [], dataset: {}, style: {}, textContent: '', className: '', disabled: false, onclick: null,
   appendChild(c) { this.children.push(c); return c; }, replaceChildren(...items) { this.children = [...items]; },
-  getBoundingClientRect() { return { width: 1280, height: 720 }; }, setAttribute() {}, focus() {}, remove() {}
+  getBoundingClientRect() { return { width: 1280, height: 720 }; }, setAttribute() {}, focus() {}, remove() {},
+  classList: { toggle() {}, add() {}, remove() {} }
 });
 const document = { getElementById(id) { return nodes[id] || (nodes[id] = makeElement('div')); }, createElement(t) { return makeElement(t); }, onkeydown: null };
 const sandbox = { document, console, localStorage: { getItem: () => null, setItem() {}, removeItem() {} }, performance: { now: () => 1000 }, setTimeout, clearTimeout, requestAnimationFrame: () => 1, cancelAnimationFrame() {}, matchMedia: () => ({ matches: false }) };

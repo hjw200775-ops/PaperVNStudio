@@ -61,6 +61,7 @@ function makeElement(tag) {
     textContent: '', className: '', disabled: false, hidden: false,
     value: '', checked: false, onclick: null, oninput: null, onchange: null,
     listeners: {},
+    classList: { toggle() {}, add() {}, remove() {} },
     appendChild(child) { this.children.push(child); return child; },
     replaceChildren(...items) { this.children = [...items]; },
     getBoundingClientRect() { return { width: 1280, height: 720 }; },

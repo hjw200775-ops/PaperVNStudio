@@ -1,0 +1,11 @@
+{
+  "id": "sample-wanfeng-ch01",
+  "label": "《晚风经过二楼走廊》第一章原作节选",
+  "author": "黄嘉文",
+  "scope": "本示例为第一章原作节选，不是完整小说。",
+  "art": "图片为 AI 辅助生成；具体门窗布局属于本次美术方案，不作为小说已确认的建筑设定。",
+  "usage": "示例用于纸间体验与创作学习。",
+  "licensing": "软件代码许可与小说、美术素材许可分开；素材许可未确定前不视为 MIT / CC0，也不表示允许任意再分发。",
+  "sampleVersion": "0.6.2",
+  "titleBackground": "asset_title_home_corridor"
+}

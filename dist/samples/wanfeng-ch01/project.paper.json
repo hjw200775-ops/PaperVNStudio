@@ -1,0 +1,1696 @@
+{
+  "format": "paper-desktop",
+  "formatVersion": 1,
+  "savedAt": "2026-11-17T18:57:55.684Z",
+  "schema": 5,
+  "id": "sample-wanfeng-ch01",
+  "title": "晚风经过二楼走廊｜第一章节选·原作线",
+  "titleBackground": "asset_title_home_corridor",
+  "assets": [
+    {
+      "id": "you_neutral",
+      "name": "林悠·校服·自然",
+      "kind": "char",
+      "width": 1024,
+      "height": 1536,
+      "mime": "image/png",
+      "file": "assets/images/fce4449f91d36b42835258962d0f074dca5fefa751cc062aecf61acd219c7526.png",
+      "sha256": "fce4449f91d36b42835258962d0f074dca5fefa751cc062aecf61acd219c7526",
+      "bytes": 1396009
+    },
+    {
+      "id": "you_annoyed",
+      "name": "林悠·校服·轻恼",
+      "kind": "char",
+      "width": 1024,
+      "height": 1536,
+      "mime": "image/png",
+      "file": "assets/images/a6f6b2f53d51ad10e79953ecbbbfc17a2835cc74e2b1ec37f5644a470b9e2630.png",
+      "sha256": "a6f6b2f53d51ad10e79953ecbbbfc17a2835cc74e2b1ec37f5644a470b9e2630",
+      "bytes": 1382439
+    },
+    {
+      "id": "che_neutral",
+      "name": "林澈·校服·平静",
+      "kind": "char",
+      "width": 1024,
+      "height": 1536,
+      "mime": "image/png",
+      "file": "assets/images/4dbb13bbde7b4b3b7e2d1d4c99e6be09ef704e950cba2094763d9c94ea179bfb.png",
+      "sha256": "4dbb13bbde7b4b3b7e2d1d4c99e6be09ef704e950cba2094763d9c94ea179bfb",
+      "bytes": 1282609
+    },
+    {
+      "id": "che_smile",
+      "name": "林澈·校服·微笑",
+      "kind": "char",
+      "width": 1024,
+      "height": 1536,
+      "mime": "image/png",
+      "file": "assets/images/8973d6f6abe77978ab03c1e083438a0cfe24bff3395a5d5336ccf72227394a3c.png",
+      "sha256": "8973d6f6abe77978ab03c1e083438a0cfe24bff3395a5d5336ccf72227394a3c",
+      "bytes": 1253016
+    },
+    {
+      "id": "bg_home",
+      "name": "林家·早餐",
+      "kind": "bg",
+      "width": 1672,
+      "height": 941,
+      "mime": "image/png",
+      "file": "assets/images/56b42cd94dacba952b48bf27e9823205ea2f83c6f4dec03f7dd287699e5872ba.png",
+      "sha256": "56b42cd94dacba952b48bf27e9823205ea2f83c6f4dec03f7dd287699e5872ba",
+      "bytes": 1900734
+    },
+    {
+      "id": "bg_road",
+      "name": "桂花树下·上学路口",
+      "kind": "bg",
+      "width": 1672,
+      "height": 941,
+      "mime": "image/png",
+      "file": "assets/images/559117dd5acd6653e9b1166d32a3e6224a27081ea5c976e8829375561142b86c.png",
+      "sha256": "559117dd5acd6653e9b1166d32a3e6224a27081ea5c976e8829375561142b86c",
+      "bytes": 3091619
+    },
+    {
+      "id": "bg_school",
+      "name": "校园·二楼走廊",
+      "kind": "bg",
+      "width": 1672,
+      "height": 941,
+      "mime": "image/png",
+      "file": "assets/images/1f0238aac07f794f3bc6341c90902ab7e4685f7b7ea3e0862a1a82f76125c056.png",
+      "sha256": "1f0238aac07f794f3bc6341c90902ab7e4685f7b7ea3e0862a1a82f76125c056",
+      "bytes": 2188924
+    },
+    {
+      "id": "asset_title_home_corridor",
+      "name": "标题·家中二楼走廊",
+      "kind": "bg",
+      "width": 1672,
+      "height": 941,
+      "mime": "image/png",
+      "file": "assets/images/5ec4170545c80bdad9a63a533defd8fd5f376a8b2564f41daaad9e431d01c55a.png",
+      "sha256": "5ec4170545c80bdad9a63a533defd8fd5f376a8b2564f41daaad9e431d01c55a",
+      "bytes": 1945893
+    }
+  ],
+  "audioAssets": [],
+  "nodes": [
+    {
+      "id": "home_01",
+      "type": "say",
+      "name": "",
+      "text": "九月。开学后的第二周。",
+      "next": "",
+      "sceneMode": "own",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_home",
+          "name": "林家·早餐",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_neutral",
+          "name": "林悠·校服·自然",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "id": "linche",
+          "asset": "che_neutral",
+          "name": "林澈·校服·平静",
+          "kind": "char",
+          "x": 56,
+          "y": 2,
+          "w": 36.75,
+          "h": 98,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
+      "audio": null
+    },
+    {
+      "id": "home_02",
+      "type": "say",
+      "name": "",
+      "text": "洗漱完下楼。餐桌旁已经坐着一个人。白色校服衬衫，黑色长裤，旁边放着厚厚一摞试卷。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
+      "audio": null
+    },
+    {
+      "id": "home_03",
+      "type": "say",
+      "name": "",
+      "text": "林澈正在吃早餐。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
+      "audio": null
+    },
+    {
+      "id": "home_04",
+      "type": "say",
+      "name": "林澈",
+      "text": "豆浆快凉了。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        }
+      ],
+      "paragraphId": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
+      "audio": null
+    },
+    {
+      "id": "home_05",
+      "type": "say",
+      "name": "",
+      "text": "悠拉开椅子坐下。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
+      "audio": null
+    },
+    {
+      "id": "home_06",
+      "type": "say",
+      "name": "林悠",
+      "text": "知道。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c",
+      "cast": [
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
+      "audio": null
+    },
+    {
+      "id": "home_07",
+      "type": "say",
+      "name": "",
+      "text": "两人低头吃饭。谁也没说话。厨房里传来母亲收拾东西的声音，电视机正在播晨间新闻。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
+      "audio": null
+    },
+    {
+      "id": "home_08",
+      "type": "say",
+      "name": "",
+      "text": "这是林家每天早上的样子。平淡得不能再平淡。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
+      "audio": null
+    },
+    {
+      "id": "road_01",
+      "type": "say",
+      "name": "",
+      "text": "吃完早餐。两人一起出门。小区里的桂花开了，空气里都是淡淡甜味。",
+      "next": "",
+      "sceneMode": "own",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_road",
+          "name": "桂花树下·上学路口",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_neutral",
+          "name": "林悠·校服·自然",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "id": "linche",
+          "asset": "che_neutral",
+          "name": "林澈·校服·平静",
+          "kind": "char",
+          "x": 56,
+          "y": 2,
+          "w": 36.75,
+          "h": 98,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_02",
+      "type": "say",
+      "name": "",
+      "text": "自行车停在院子门口。林澈推着车往外走，悠跟在后面。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_03",
+      "type": "say",
+      "name": "",
+      "text": "两个人读同一所高中。只不过一个高一，一个高三。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_04",
+      "type": "say",
+      "name": "",
+      "text": "到了路口。林澈忽然停下。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_05",
+      "type": "say",
+      "name": "林澈",
+      "text": "英语卷子发了吗？",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_06",
+      "type": "say",
+      "name": "林悠",
+      "text": "发了。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c",
+      "cast": [
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_07",
+      "type": "say",
+      "name": "林澈",
+      "text": "多少分？",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_08",
+      "type": "say",
+      "name": "",
+      "text": "悠脚步一顿。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_09",
+      "type": "say",
+      "name": "林悠",
+      "text": "关你什么事。",
+      "next": "",
+      "sceneMode": "own",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_road",
+          "name": "桂花树下·上学路口",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_annoyed",
+          "name": "林悠·校服·轻恼",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        },
+        {
+          "id": "linche",
+          "asset": "che_neutral",
+          "name": "林澈·校服·平静",
+          "kind": "char",
+          "x": 56,
+          "y": 2,
+          "w": 36.75,
+          "h": 98,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "effects": [],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3",
+      "cast": [
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_10",
+      "type": "say",
+      "name": "",
+      "text": "林澈看了她一眼。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_11",
+      "type": "say",
+      "name": "林澈",
+      "text": "又没及格？",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_12",
+      "type": "say",
+      "name": "林悠",
+      "text": "……",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3",
+      "cast": [
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_13",
+      "type": "say",
+      "name": "林澈",
+      "text": "六十？",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_14",
+      "type": "say",
+      "name": "林悠",
+      "text": "……",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3",
+      "cast": [
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_15",
+      "type": "say",
+      "name": "林澈",
+      "text": "不会五十吧？",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_16",
+      "type": "say",
+      "name": "",
+      "text": "悠瞬间炸毛。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_17",
+      "type": "say",
+      "name": "林悠",
+      "text": "林澈！",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [
+        {
+          "id": "you_closeup",
+          "layer": "linyou",
+          "type": "scale",
+          "enabled": true,
+          "fromY": null,
+          "toY": 0,
+          "duration": 0.4,
+          "delay": 0,
+          "returnDuration": 0.35,
+          "policy": "sentence",
+          "easing": "smooth",
+          "originX": 50,
+          "originY": 25,
+          "to": 120,
+          "from": null
+        },
+        {
+          "id": "background_blur",
+          "layer": "background",
+          "type": "blur",
+          "enabled": true,
+          "fromY": null,
+          "toY": 0,
+          "duration": 0.4,
+          "delay": 0,
+          "returnDuration": 0.35,
+          "policy": "sentence",
+          "easing": "smooth",
+          "originX": 50,
+          "originY": 50,
+          "to": 8,
+          "from": null
+        }
+      ],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3",
+      "cast": [
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_18",
+      "type": "say",
+      "name": "",
+      "text": "路过的大爷都回头看了一眼。林澈忍不住笑起来。",
+      "next": "",
+      "sceneMode": "own",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_road",
+          "name": "桂花树下·上学路口",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_annoyed",
+          "name": "林悠·校服·轻恼",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        },
+        {
+          "id": "linche",
+          "asset": "che_smile",
+          "name": "林澈·校服·微笑",
+          "kind": "char",
+          "x": 56,
+          "y": 2,
+          "w": 36.75,
+          "h": 98,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530"
+        }
+      ],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_19",
+      "type": "say",
+      "name": "林澈",
+      "text": "那看来猜对了。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_20",
+      "type": "say",
+      "name": "林悠",
+      "text": "你有病吧！",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3",
+      "cast": [
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_21",
+      "type": "say",
+      "name": "林澈",
+      "text": "回头把卷子拿给我看看。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_22",
+      "type": "say",
+      "name": "林悠",
+      "text": "不给。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3",
+      "cast": [
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_23",
+      "type": "say",
+      "name": "林澈",
+      "text": "随你。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_24",
+      "type": "say",
+      "name": "林悠",
+      "text": "谁要你教。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3",
+      "cast": [
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_25",
+      "type": "say",
+      "name": "林澈",
+      "text": "行。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_26",
+      "type": "say",
+      "name": "",
+      "text": "林澈骑上自行车。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_27",
+      "type": "say",
+      "name": "林澈",
+      "text": "那下次继续考五十。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "road_28",
+      "type": "say",
+      "name": "",
+      "text": "悠站在原地气得想打人。但偏偏反驳不了，因为她这次真的考了五十七。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_42bc720b-1502-4599-b482-b6c9915ab530"
+        }
+      ],
+      "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+      "audio": null
+    },
+    {
+      "id": "school_01",
+      "type": "say",
+      "name": "",
+      "text": "到了学校。高一教学楼和高三教学楼隔着一个操场，两人在楼梯口分开。",
+      "next": "",
+      "sceneMode": "own",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_school",
+          "name": "校园·二楼走廊",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_neutral",
+          "name": "林悠·校服·自然",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "id": "linche",
+          "asset": "che_neutral",
+          "name": "林澈·校服·平静",
+          "kind": "char",
+          "x": 56,
+          "y": 2,
+          "w": 36.75,
+          "h": 98,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        },
+        {
+          "characterId": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+          "expressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f"
+        }
+      ],
+      "paragraphId": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+      "audio": null
+    },
+    {
+      "id": "school_02",
+      "type": "say",
+      "name": "",
+      "text": "林澈朝另一边走去，连头都没回。",
+      "next": "",
+      "sceneMode": "own",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_school",
+          "name": "校园·二楼走廊",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_neutral",
+          "name": "林悠·校服·自然",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        }
+      ],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        }
+      ],
+      "paragraphId": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+      "audio": null
+    },
+    {
+      "id": "school_03",
+      "type": "say",
+      "name": "",
+      "text": "悠看着他的背影，轻轻哼了一声。",
+      "next": "",
+      "sceneMode": "own",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_school",
+          "name": "校园·二楼走廊",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_annoyed",
+          "name": "林悠·校服·轻恼",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+      "audio": null
+    },
+    {
+      "id": "school_04",
+      "type": "say",
+      "name": "林悠",
+      "text": "神气什么。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3",
+      "cast": [],
+      "paragraphId": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+      "audio": null
+    },
+    {
+      "id": "school_05",
+      "type": "say",
+      "name": "",
+      "text": "随后转身上楼。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3"
+        }
+      ],
+      "paragraphId": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+      "audio": null
+    },
+    {
+      "id": "school_06",
+      "type": "say",
+      "name": "",
+      "text": "只是她自己都没发现，每次一起上学的时候，她都会下意识走在离林澈最近的位置。",
+      "next": "",
+      "sceneMode": "own",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_school",
+          "name": "校园·二楼走廊",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_neutral",
+          "name": "林悠·校服·自然",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        }
+      ],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        }
+      ],
+      "paragraphId": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+      "audio": null
+    },
+    {
+      "id": "school_07",
+      "type": "say",
+      "name": "",
+      "text": "而每次放学，她也总会比约定时间早几分钟到车棚。仿佛这样只是顺路，仿佛这已经成为习惯。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        }
+      ],
+      "paragraphId": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+      "audio": null
+    },
+    {
+      "id": "school_08",
+      "type": "say",
+      "name": "",
+      "text": "十年前，六岁的悠第一次搬进这个家。那时的她从未想过，有一天，这个总爱管闲事的哥哥，会成为自己生活里最理所当然的一部分。",
+      "next": "",
+      "sceneMode": "inherit",
+      "layers": [],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [
+        {
+          "characterId": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+          "expressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c"
+        }
+      ],
+      "paragraphId": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+      "audio": null
+    },
+    {
+      "id": "demo_end",
+      "type": "end",
+      "name": "第一章·节选完",
+      "text": "秋天开学的时候。",
+      "next": "",
+      "sceneMode": "own",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_school",
+          "name": "校园·二楼走廊",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        }
+      ],
+      "effects": [],
+      "speakerId": "",
+      "expressionId": "",
+      "cast": [],
+      "paragraphId": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+      "audio": null
+    }
+  ],
+  "presets": [
+    {
+      "id": "scene_home",
+      "name": "林家早餐·校服站姿（演出化布局）",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_home",
+          "name": "林家·早餐",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_neutral",
+          "name": "林悠·校服·自然",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linche",
+          "asset": "che_neutral",
+          "name": "林澈·校服·平静",
+          "kind": "char",
+          "x": 56,
+          "y": 2,
+          "w": 36.75,
+          "h": 98,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        }
+      ]
+    },
+    {
+      "id": "scene_road",
+      "name": "桂花路口·兄妹",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_road",
+          "name": "桂花树下·上学路口",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_neutral",
+          "name": "林悠·校服·自然",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linche",
+          "asset": "che_neutral",
+          "name": "林澈·校服·平静",
+          "kind": "char",
+          "x": 56,
+          "y": 2,
+          "w": 36.75,
+          "h": 98,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        }
+      ]
+    },
+    {
+      "id": "scene_school",
+      "name": "校园走廊·林悠",
+      "layers": [
+        {
+          "id": "background",
+          "asset": "bg_school",
+          "name": "校园·二楼走廊",
+          "kind": "bg",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 100,
+          "fit": "cover",
+          "opacity": 100,
+          "hidden": false,
+          "locked": true,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        },
+        {
+          "id": "linyou",
+          "asset": "you_neutral",
+          "name": "林悠·校服·自然",
+          "kind": "char",
+          "x": 10,
+          "y": 12,
+          "w": 33,
+          "h": 88,
+          "fit": "contain",
+          "opacity": 100,
+          "hidden": false,
+          "locked": false,
+          "motion": "none",
+          "characterId": "",
+          "expressionId": ""
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "id": "ch_aedbd2ae-069a-4059-a95b-a618f3fe6aa9",
+      "name": "林悠",
+      "color": "#3f6753",
+      "defaultExpressionId": "ex_fb768ce8-5501-4582-928a-f5c44837648c",
+      "expressions": [
+        {
+          "id": "ex_fb768ce8-5501-4582-928a-f5c44837648c",
+          "name": "自然",
+          "assetId": "you_neutral"
+        },
+        {
+          "id": "ex_0fb0f226-216e-4936-be26-cfca39aa1bf3",
+          "name": "轻恼",
+          "assetId": "you_annoyed"
+        }
+      ]
+    },
+    {
+      "id": "ch_8d1ff901-b428-4a58-8ad3-b6a0cf2352ad",
+      "name": "林澈",
+      "color": "#7a5b3f",
+      "defaultExpressionId": "ex_8f509492-0da4-4817-9c00-9e5f973f928f",
+      "expressions": [
+        {
+          "id": "ex_8f509492-0da4-4817-9c00-9e5f973f928f",
+          "name": "平静",
+          "assetId": "che_neutral"
+        },
+        {
+          "id": "ex_42bc720b-1502-4599-b482-b6c9915ab530",
+          "name": "微笑",
+          "assetId": "che_smile"
+        }
+      ]
+    }
+  ],
+  "chapters": [
+    {
+      "id": "ch_b89b2196-2cb9-4dae-8922-3c2295f84b44",
+      "title": "第一章",
+      "collapsed": false,
+      "paragraphs": [
+        {
+          "id": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
+          "title": "早餐",
+          "collapsed": false
+        },
+        {
+          "id": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
+          "title": "上学路",
+          "collapsed": false
+        },
+        {
+          "id": "pg_33da9545-d2d2-499e-befc-155c4b5b1843",
+          "title": "学校走廊",
+          "collapsed": false
+        }
+      ]
+    }
+  ]
+}

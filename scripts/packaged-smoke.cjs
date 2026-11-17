@@ -58,10 +58,9 @@ async function prepareAsar() {
   const src = path.join(staging, 'app');
   fs.mkdirSync(path.join(src, 'dist'), { recursive: true });
   fs.mkdirSync(path.join(src, 'desktop'), { recursive: true });
-  for (const f of fs.readdirSync(path.join(root, 'dist'))) {
-    const from = path.join(root, 'dist', f);
-    if (fs.statSync(from).isFile()) fs.copyFileSync(from, path.join(src, 'dist', f));
-  }
+  /* dist/ 里现在有 samples/ 目录：逐项递归复制，不能用「只拷文件」的写法，
+     否则 asar 形态会缺内置示例。 */
+  fs.cpSync(path.join(root, 'dist'), path.join(src, 'dist'), { recursive: true });
   for (const f of fs.readdirSync(path.join(root, 'desktop'))) {
     const from = path.join(root, 'desktop', f);
     if (f.endsWith('.cjs') && fs.statSync(from).isFile()) fs.copyFileSync(from, path.join(src, 'desktop', f));
@@ -106,6 +105,7 @@ async function main() {
   assert(info.host, '打包窗口缺少 preload 桥接');
   assert.equal(info.requireType, 'undefined', '打包窗口泄漏 require');
   assert.equal(info.processType, 'undefined', '打包窗口泄漏 process');
+  assert(info.sample && info.sample.nodes === 45, '打包产物里的内置示例不可用：' + JSON.stringify(info.sample));
   console.log('PASS: ' + (asarMode ? 'app.asar' : 'portable EXE') + ' starts offline through paper://, renderer isolated, editor rendered');
   console.log('  ' + JSON.stringify(info));
 }

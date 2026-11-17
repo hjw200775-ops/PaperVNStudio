@@ -10,6 +10,7 @@ const fs = require('node:fs');
 const createProjectStore = require('./project-store.cjs');
 const createVNCore = require('../dist/core.js');
 const createPaperAudio = require('../dist/audio.js');
+const { buildPlayerHTML } = require('../dist/game-html.js');
 
 const C = createVNCore();
 const AUDIO_PURE = createPaperAudio().pure;
@@ -29,6 +30,7 @@ const ALLOWED = {
   '/player.js': 'text/javascript; charset=utf-8',
   '/app.js': 'text/javascript; charset=utf-8',
   '/export.js': 'text/javascript; charset=utf-8',
+  '/game-html.js': 'text/javascript; charset=utf-8',
   '/audio.js': 'text/javascript; charset=utf-8',
   '/desktop-bridge.js': 'text/javascript; charset=utf-8'
 };
@@ -41,6 +43,7 @@ app.enableSandbox();
 
 let win = null;
 let previewWin = null;
+let sampleWin = null;
 let recentFile = '';
 let draftDir = '';
 const state = { currentDir: null, label: '', dirty: false, closing: false, lastError: '' };
@@ -183,6 +186,42 @@ function rebuildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 function sendCommand(command) { if (win && !win.isDestroyed()) win.webContents.send('app:command', command); }
+
+/* ---------- 内置示例（只读资源） ----------
+ * 渲染进程只传固定标识，主进程自己决定源目录；不接受任意路径、任意文件读写。
+ * 安装目录里的示例永远只读：体验写到 userData，复制写到用户选择的空目录。 */
+const SAMPLE_SLUG = 'wanfeng-ch01';
+const SAMPLE_DIR = path.join(DIST, 'samples', SAMPLE_SLUG);
+
+function readSample() {
+  const main = path.join(SAMPLE_DIR, MAIN_FILE);
+  if (!fs.existsSync(main)) {
+    throw new Error('安装包缺少内置示例（dist/samples/' + SAMPLE_SLUG + '），请使用完整版本');
+  }
+  const disk = JSON.parse(fs.readFileSync(main, 'utf8'));
+  store.validateDisk(disk);
+  const project = store.diskToRuntime(SAMPLE_DIR, disk);
+  return { project, dir: SAMPLE_DIR };
+}
+function sampleMeta(project) {
+  return {
+    slug: SAMPLE_SLUG, projectId: project.id, title: project.title,
+    nodes: project.nodes.length, images: project.assets.length,
+    sections: (project.chapters || []).length, author: '黄嘉文'
+  };
+}
+/* 复制失败时只清理本次创建的文件：目录此前已确认是空的，不碰任何用户文件。 */
+function cleanupPartialCopy(root) {
+  for (const name of [MAIN_FILE, 'assets', 'backups']) {
+    try { fs.rmSync(path.join(root, name), { recursive: true, force: true }); } catch { /* best effort */ }
+  }
+  try {
+    for (const name of fs.readdirSync(root)) {
+      if (/\.tmp-\d+-[0-9a-f]+$/.test(name)) fs.rmSync(path.join(root, name), { force: true });
+    }
+  } catch { /* best effort */ }
+}
+
 
 /* ---------- IPC (validated sender, fixed channels) ---------- */
 
@@ -438,6 +477,62 @@ function registerIPC() {
     return reply({ preview: true });
   });
 
+  /* 体验示例：与导出完全相同的自包含 HTML，独立窗口 + 独立持久分区。
+     存档只写到 userData 的分区里，不写安装目录，也不进入当前编辑工程。 */
+  handle('sample:info', () => {
+    const { project } = readSample();
+    return reply({ sample: sampleMeta(project) });
+  });
+
+  handle('sample:experience', async () => {
+    const { project } = readSample();
+    const html = buildPlayerHTML(project);
+    const dir = path.join(app.getPath('userData'), 'sample');
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, 'game-sample.html');
+    fs.writeFileSync(file, html, 'utf8');
+    if (sampleWin && !sampleWin.isDestroyed()) sampleWin.close();
+    sampleWin = new BrowserWindow({
+      width: 1200, height: 860, minWidth: 720, minHeight: 600,
+      title: '体验示例 · ' + project.title, backgroundColor: '#17261f',
+      webPreferences: {
+        sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true,
+        partition: 'persist:papervn-sample'
+      }
+    });
+    sampleWin.on('closed', () => { sampleWin = null; });
+    await sampleWin.loadFile(file);
+    return reply({ opened: true, sample: sampleMeta(project) });
+  });
+
+  handle('sample:copy', async () => {
+    if (!await clearDirtyBefore('示例工程')) return reply({ cancelled: true });
+    const dir = await chooseDirectory('复制示例：选择一个新的空白目录');
+    if (!dir) return reply({ cancelled: true });
+    const root = path.resolve(dir);
+    fs.mkdirSync(root, { recursive: true });
+    /* 只复制到全新目录：不覆盖已有工程，也不与非空目录静默合并。 */
+    if (fs.readdirSync(root).length) {
+      throw new Error('目标目录不是空目录。示例只会复制到全新的空白目录，不会覆盖或合并已有文件。');
+    }
+    const { project } = readSample();
+    const copy = JSON.parse(JSON.stringify(project));
+    copy.id = C.id();                       /* 副本拥有独立存档身份 */
+    let result;
+    try {
+      result = store.createProject(root, copy);
+    } catch (e) {
+      cleanupPartialCopy(root);             /* 失败不留半成品工程 */
+      throw e;
+    }
+    track(result.root, result.project.title);
+    state.dirty = false;
+    return stateSnapshot({
+      project: result.project, cancelled: false, copied: true,
+      notice: '已复制为独立工程（新工程 ID）：此后对副本的修改不会影响内置示例。'
+    });
+  });
+
   handle('app:finishSaveBeforeClose', result => {
     if (pendingSave && result && result.token === pendingSaveToken) {
       pendingSave({ ok: !!result.ok, message: String(result.message || '') });
@@ -493,8 +588,12 @@ function createWindow() {
         const raw = await win.webContents.executeJavaScript('JSON.stringify({url:location.href,title:document.title,nodes:document.querySelectorAll("#list .node").length,host:!!window.PaperHost,requireType:typeof window.require,processType:typeof window.process})');
         info = JSON.parse(raw);
       } catch (e) { info = { error: e.message }; }
+      /* 顺带证明安装包内的示例资源能被定位：不依赖开发机路径。 */
+      try { info.sample = sampleMeta(readSample().project); }
+      catch (e) { info.sample = { error: e.message }; }
       const ok = !!(info && String(info.url).startsWith('paper://app/') && info.nodes >= 7 &&
-        info.host && info.requireType === 'undefined' && info.processType === 'undefined');
+        info.host && info.requireType === 'undefined' && info.processType === 'undefined' &&
+        info.sample && info.sample.nodes === 45);
       const out = process.env.PAPER_VN_SMOKE_OUT;
       if (out) { try { fs.writeFileSync(out, JSON.stringify({ ok, info })); } catch { /* best effort */ } }
       console.log('PAPER_VN_SMOKE ' + (ok ? 'PASS' : 'FAIL') + ' ' + JSON.stringify(info));

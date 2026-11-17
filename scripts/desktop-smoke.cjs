@@ -26,6 +26,7 @@ const ALLOWED = {
   '/player.js': 'text/javascript; charset=utf-8',
   '/app.js': 'text/javascript; charset=utf-8',
   '/export.js': 'text/javascript; charset=utf-8',
+  '/game-html.js': 'text/javascript; charset=utf-8',
   '/audio.js': 'text/javascript; charset=utf-8',
   '/desktop-bridge.js': 'text/javascript; charset=utf-8'
 };
@@ -52,6 +53,11 @@ function registerIPC() {
   ipcMain.handle('project:open', () => ok({ cancelled: true }));
   ipcMain.handle('project:openRecent', () => ok({ cancelled: true }));
   ipcMain.handle('project:recent', () => ok({ items: [] }));
+  /* 示例入口在烟测里只需要可用的元数据：真实读取由主进程 sample:* 负责。 */
+  ipcMain.handle('sample:info', () => ok({ sample: { slug: 'wanfeng-ch01',
+    projectId: 'sample-wanfeng-ch01', title: '晚风经过二楼走廊', nodes: 45, images: 8, sections: 1, author: '黄嘉文' } }));
+  ipcMain.handle('sample:experience', () => ok({ opened: true }));
+  ipcMain.handle('sample:copy', () => ok({ cancelled: true }));
   ipcMain.handle('file:pickImage', (_e, assetKind) => ok({ cancelled: false, file: {
     name: '烟测背景.png', size: 68, type: 'image/png',
     dataUrl: 'data:image/png;base64,' + PNG, id: 'a_smoke_' + assetKind

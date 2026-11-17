@@ -35,7 +35,8 @@ function makeElement(tag) {
     appendChild(child) { this.children.push(child); return child; },
     replaceChildren(...items) { this.children = [...items]; },
     getBoundingClientRect() { return { width: 1280, height: 720 }; },
-    setAttribute() {}, focus() {}, remove() {}
+    setAttribute() {}, focus() {}, remove() {},
+    classList: { toggle() {}, add() {}, remove() {} }
   };
 }
 function runExported(html) {

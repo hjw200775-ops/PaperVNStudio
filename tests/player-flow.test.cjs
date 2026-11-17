@@ -52,7 +52,8 @@ function makeElement(tag) {
     tagName: String(tag).toUpperCase(), children: [], dataset: {}, style: {},
     textContent: '', className: '', disabled: false, hidden: false, title: '',
     value: '', checked: false, onclick: null, oninput: null, onchange: null, onkeydown: null,
-    listeners: {},
+    listeners: {}, classList: { toggle() {}, add() {}, remove() {} },
+    removeAttribute(name) { this.removedAttr = name; },
     appendChild(child) { this.children.push(child); return child; },
     replaceChildren(...items) { this.children = [...items]; },
     getBoundingClientRect() { return { width: 1280, height: 720 }; },
@@ -125,6 +126,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     const h = harness(project(false));
     let st = h.status();
     assert.equal(st.state, 'title');
+    assert.equal(st.titleBg, false, '没有标题背景时使用默认样式');
     assert.equal(h.nodes.continueGame.disabled, true, '无存档继续禁用');
     assert.match(h.nodes.titleNote.textContent, /还没有保存进度/);
     assert.equal(h.nodes.gameRoot.hidden, true);
@@ -327,6 +329,27 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
     assert.match(h.nodes.settingsNote.textContent, /没有音频/);
     assert.equal(h.audioStatus(), null);
     console.log('  ok  无音频工程正常游玩，设置明确说明没有音频');
+  }
+
+  /* 9. 标题背景：有素材就渲染，缺素材回退默认样式并提示 */
+  {
+    const withBg = project(false);
+    withBg.titleBackground = 'img';
+    const h = harness(withBg);
+    assert.equal(h.status().titleBg, true, '标题背景已渲染');
+    assert.equal(h.nodes.titleBg.hidden, false);
+    assert.match(String(h.nodes.titleBgImg.src), /^data:image\/png;base64,/, '使用工程内素材，不读路径');
+    assert.equal(h.nodes.titleBgNote.hidden, true, '正常背景不显示缺失提示');
+
+    const missing = project(false);
+    missing.titleBackground = 'gone';
+    const h2 = harness(missing);
+    assert.equal(h2.status().titleBg, false, '缺失素材回退默认样式');
+    assert.equal(h2.nodes.titleBg.hidden, true);
+    assert.equal(h2.nodes.titleBgNote.hidden, false);
+    assert.match(h2.nodes.titleBgNote.textContent, /缺失/);
+    assert.equal(h2.nodes.startGame.disabled, false, '回退后仍可开始游戏');
+    console.log('  ok  标题背景按素材渲染，缺失时回退默认样式并提示');
   }
 
   for(const h of ALL_HARNESSES){

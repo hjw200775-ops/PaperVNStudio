@@ -310,6 +310,7 @@ function createProjectStore(options = {}) {
       schema: 5,
       id: p.id,
       title: p.title,
+      titleBackground: typeof p.titleBackground === 'string' ? p.titleBackground : '',
       assets,
       audioAssets,
       nodes: p.nodes,
@@ -330,6 +331,10 @@ function createProjectStore(options = {}) {
     }
     if (disk.characters !== undefined && !Array.isArray(disk.characters)) {
       throw new Error('桌面工程角色列表格式错误');
+    }
+    /* 标题背景是可选的素材 ID；旧工程没有这个字段就是默认标题页。 */
+    if (disk.titleBackground !== undefined && typeof disk.titleBackground !== 'string') {
+      throw new Error('桌面工程标题背景格式错误');
     }
     if (disk.chapters !== undefined && !Array.isArray(disk.chapters)) {
       throw new Error('桌面工程章节列表格式错误');
@@ -435,6 +440,7 @@ function createProjectStore(options = {}) {
     if (missing.length) throw new Error('工程引用的素材缺失，可从备份恢复：' + missing.join('、'));
     const runtime = {
       schema: disk.schema || 4, id: disk.id, title: disk.title,
+      titleBackground: typeof disk.titleBackground === 'string' ? disk.titleBackground : '',
       assets, audioAssets, nodes: disk.nodes, presets: disk.presets,
       characters: Array.isArray(disk.characters) ? disk.characters : [],
       chapters: Array.isArray(disk.chapters) ? disk.chapters : []
@@ -706,7 +712,8 @@ function createProjectStore(options = {}) {
       for (const s of c.sfx) if (!audioIds.has(s.audioId)) brokenAudio.push(n.id + '/sfx');
       if (c.voice && !audioIds.has(c.voice.audioId)) brokenAudio.push(n.id + '/voice');
     }
-    return { brokenAssets, brokenEffects, brokenAudio };
+    return { brokenAssets, brokenEffects, brokenAudio,
+      brokenTitleBackground: p.titleBackground && !ids.has(p.titleBackground) ? p.titleBackground : '' };
   }
 
   /* ---------- recent projects (in Electron userData, never in Git) ---------- */
