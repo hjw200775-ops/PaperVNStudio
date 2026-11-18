@@ -132,8 +132,9 @@ npm run net:check
 | `dist/` | 编辑器页面与运行时：`app.js` 编辑状态与图层操作，`core.js` 校验/迁移/场景解析，`effects.js` 效果插值与渲染，`player.js` 导出游戏播放器，`export.js` 自包含导出，`game-html.js` 唯一的「工程 → 播放器 HTML」入口 |
 | `dist/samples/` | 内置只读示例（`wanfeng-ch01/`：45 节点原作 + 家中走廊标题图 + 素材说明） |
 | `desktop/` | Electron 主进程、`paper://` 白名单协议、窄 IPC，以及工程目录读写与备份 |
+| `game/` | 独立游戏包的播放器壳：`main.cjs`（`wanfeng://` 白名单协议、独立 userData、无 preload/IPC）与包 manifest |
 | `tests/` | 核心逻辑、效果、存储、素材去重、导出、安全边界、工作区卫生 |
-| `scripts/` | 无依赖本地服务、检查入口、桌面启动与真实窗口烟测 |
+| `scripts/` | 无依赖本地服务、检查入口、桌面启动与真实窗口烟测；`build-game-package.cjs` / `game-package-acceptance.cjs` 负责独立游戏包的构建与成品验收，`zip-writer.cjs` / `zip-manifest.cjs` 负责 UTF-8 文件名的 ZIP 读写 |
 | `docs/` | 迁移路线、交付说明、验收清单、已知限制 |
 
 设计上的几条硬约束：渲染进程 `contextIsolation` + `sandbox`，没有 Node 访问；页面只从 `paper://` 白名单加载；IPC 通道固定并校验发送方；素材按内容哈希命名，不覆盖、不信任外部路径。
@@ -146,15 +147,32 @@ npm run net:check
 | --- | --- | --- |
 | 自动化 | Node 测试与静态检查 | `npm run check` |
 | 可见渲染 | 真实 Electron 窗口里驱动界面并断言 DOM 与落盘 | `npm run desktop:smoke`、`desktop:smoke:project`、`desktop:smoke:packaged`、`sample:acceptance` |
+| 游戏包成品 | 解压 ZIP、启动真实 EXE、通关 / 存档 / 移动目录 / 存储隔离 / ZIP 清单 | `npm run game:acceptance` |
 | 人工点击 | 原生对话框、未保存关闭三选一、安装向导 | 人工，**尚未执行** |
 | 副机验收 | 另一台干净机器断网打开 EXE 与导出 HTML | 人工，**尚未执行** |
 
 `desktop:smoke` 用真实主进程和真实 IPC 跑完整链路：导入图片 → 图层 → 修改布局与效果 → 自动保存 → 显式保存 → 重新打开 → 导出 HTML。烟测工程一律建在系统临时目录，源码树不接收任何工程产物。
 
+## 独立游戏包（V0.7 第一阶段）
+
+把内置示例《晚风经过二楼走廊》做成「解压 → 双击 → 断网可玩」的 Windows x64 便携包：
+
+```bash
+npm run game:build        # → release/game/<…>-独立试玩包.zip + manifest.json（含 SHA-256 与文件清单）
+npm run game:acceptance   # 解压 ZIP，驱动真实 EXE 通关、存档、移动目录、检查隔离与清单
+```
+
+- 内容复用 `dist/game-html.js` + `player.js` 的唯一导出路径，不另写一套拼接逻辑；标题图、正文、`road_17` 演出与原作一致，不带测试音频。
+- 游戏身份独立：`cn.papervnstudio.game.wanfeng-ch01`，userData 在 `%APPDATA%\PaperVNStudio-Game-wanfeng-ch01`，与纸间编辑器、内置示例分区互不共用；移动解压目录不影响读档。
+- 播放器壳 `sandbox` + `contextIsolation`、无 Node / 无 preload / 无 IPC、`wanfeng://` 白名单只服务包内 HTML、所有网络请求取消。
+- 通用「导出 Windows 游戏」按钮、安装包、单文件 EXE、图标与签名留到下一阶段。
+
+细节、实测结果与未验证项见 `docs/V0.7_GAME_PACKAGE.md`。
+
 ## 当前状态
 
-- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复（素材复用语义、去重四类情况、工作区隔离）。
-- 未开始：独立游戏 EXE、自动更新、多平台、代码签名、发布流程。
+- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复（素材复用语义、去重四类情况、工作区隔离）、V0.6.2 内置示例与标题背景、V0.7 第一阶段《晚风》独立试玩包。
+- 未开始：通用「导出 Windows 游戏」界面、安装包与单文件 EXE、应用图标、代码签名、自动更新、多平台。
 - 打包好的 Windows 产物在 [Releases](https://github.com/hjw200775-ops/PaperVNStudio/releases) 下载（便携版 / 安装包，附 SHA-256）；`release/` 本身是忽略目录，不随仓库分发。也可自行 `npm run build:win`。
 
 细节见 `docs/DESKTOP_PREVIEW.md`（交付说明与构建记录）、`docs/ACCEPTANCE.md`（验收清单）、`docs/KNOWN_LIMITATIONS.md`（已知限制）。C 层与 D 层怎么一步步点，见 `docs/MANUAL_ACCEPTANCE.md`。

@@ -33,7 +33,9 @@
     "audio:acceptance": "node scripts/desktop.cjs --audio",
     "player:acceptance": "node scripts/desktop.cjs --player",
     "sample:build": "node scripts/build-sample.cjs",
-    "sample:acceptance": "node scripts/desktop.cjs --sample"
+    "sample:acceptance": "node scripts/desktop.cjs --sample",
+    "game:build": "node scripts/build-game-package.cjs",
+    "game:acceptance": "node scripts/game-package-acceptance.cjs"
   },
   "engines": {
     "node": ">=20"

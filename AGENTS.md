@@ -11,6 +11,7 @@
 - 不随意格式化全部紧凑源码；如果整理结构，单独提交并验证行为一致。
 - 保留网页预览和独立 HTML 游戏导出。
 - 不把桌面封装、安装包构建与真实 Windows 验收混为一谈。
+- 游戏包只带播放器所需的文件、游戏资源与许可说明；不要复用编辑器的 appId / userData，也不要把测试音频、工程文件、开发路径打进包里。ZIP 内中文文件名必须按 UTF-8 写（`scripts/zip-writer.cjs`），否则换语言系统会乱码。
 - 检查并保留用户未提交的文件；不覆盖草稿、素材或本地工程。
 - 工程模型、资源路径与文件读写分层；运行时恢复逻辑由编辑器和播放器共用。
 
@@ -21,6 +22,7 @@
 - `app.js`: editor state, user interactions, persistence, undo and exports.
 - `player.js`: standalone game runtime, embedded in exported HTML.
 - `index.html` + `style.css`: interface.
+- `game/`: 独立游戏包播放器壳（`main.cjs`）。只提供 `wanfeng://` 白名单协议、独立 userData 与窗口安全边界；没有 preload、IPC 与编辑器 UI，不引用 `dist/` 源码。
 
 不要只修改网页加载的 effects 文件而遗漏导出时嵌入的工厂函数。任何模块化调整必须验证自包含 HTML 输出。
 

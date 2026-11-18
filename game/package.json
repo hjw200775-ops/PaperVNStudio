@@ -1,0 +1,38 @@
+{
+  "name": "papervn-game-wanfeng-ch01",
+  "productName": "晚风经过二楼走廊",
+  "version": "0.7.0",
+  "private": true,
+  "description": "《晚风经过二楼走廊》第一章节选 · Windows x64 独立试玩包（纸间播放器壳）",
+  "author": "黄嘉文",
+  "license": "MIT",
+  "main": "main.cjs",
+  "build": {
+    "appId": "cn.papervnstudio.game.wanfeng-ch01",
+    "productName": "晚风经过二楼走廊",
+    "asar": true,
+    "compression": "normal",
+    "npmRebuild": false,
+    "files": [
+      "main.cjs",
+      "content/**",
+      "package.json"
+    ],
+    "extraFiles": [
+      "LICENSE",
+      "NOTICE-素材与许可.txt",
+      "试玩说明.txt"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "executableName": "晚风经过二楼走廊"
+    }
+  }
+}
