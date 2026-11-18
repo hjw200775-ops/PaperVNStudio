@@ -50,17 +50,19 @@ function step(text) { console.log('[game] ' + text); }
 const PRUNE = process.argv.includes('--prune');
 
 function pruneOldBuilds() {
-  if (!fs.existsSync(WORK_ROOT)) return;
+  /* 早期版本把构建目录固定成 out/ 与 pkg/，一并按旧目录清理。 */
+  const targets = [path.join(OUT_ROOT, 'out'), path.join(OUT_ROOT, 'pkg')];
+  if (fs.existsSync(WORK_ROOT)) {
+    for (const name of fs.readdirSync(WORK_ROOT)) targets.push(path.join(WORK_ROOT, name));
+  }
   let freed = 0;
-  for (const name of fs.readdirSync(WORK_ROOT)) {
-    const abs = path.join(WORK_ROOT, name);
-    if (!fs.statSync(abs).isDirectory()) continue;
+  for (const abs of targets) {
+    if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) continue;
     try {
-      const bytes = walk(abs).reduce((s, f) => s + f.bytes, 0);
+      freed += walk(abs).reduce((s, f) => s + f.bytes, 0);
       fs.rmSync(abs, { recursive: true, force: true });
-      freed += bytes;
     } catch (e) {
-      console.log('[game] 无法清理 ' + abs + '：' + e.message + '（可手动删除）');
+      console.log('[game] 无法清理 ' + abs + '：' + e.message + '（可在资源管理器里手动删除）');
     }
   }
   step('清理旧中间产物 ' + mb(freed));
