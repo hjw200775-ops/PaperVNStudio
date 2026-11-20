@@ -132,7 +132,9 @@ npm run net:check
 | `dist/` | 编辑器页面与运行时：`app.js` 编辑状态与图层操作，`core.js` 校验/迁移/场景解析，`effects.js` 效果插值与渲染，`player.js` 导出游戏播放器，`export.js` 自包含导出，`game-html.js` 唯一的「工程 → 播放器 HTML」入口 |
 | `dist/samples/` | 内置只读示例（`wanfeng-ch01/`：45 节点原作 + 家中走廊标题图 + 素材说明） |
 | `desktop/` | Electron 主进程、`paper://` 白名单协议、窄 IPC，以及工程目录读写与备份 |
-| `game/` | 独立游戏包的播放器壳：`main.cjs`（`wanfeng://` 白名单协议、独立 userData、无 preload/IPC）与包 manifest |
+| `game/` | 《晚风》示例包专用：图标源与 9 档 ICO（V0.7.1 构建脚本仍用它） |
+| `desktop/game-shell/` | 通用游戏播放器壳：读 `content/game.json`，按 `releaseId` 隔离存档，无 preload/IPC |
+| `desktop/game-builder.cjs` + `game-pack-worker.cjs` | 通用导出：主进程生成内容与图标，子进程复制运行时、rcedit、ZIP/NSIS |
 | `tests/` | 核心逻辑、效果、存储、素材去重、导出、安全边界、工作区卫生 |
 | `scripts/` | 无依赖本地服务、检查入口、桌面启动与真实窗口烟测；`build-game-package.cjs` / `game-package-acceptance.cjs` 负责独立游戏包的构建与成品验收，`zip-writer.cjs` / `zip-manifest.cjs` 负责 UTF-8 文件名的 ZIP 读写 |
 | `docs/` | 迁移路线、交付说明、验收清单、已知限制 |
@@ -152,6 +154,27 @@ npm run net:check
 | 副机验收 | 另一台干净机器断网打开 EXE 与导出 HTML | 人工，**尚未执行** |
 
 `desktop:smoke` 用真实主进程和真实 IPC 跑完整链路：导入图片 → 图层 → 修改布局与效果 → 自动保存 → 显式保存 → 重新打开 → 导出 HTML。烟测工程一律建在系统临时目录，源码树不接收任何工程产物。
+
+## 通用独立游戏导出（V0.7.2）
+
+任何作者都能在图形界面里把自己的工程导出成 Windows 游戏，不需要安装 Node.js、Electron，也不用敲命令：
+
+1. 打开工程 → 右上角 **游戏发行**；
+2. 填游戏名称（默认取工程名）、作者、版本、版权，按需导入图标（PNG / JPEG / ICO），设置窗口大小、是否缩放、窗口 / 全屏；
+3. 选「ZIP 解压版」或「单文件便携 EXE」→ 导出到一个新文件夹。
+
+```bash
+npm run tools:prepare              # 从本机缓存收集 rcedit + NSIS（约 3MB，随纸间分发）
+npm run export:acceptance          # 两套工程走 GUI 导出 + 真机游玩验收
+npm run export:acceptance:packaged # 已打包的纸间再跑一遍
+```
+
+- 发行设置是**工程内容**：跟着保存、另存为、备份与撤销走；旧工程缺字段时用默认值，HTML 导出不受影响。
+- 运行时不另外下载：直接复用正在运行的 Electron；rcedit / NSIS 随纸间分发在 `resources/toolchain`，ZIP 导出可完全离线。
+- 每个作品有稳定的发行标识，存档在 `%APPDATA%\PaperVNStudio-Game-<标识>`；同名不同工程也不会共用存档。
+- 构建在子进程里跑，界面不卡；可以取消，失败或取消都不会动已有产物。
+
+细节、两套工程的实测结果与已知限制见 `docs/V0.7.2_GAME_EXPORT.md`，界面截图在 `docs/screenshots/`。
 
 ## 独立游戏包（V0.7 正式版）
 
@@ -174,8 +197,8 @@ npm run game:acceptance   # 解压 ZIP 跑真实 EXE，并单独验收单文件�
 
 ## 当前状态
 
-- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复（素材复用语义、去重四类情况、工作区隔离）、V0.6.2 内置示例与标题背景、V0.7《晚风》正式版（图标、版本信息、解压目录版 + 单文件便携版、签名管线）。
-- 未开始：通用「导出 Windows 游戏」界面、NSIS 安装包、真实证书签名（等证书）、自动更新、多平台。
+- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复、V0.6.2 内置示例与标题背景、V0.7《晚风》正式版（图标、版本信息、双形态、签名管线）、V0.7.2 通用独立游戏导出（发行设置、图标、ZIP / 单文件、离线构建组件）。
+- 未开始：NSIS 安装包、真实证书签名（等证书）、多槽存档、剧情变量、AI 辅助、自动更新、macOS / Linux 导出。
 - 打包好的 Windows 产物在 [Releases](https://github.com/hjw200775-ops/PaperVNStudio/releases) 下载（便携版 / 安装包，附 SHA-256）；`release/` 本身是忽略目录，不随仓库分发。也可自行 `npm run build:win`。
 
 细节见 `docs/DESKTOP_PREVIEW.md`（交付说明与构建记录）、`docs/ACCEPTANCE.md`（验收清单）、`docs/KNOWN_LIMITATIONS.md`（已知限制）。C 层与 D 层怎么一步步点，见 `docs/MANUAL_ACCEPTANCE.md`。

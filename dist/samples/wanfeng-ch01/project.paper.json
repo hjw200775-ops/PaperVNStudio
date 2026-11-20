@@ -6,6 +6,9 @@
   "id": "sample-wanfeng-ch01",
   "title": "晚风经过二楼走廊｜第一章节选·原作线",
   "titleBackground": "asset_title_home_corridor",
+  "publish": {
+    "releaseId": "wanfeng-ch01"
+  },
   "assets": [
     {
       "id": "you_neutral",

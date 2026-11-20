@@ -58,6 +58,13 @@
     sampleInfo: () => call(() => api.sampleInfo()),
     experienceSample: () => call(() => api.experienceSample()),
     copySample: () => call(() => api.copySample()),
+    gameToolchain: () => call(() => api.gameToolchain()),
+    pickGameIcon: () => api.pickGameIcon().then(r => { const v = ok(r); return v.cancelled ? null : { name: v.name, dataUrl: v.dataUrl }; }),
+    /* 取消不是错误：主进程会返回 {cancelled:true}，这里原样交给界面显示「已取消」。 */
+    exportGame: payload => api.exportGame(payload).then(r => (r && r.cancelled) ? r : ok(r)),
+    cancelExport: () => call(() => api.cancelExport()),
+    revealFile: target => call(() => api.revealFile(target)),
+    onExportProgress: handler => api.onExportProgress(handler),
     saveFile: payload => api.saveFile(payload).then(r => { const v = ok(r); return v.cancelled ? null : v; }),
     onCommand: handler => api.onCommand(handler),
     onSaveBeforeClose: handler => api.onSaveBeforeClose(handler),

@@ -4,10 +4,11 @@
  * The renderer is sandboxed, context-isolated and served exclusively from the
  * paper:// scheme (a fixed allow-list of files inside dist/).
  */
-const { app, BrowserWindow, ipcMain, dialog, Menu, protocol, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, protocol, session, shell, nativeImage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const createProjectStore = require('./project-store.cjs');
+const createGameBuilder = require('./game-builder.cjs');
 const createVNCore = require('../dist/core.js');
 const createPaperAudio = require('../dist/audio.js');
 const { buildPlayerHTML } = require('../dist/game-html.js');
@@ -20,6 +21,12 @@ const AUDIO_EXT_MIME = { wav: 'audio/wav', wave: 'audio/wav', mp3: 'audio/mpeg',
   oga: 'audio/ogg', m4a: 'audio/mp4', aac: 'audio/aac', flac: 'audio/flac', webm: 'audio/webm' };
 const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
+/* 通用导出：复用同一份构建器，运行时取自正在运行的这个 Electron。 */
+const gameBuilder = createGameBuilder({
+  repoRoot: ROOT, execPath: process.execPath,
+  resourcesPath: process.resourcesPath, isPackaged: app.isPackaged
+});
+let exportJob = null;
 const APP_URL = 'paper://app/index.html';
 const CSP = "default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'";
 const ALLOWED = {
@@ -533,12 +540,165 @@ function registerIPC() {
     });
   });
 
+
+  /* ---------- 通用独立游戏导出（V0.7.2） ---------- */
+
+  handle('game:toolchain', () => reply({ status: gameBuilder.toolchain() }));
+
+  /* 图标入口：PNG / JPEG / ICO。ICO 只取其中最大的一档；旧式 BMP 条目给出明确提示，
+     不做「看起来导入成功、实际没生效」的静默降级。 */
+  handle('game:pickIcon', async () => {
+    let file = process.env.PAPER_VN_TEST_ICON || '';
+    if (!file) {
+      const picked = await dialog.showOpenDialog(win, {
+        title: '选择游戏图标（PNG / JPEG / ICO）', properties: ['openFile'],
+        filters: [{ name: '图标', extensions: ['png', 'jpg', 'jpeg', 'ico'] }]
+      });
+      if (picked.canceled || !picked.filePaths[0]) return reply({ cancelled: true });
+      file = picked.filePaths[0];
+    }
+    const buf = fs.readFileSync(file);
+    if (!buf.length) throw new Error('图标文件是空的');
+    if (buf.length > 8 * 1024 * 1024) throw new Error('图标请小于 8MB');
+    const ext = path.extname(file).toLowerCase();
+    const name = path.basename(file);
+    if (ext === '.ico') return reply({ cancelled: false, name, dataUrl: icoToPngDataUrl(buf) });
+    const mime = ext === '.png' ? 'image/png' : (ext === '.jpg' || ext === '.jpeg') ? 'image/jpeg' : '';
+    if (!mime) throw new Error('只支持 PNG、JPEG 或 ICO');
+    const magicOk = mime === 'image/png'
+      ? buf.readUInt32BE(0) === 0x89504e47
+      : (buf[0] === 0xff && buf[1] === 0xd8);
+    if (!magicOk) throw new Error('文件内容与扩展名不符，请重新选择图片');
+    return reply({ cancelled: false, name, dataUrl: 'data:' + mime + ';base64,' + buf.toString('base64') });
+  });
+
+  handle('game:export', async payload => {
+    if (exportJob) return { ok: false, message: '已有导出任务在进行，请等待完成或先取消' };
+    const project = payload && payload.project;
+    const type = payload && payload.type === 'portable' ? 'portable' : 'zip';
+    const token = 'export-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+    let cancelled = false;
+    let cancelSignal = null;
+    /* 取消要立刻回到界面：构建在子进程里还要收拾临时目录，不能等它。 */
+    const cancelPromise = new Promise(resolve => { cancelSignal = resolve; });
+    exportJob = {
+      token,
+      cancel() {
+        cancelled = true;
+        if (cancelSignal) cancelSignal({ ok: false, cancelled: true, message: '已取消导出' });
+      }
+    };
+    try {
+      let outDir = String((payload && payload.outDir) || process.env.PAPER_VN_TEST_EXPORT_DIR || '');
+      if (!outDir) {
+        outDir = await chooseDirectory('选择游戏导出目录');
+        if (!outDir) return { ok: false, cancelled: true, message: '已取消' };
+      }
+      if (fs.existsSync(outDir) && !fs.statSync(outDir).isDirectory()) {
+        throw new Error('导出位置不可用：所选路径是一个文件，请选择文件夹');
+      }
+      const settings = gameBuilder.resolveSettings(project);
+      const fileName = settings.fileBase + (type === 'zip' ? '-独立试玩包.zip' : '-单文件便携版.exe');
+      let target = path.join(outDir, fileName);
+      let overwrite = false;
+      while (fs.existsSync(target)) {
+        const forced = process.env.PAPER_VN_TEST_CONFLICT || '';
+        let choice;
+        if (forced === 'overwrite') choice = 0;
+        else if (forced === 'cancel') choice = 2;
+        else if (forced.startsWith('dir:')) {
+          outDir = forced.slice(4);
+          target = path.join(outDir, fileName);
+          continue;
+        } else {
+          choice = await askExportConflict(target);
+        }
+        if (choice === 0) { overwrite = true; break; }
+        if (choice === 2) return { ok: false, cancelled: true, message: '已取消（没有覆盖已有文件）' };
+        const dir = await chooseDirectory('选择另一个导出目录');
+        if (!dir) return { ok: false, cancelled: true, message: '已取消' };
+        outDir = dir;
+        target = path.join(outDir, fileName);
+      }
+      const buildPromise = gameBuilder.build({
+        project, type, outDir, overwrite,
+        onProgress: p => {
+          if (win && !win.isDestroyed()) win.webContents.send('game:exportProgress', Object.assign({ token }, p));
+        },
+        isCancelled: () => cancelled
+      }, { nativeImage });
+      /* 构建结束后才释放任务锁；取消时先返回，后台把子进程和临时文件收干净。 */
+      buildPromise.catch(() => {}).then(() => {
+        if (exportJob && exportJob.token === token) exportJob = null;
+      });
+      const result = await Promise.race([buildPromise, cancelPromise]);
+      if (result && result.cancelled) return { ok: false, cancelled: true, message: result.message || '已取消导出' };
+      return Object.assign({ ok: true }, result);
+    } catch (e) {
+      if (e && e.cancelled) return { ok: false, cancelled: true, message: '已取消导出' };
+      return { ok: false, message: (e && e.message) || String(e) };
+    } finally {
+      /* 正常路径的任务锁在上面 then 里释放；这里兜住早退（选目录取消、冲突取消）。 */
+      if (exportJob && exportJob.token === token && !cancelled) exportJob = null;
+    }
+  });
+
+  handle('game:cancelExport', () => {
+    if (!exportJob) return reply({ cancelled: false });
+    exportJob.cancel();
+    return reply({ cancelled: true });
+  });
+
+  handle('game:reveal', target => {
+    if (typeof target !== 'string' || !target) throw new Error('路径无效');
+    const abs = path.resolve(target);
+    if (!fs.existsSync(abs)) throw new Error('文件已不在该位置');
+    shell.showItemInFolder(abs);
+    return reply({ revealed: true });
+  });
+
   handle('app:finishSaveBeforeClose', result => {
     if (pendingSave && result && result.token === pendingSaveToken) {
       pendingSave({ ok: !!result.ok, message: String(result.message || '') });
     }
     return reply({});
   });
+}
+
+
+/* ---------- 导出用的小工具 ---------- */
+
+async function askExportConflict(file) {
+  const r = await dialog.showMessageBox(win, {
+    type: 'warning', buttons: ['覆盖', '选择其他目录', '取消'], defaultId: 1, cancelId: 2, noLink: true,
+    message: '目标位置已经有同名文件',
+    detail: file + '\n\n覆盖会替换这个文件；选择其他目录会重新挑选导出位置，原文件保持不动。'
+  });
+  return r.response;
+}
+
+/* ICO 容器里最大的一档如果是 PNG 条目就直接用；BMP 条目不做转换，明确要求换格式。 */
+function icoToPngDataUrl(buf) {
+  if (buf.length < 6 || buf.readUInt16LE(0) !== 0 || buf.readUInt16LE(2) !== 1) {
+    throw new Error('不是有效的 ICO 文件');
+  }
+  const count = buf.readUInt16LE(4);
+  let best = null;
+  for (let i = 0; i < count; i++) {
+    const o = 6 + 16 * i;
+    if (o + 16 > buf.length) break;
+    const size = buf.readUInt32LE(o + 8);
+    const offset = buf.readUInt32LE(o + 12);
+    if (!size || offset + size > buf.length) continue;
+    const width = buf.readUInt8(o) || 256;
+    if (!best || width > best.width) best = { width, offset, size };
+  }
+  if (!best) throw new Error('ICO 里没有可用的图标');
+  const data = buf.subarray(best.offset, best.offset + best.size);
+  if (data.length < 8 || data.readUInt32BE(0) !== 0x89504e47) {
+    throw new Error('这个 ICO 用的是旧式 BMP 条目，无法保证清晰度；请导入 PNG / JPEG，或使用 PNG 压缩的新版 ICO');
+  }
+  return 'data:image/png;base64,' + data.toString('base64');
 }
 
 /* ---------- window ---------- */

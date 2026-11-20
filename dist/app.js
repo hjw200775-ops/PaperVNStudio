@@ -9,7 +9,7 @@ const displayed=()=>C.scene(p,playing?current:selected,playing?trail:undefined);
 /* 舞台渲染用 C.stage：几何来自图层，素材按本句表情替换，不改写原图层。 */
 const staged=()=>C.stage(p,playing?current:selected,playing?trail:undefined);
 const layer=()=>displayed().find(l=>l.id===selectedLayer),asset=id=>p.assets.find(a=>a.id===id);
-function snapshot(){return {...p,nodes:C.clone(p.nodes),assets:[...p.assets],audioAssets:C.clone(p.audioAssets||[]),presets:C.clone(p.presets),characters:C.clone(p.characters||[]),chapters:C.clone(p.chapters||[]),selected,selectedLayer}}
+function snapshot(){return {...p,publish:p.publish?C.clone(p.publish):undefined,nodes:C.clone(p.nodes),assets:[...p.assets],audioAssets:C.clone(p.audioAssets||[]),presets:C.clone(p.presets),characters:C.clone(p.characters||[]),chapters:C.clone(p.chapters||[]),selected,selectedLayer}}
 function restore(s){const {selected:sel,selectedLayer:ls,...project}=s;p=project;selected=sel;selectedLayer=ls;playing=false;trail=[];revision++;queueSave();render()}
 function checkpoint(key=''){const now=Date.now();if(!key||key!==group||now-groupTime>900){past.push(snapshot());if(past.length>60)past.shift()}group=key;groupTime=now;future=[];}
 function edit(fn,key=''){if(playing)return toast('请先退出试玩再编辑');checkpoint(key);fn();revision++;queueSave();render()}
@@ -301,7 +301,7 @@ $('#inherit').checked=n.sceneMode==='inherit';$('#assetReuse').innerHTML='<optio
 function drawSelection(){const l=layer(),box=$('#selectionBox');box.hidden=playing||effectMode!=='layout'||!l||l.hidden||l.locked;if(box.hidden)return;Object.assign(box.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%'});box.querySelector('span').textContent=l.name}
 function renderCanvas(){const n=active(),ls=staged();$('#layersCanvas').replaceChildren();for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)continue;const wrap=document.createElement('div');wrap.className='visual-layer'+(l.locked?' locked':'');wrap.dataset.layer=l.id;Object.assign(wrap.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%',opacity:l.opacity/100});const im=document.createElement('img');im.src=a.data;im.alt=l.name;im.className=l.motion;im.style.objectFit=l.fit;im.draggable=false;wrap.appendChild(im);$('#layersCanvas').appendChild(wrap)}$('#placeholder').hidden=ls.some(l=>!l.hidden&&asset(l.asset));const say=n?C.speakerOf(p,n):{name:'',color:''};$('#speaker').style.color=n&&say.color?say.color:'';$('#speaker').textContent=n?(say.name||(n.type==='end'?'故事结束':'')):'';$('#line').textContent=n?.text||'添加一句对话，故事就从这里开始。';$('#choices').replaceChildren();if(n?.type==='choice')for(const o of n.options){const b=document.createElement('button');b.textContent=o.text||'未命名选项';b.onclick=e=>{e.stopPropagation();if(playing)go(o.target);else toast('从头试玩即可体验分支；目标在右侧设置。')};$('#choices').appendChild(b)}$('#nextHint').textContent=n?.type==='end'?'故事结束':n?.type==='choice'?'选项可进入普通对话，并再次汇合':playing?'点击舞台 / 空格继续 ▸':'编辑模式 · 可隐藏对话框方便拖动';$('#modeLabel').textContent=playing?'试玩中 · 使用实际经过的画面':'编辑模式 · 16:9';$('#sceneStatus').textContent=n?(n.sceneMode==='inherit'?'沿用上一画面'+(playing?'':' · 按脚本顺序预览'):'本节点独立画面'):'空白舞台';$('#selectionTitle').textContent=n?.type==='choice'?'不同的回答，也能汇回同一段故事。':'拖动图层，安排这一幕的演出。';$('#position').textContent=n?String(p.nodes.indexOf(n)+1).padStart(2,'0')+' / '+String(p.nodes.length).padStart(2,'0'):'空白舞台';$('#play').textContent=playing?'↻ 重新试玩':'▷ 从头试玩';$('#prev').disabled=playing?!trail.length:p.nodes.findIndex(n=>n.id===selected)<=0;$('#next').disabled=!n||n.type!=='say'||!C.edges(p,n).length;$('#stop').disabled=!playing;$('#slotSave').disabled=!playing;$('#slotLoad').disabled=!playing;document.body.classList.toggle('playing',playing);document.body.classList.toggle('hide-dialogue',hideDialogue);$('#toggleUI').textContent=hideDialogue?'显示对话框':'隐藏对话框';$('#toggleUI').disabled=playing;$('#flatten').disabled=playing||!ls.some(l=>!l.hidden);drawSelection();runStageEffects()}
 function updateHistory(){$('#undo').disabled=playing||!past.length;$('#redo').disabled=playing||!future.length}
-function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind();renderAudioUI();renderTitleTab()}
+function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind();renderAudioUI();renderTitleTab();syncPublishFields()}
 function go(id){if(!p.nodes.some(n=>n.id===id))return toast('这个分支尚未设置有效目标');trail.push(current);current=id;playbackAnimate=true;renderCanvas();if(playing)enterAudioInto(id,'enter')}
 function next(){const n=active();if(n?.type!=='say')return;const id=C.edges(p,n)[0];if(!id)return;if(playing)go(id);else selectNode(id)}
 function stop(){playing=false;trail=[];$('#entryNotice').hidden=true;audioStopAll();render()}
@@ -1363,5 +1363,222 @@ $('#sampleDownload').onclick=async()=>{
  }catch(e){sampleNote('下载失败：'+(e.message||e))}
  finally{sampleBusy=false}
 };
+
+
+/* ================= V0.7.2 游戏发行与通用导出 =================
+   发行设置属于工程内容（p.publish），跟着撤销、保存、另存为与备份走。
+   导出本身在主进程完成：这里只负责收集快照、显示真实阶段与错误。 */
+const pubState={toolchain:null,exporting:false,result:null};
+const pubEl=id=>document.getElementById(id);
+function pubSettings(){if(!p.publish)p.publish=C.defaultPublish();return p.publish}
+function pubDisplayName(){const s=pubSettings();return (s.gameName||'').trim()||(p.title||'').trim()||'未命名的游戏'}
+function pubRelease(){return C.releaseIdOf(p)}
+function pubSaveDir(){return '%APPDATA%\\PaperVNStudio-Game-'+pubRelease()}
+function pubTouch(apply,key){
+ checkpoint('pub-'+(key||'field'));
+ apply();
+ revision++;queueSave();
+ renderPublishSummary();
+ updateHistory();
+}
+function pubBindText(id,key){
+ const el=pubEl(id);if(!el)return;
+ el.oninput=()=>pubTouch(()=>{pubSettings()[key]=el.value},key);
+}
+function pubBindNumber(id,key,min,max){
+ const el=pubEl(id);if(!el)return;
+ el.oninput=()=>{const v=Number(el.value);if(!Number.isFinite(v))return;pubTouch(()=>{pubSettings().window[key]=Math.min(max,Math.max(min,Math.round(v)))},key)};
+}
+function pubOpen(){
+ pubSettings();
+ pubEl('publishDialog').showModal();
+ renderPublish();
+ void pubLoadToolchain();
+}
+function pubClose(){pubEl('publishDialog').close()}
+function pubSetVal(id,v){const el=pubEl(id);if(el&&document.activeElement!==el)el.value=v}
+function renderPublish(){
+ const s=pubSettings();
+ pubSetVal('pubName',s.gameName||'');
+ pubSetVal('pubAuthor',s.author||'');
+ pubSetVal('pubVersion',s.version||'1.0.0');
+ pubSetVal('pubCopyright',s.copyright||'');
+ pubSetVal('pubW',s.window.width);
+ pubSetVal('pubH',s.window.height);
+ pubEl('pubResizable').checked=s.window.resizable;
+ pubEl('pubMode').value=s.window.mode;
+ const img=pubEl('pubIconImg'),box=img?img.parentElement:null;
+ if(s.icon&&s.icon.data){img.src=s.icon.data;box.classList.add('has-icon');pubEl('pubIconTitle').textContent=s.icon.name||'自定义图标';pubEl('pubIconNote').textContent='已导入自定义图标：导出时会生成 16–256 多尺寸 ICO，并写入 EXE。';}
+ else{img.removeAttribute('src');box.classList.remove('has-icon');pubEl('pubIconTitle').textContent='纸间默认图标';pubEl('pubIconNote').textContent='未导入自定义图标时使用纸间默认图标；导入 PNG / JPEG / ICO 会自动生成 16–256 多尺寸图标。';}
+ renderPublishSummary();
+ renderPublishIssues();
+}
+/* 撤销 / 重做 / 打开工程后，面板里的字段要跟着工程走（但要避开正在输入的控件）。 */
+function syncPublishFields(){
+ if(!pubEl('publishDialog')||!pubEl('publishDialog').open)return;
+ const s=pubSettings();
+ pubSetVal('pubName',s.gameName||'');
+ pubSetVal('pubAuthor',s.author||'');
+ pubSetVal('pubVersion',s.version||'1.0.0');
+ pubSetVal('pubCopyright',s.copyright||'');
+ pubSetVal('pubW',s.window.width);
+ pubSetVal('pubH',s.window.height);
+ if(pubEl('pubResizable')&&document.activeElement!==pubEl('pubResizable'))pubEl('pubResizable').checked=s.window.resizable;
+ if(pubEl('pubMode')&&document.activeElement!==pubEl('pubMode'))pubEl('pubMode').value=s.window.mode;
+ renderPublishSummary();
+}
+function renderPublishSummary(){
+ if(!pubEl('publishDialog')||!pubEl('publishDialog').open)return;
+ pubEl('pubReleaseId').textContent=pubRelease();
+ pubEl('pubSaveDir').textContent=pubSaveDir();
+}
+function renderPublishIssues(){
+ const list=pubEl('pubIssues');if(!list)return;
+ let issues=[];
+ try{const rep=C.analyze(p);issues=(rep&&rep.issues)||[]}catch(e){issues=[{level:'error',text:'工程无法检查：'+e.message}]}
+ const errors=issues.filter(i=>i.level==='error');
+ const show=issues.slice(0,12).map(i=>'<li class="'+(i.level==='error'?'error':'warn')+'">'+(i.level==='error'?'✕':'!')+'<span>'+esc(i.text)+'</span></li>');
+ if(!issues.length)show.push('<li class="ok">✓<span>工程完整，可以导出</span></li>');
+ list.innerHTML=show.join('');
+ const start=pubEl('pubStart');
+ if(start&&!pubState.exporting)start.disabled=errors.length>0;
+}
+async function pubLoadToolchain(){
+ if(!H||!H.gameToolchain){pubEl('pubToolchain').textContent='通用导出需要在桌面版中使用';pubEl('pubStart').disabled=true;return}
+ try{
+  const r=await H.gameToolchain();
+  pubState.toolchain=r&&r.status;
+  renderToolchain();
+ }catch(e){pubEl('pubToolchain').textContent='构建组件检查失败：'+(e.message||e)}
+}
+function renderToolchain(){
+ const t=pubState.toolchain,el=pubEl('pubToolchain'),sel=pubEl('pubType');
+ if(!t){el.textContent='检查中…';return}
+ const parts=['Electron '+(t.runtime&&t.runtime.version||'?'),'rcedit '+(t.rcedit&&t.rcedit.ok?'就绪':'缺失'),'NSIS '+(t.nsis&&t.nsis.ok?'就绪':'缺失')];
+ el.textContent=parts.join(' · ')+(t.note?'\n'+t.note:'');
+ const portable=t.nsis&&t.nsis.ok&&t.runtime&&t.runtime.ok&&t.rcedit&&t.rcedit.ok;
+ if(sel){const opt=sel.querySelector('option[value=portable]');if(opt){opt.disabled=!portable;if(!portable&&sel.value==='portable')sel.value='zip'}}
+ if(!(t.runtime&&t.runtime.ok))pubEl('pubStart').disabled=true;
+}
+async function pubPickIcon(){
+ if(!H||!H.pickGameIcon){toast('导入图标需要在桌面版中操作');return}
+ try{
+  const f=await H.pickGameIcon();
+  if(!f)return;
+  const icon=await normalizeIconToSquare(f.dataUrl);
+  edit(()=>{const s=pubSettings();s.icon={name:f.name||'游戏图标',data:icon.url,width:icon.width,height:icon.height}});
+  renderPublish();
+  toast('已导入游戏图标（保持原图比例，透明留边）');
+ }catch(e){toast('图标导入失败：'+(e.message||e));pubEl('pubIconNote').textContent='图标导入失败：'+(e.message||e)}
+}
+/* 512 见方的正方形画布内等比放置：不拉伸、不裁切，多余区域透明。 */
+function normalizeIconToSquare(dataUrl){
+ return new Promise((resolve,reject)=>{
+  const img=new Image();
+  img.onload=()=>{
+   try{
+    const S=512,c=document.createElement('canvas');c.width=S;c.height=S;
+    const ctx=c.getContext('2d');
+    const ratio=Math.min(S/img.width,S/img.height),w=Math.round(img.width*ratio),h=Math.round(img.height*ratio);
+    ctx.drawImage(img,Math.round((S-w)/2),Math.round((S-h)/2),w,h);
+    resolve({url:c.toDataURL('image/png'),width:S,height:S});
+   }catch(e){reject(new Error('图标处理失败：'+e.message))}
+  };
+  img.onerror=()=>reject(new Error('图片无法解码，请换一张 PNG / JPEG'));
+  img.src=dataUrl;
+ });
+}
+function pubProgress(ev){
+ if(!ev||!pubState.exporting)return;
+ const fill=pubEl('pubBarFill');if(fill)fill.style.width=Math.max(0,Math.min(100,ev.percent||0))+'%';
+ pubEl('pubProgressText').textContent=(ev.label||ev.stage||'')+(ev.detail?' · '+ev.detail:'')+(ev.elapsedMs?' · '+Math.round(ev.elapsedMs/1000)+'s':'');
+ const list=pubEl('pubStages');if(!list)return;
+ let row=list.querySelector('[data-stage="'+esc(ev.stage)+'"]');
+ if(!row){row=document.createElement('li');row.dataset.stage=ev.stage;list.appendChild(row)}
+ row.innerHTML='<b>'+esc(ev.label||ev.stage)+'</b>'+(ev.detail?' · '+esc(ev.detail):'');
+}
+function pubResetProgress(){
+ pubEl('pubProgressWrap').hidden=false;
+ pubEl('pubBarFill').style.width='0%';
+ pubEl('pubProgressText').textContent='准备…';
+ pubEl('pubStages').innerHTML='';
+ pubEl('pubResult').textContent='';
+ pubEl('pubResult').className='pub-result';
+}
+async function pubExport(){
+ if(pubState.exporting){toast('正在导出，请等待完成或先取消');return}
+ if(!H||!H.exportGame){toast('通用导出需要在桌面版中使用');return}
+ const rep=C.analyze(p),errors=((rep&&rep.issues)||[]).filter(i=>i.level==='error');
+ if(errors.length){toast('工程还有 '+errors.length+' 个问题，先修复再导出');renderPublishIssues();return}
+ pubState.exporting=true;
+ pubEl('pubStart').disabled=true;
+ pubEl('pubCancel').disabled=false;
+ pubEl('pubReveal').hidden=true;
+ pubResetProgress();
+ try{
+  const snapshot=JSON.parse(JSON.stringify(p));
+  const r=await H.exportGame({project:snapshot,type:pubEl('pubType').value});
+  if(r&&r.ok){
+   pubState.result=r;
+   pubEl('pubBarFill').style.width='100%';
+   pubEl('pubProgressText').textContent='导出完成 · '+Math.round((r.bytes||0)/1024/1024*10)/10+' MB';
+   pubEl('pubResult').className='pub-result ok';
+   pubEl('pubResult').innerHTML='已导出：'+esc(r.artifact)+'<br>SHA-256：'+esc(r.sha256||'')+'<br>签名：'+(r.signature&&r.signature.signed?'已签名':'未签名（没有配置证书，Windows 可能提示未知发布者）');
+   pubEl('pubReveal').hidden=false;
+   toast('游戏已导出，可直接双击运行');
+  }else if(r&&r.cancelled){
+   pubEl('pubProgressText').textContent='已取消，没有留下半成品';
+   pubEl('pubResult').className='pub-result';
+   pubEl('pubResult').textContent=r.message||'已取消';
+  }else{
+   pubEl('pubResult').className='pub-result error';
+   pubEl('pubResult').textContent='导出失败：'+((r&&r.message)||'未知错误');
+   toast('导出失败：'+((r&&r.message)||'未知错误'));
+  }
+ }catch(e){
+  pubEl('pubResult').className='pub-result error';
+  pubEl('pubResult').textContent='导出失败：'+(e.message||e);
+  toast('导出失败：'+(e.message||e));
+ }finally{
+  pubState.exporting=false;
+  clearInterval(pubCancelTimer);
+  pubEl('pubStart').disabled=false;
+  pubEl('pubCancel').disabled=true;
+  renderPublishIssues();
+ }
+}
+let pubCancelTimer=0;
+async function pubCancel(){
+ if(!pubState.exporting)return;
+ pubEl('pubCancel').disabled=true;
+ pubEl('pubProgressText').textContent='正在取消…（会在当前阶段结束后停止）';
+ /* 主进程可能还在接收工程快照，第一次取消可能落空：持续重试到导出真正结束。 */
+ const tick=async()=>{
+  if(!pubState.exporting){clearInterval(pubCancelTimer);return}
+  try{const r=await H.cancelExport();if(r&&r.cancelled)clearInterval(pubCancelTimer)}catch(e){toast('取消失败：'+(e.message||e))}
+ };
+ await tick();
+ clearInterval(pubCancelTimer);
+ pubCancelTimer=setInterval(tick,500);
+}
+if($('#publish'))$('#publish').onclick=pubOpen;
+if(pubEl('pubClose'))pubEl('pubClose').onclick=pubClose;
+if(pubEl('pubIconPick'))pubEl('pubIconPick').onclick=pubPickIcon;
+if(pubEl('pubIconReset'))pubEl('pubIconReset').onclick=()=>{edit(()=>{pubSettings().icon=null});renderPublish();toast('已恢复默认图标')};
+if(pubEl('pubStart'))pubEl('pubStart').onclick=pubExport;
+if(pubEl('pubCancel'))pubEl('pubCancel').onclick=pubCancel;
+if(pubEl('pubReveal'))pubEl('pubReveal').onclick=()=>{if(pubState.result&&pubState.result.artifact)H.revealFile(pubState.result.artifact).catch(e=>toast('打开失败：'+(e.message||e)))};
+if(pubEl('pubRecheck'))pubEl('pubRecheck').onclick=renderPublishIssues;
+if(pubEl('pubClose'))pubEl('pubClose').onclick=pubClose;
+pubBindText('pubName','gameName');
+pubBindText('pubAuthor','author');
+pubBindText('pubVersion','version');
+pubBindText('pubCopyright','copyright');
+pubBindNumber('pubW','width',640,3840);
+pubBindNumber('pubH','height',480,2160);
+if(pubEl('pubResizable'))pubEl('pubResizable').onchange=()=>{const el=pubEl('pubResizable');pubTouch(()=>{pubSettings().window.resizable=!!el.checked},'resizable')};
+if(pubEl('pubMode'))pubEl('pubMode').onchange=()=>{const el=pubEl('pubMode');pubTouch(()=>{pubSettings().window.mode=el.value==='fullscreen'?'fullscreen':'window'},'mode')};
+if(pubEl('publishDialog'))pubEl('publishDialog').addEventListener('click',e=>{if(e.target===pubEl('publishDialog'))pubClose()});
+if(H&&H.onExportProgress)H.onExportProgress(pubProgress);
 
 render();initialize();loadSampleInfo();

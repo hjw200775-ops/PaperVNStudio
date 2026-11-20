@@ -1,6 +1,6 @@
 {
   "name": "paper-vn-studio",
-  "version": "0.6.2",
+  "version": "0.7.2",
   "private": true,
   "description": "纸间 PaperVNStudio — 视觉小说 / 文字冒险创作工具：Electron 桌面版与自包含 HTML 导出",
   "author": "wenwenwen817",
@@ -36,7 +36,10 @@
     "sample:acceptance": "node scripts/desktop.cjs --sample",
     "game:build": "node scripts/build-game-package.cjs",
     "game:acceptance": "node scripts/game-package-acceptance.cjs",
-    "game:icon": "node scripts/build-game-icon.cjs"
+    "game:icon": "node scripts/build-game-icon.cjs",
+    "tools:prepare": "node scripts/prepare-game-toolchain.cjs",
+    "export:acceptance": "node scripts/game-export-acceptance.cjs",
+    "export:acceptance:packaged": "node scripts/game-export-acceptance.cjs --packaged"
   },
   "engines": {
     "node": ">=20"
@@ -59,6 +62,7 @@
       "dist/**",
       "desktop/**",
       "package.json",
+      "LICENSE",
       "!desktop/build-resources/**",
       "!**/*.test.cjs"
     ],
@@ -85,6 +89,20 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "artifactName": "PaperVNStudio-${version}-win-x64-setup.${ext}"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "vendor/toolchain",
+        "to": "toolchain"
+      },
+      {
+        "from": "desktop/game-pack-worker.cjs",
+        "to": "worker/game-pack-worker.cjs"
+      },
+      {
+        "from": "desktop/zip-writer.cjs",
+        "to": "worker/zip-writer.cjs"
+      }
+    ]
   }
 }

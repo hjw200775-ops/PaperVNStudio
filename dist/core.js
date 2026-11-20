@@ -14,7 +14,7 @@ function createVNCore(){
     缺字段 = 默认标题页样式，不改 schema 版本号（旧版读到未知字段会忽略，
     但旧版保存时会丢字段——这一点在 docs 里如实写明，不当成兼容承诺）。 */
  function toTitle(p){if(typeof p.titleBackground!=='string')p.titleBackground='';return p}
- function finish(p){return toTitle(toAudio(p))}
+ function finish(p){return toPublish(toTitle(toAudio(p)))}
  function migrate(input){const p=clone(input);if(p.schema===5)return finish(p);if(p.schema===4)return finish(toV5(p));if(p.schema===2){p.schema=3;for(const n of p.nodes)n.effects=[];return finish(toV5(toV4(p)))}if(p.schema===3)return finish(toV5(toV4(p)));if(p.schema!==1)throw Error('不支持的工程版本');p.schema=2;p.id=id();p.presets=[];for(const n of p.nodes){n.sceneMode='own';n.layers=[];if(n.bg)n.layers.push({id:id(),asset:n.bg,name:'背景',kind:'bg',x:0,y:0,w:100,h:100,fit:'cover',opacity:100,hidden:false,locked:false,motion:'none'});if(n.char){const a=p.assets.find(a=>a.id===n.char);let h=n.scale||85,w=Math.min(90,h*9/16*((a?.width&&a?.height)?a.width/a.height:.65));n.layers.push({id:id(),asset:n.char,name:'角色立绘',kind:'char',x:n.align==='left'?4:n.align==='right'?96-w:50-w/2,y:100-h,w,h,fit:'contain',opacity:100,hidden:false,locked:false,motion:n.motion||'none',legacy:true})}delete n.bg;delete n.char;delete n.align;delete n.scale;delete n.motion;n.effects=[]}p.schema=3;return finish(toV5(toV4(p)))}
  function upgradeLayer(l){if(!l||typeof l!=='object')return l;if(typeof l.characterId!=='string')l.characterId='';if(typeof l.expressionId!=='string')l.expressionId='';return l}
  function toV4(p){p.schema=4;if(!Array.isArray(p.characters))p.characters=[];for(const n of p.nodes||[]){if(typeof n.speakerId!=='string')n.speakerId='';if(typeof n.expressionId!=='string')n.expressionId='';if(!Array.isArray(n.cast))n.cast=[];for(const l of n.layers||[])upgradeLayer(l)}for(const t of p.presets||[])for(const l of t.layers||[])upgradeLayer(l);return p}
@@ -22,7 +22,7 @@ function createVNCore(){
     的播放顺序：旧工程整体进入一个默认章节与默认段落，节点顺序、分支与演出原样保留。 */
  function toV5(p){p.schema=5;if(!Array.isArray(p.chapters))p.chapters=[];if(!p.chapters.length){p.chapters=[{id:'ch_'+id(),title:'第一章',collapsed:false,paragraphs:[{id:'pg_'+id(),title:'默认段落',collapsed:false}]}]}for(const c of p.chapters){if(typeof c.collapsed!=='boolean')c.collapsed=false;if(!Array.isArray(c.paragraphs))c.paragraphs=[]}const known=new Set(paragraphIds(p));const first=known.size?[...known][0]:'';for(const n of p.nodes||[]){if(typeof n.paragraphId!=='string'||!known.has(n.paragraphId))n.paragraphId=first}return p}
  function paragraphIds(p){const out=[];for(const c of p.chapters||[])for(const g of c.paragraphs||[])out.push(g.id);return out}
- function validate(p){if(!p||![1,2,3,4,5].includes(p.schema)||typeof p.title!=='string'||!Array.isArray(p.nodes)||!Array.isArray(p.assets))throw Error('不是有效的纸间工程');if(p.nodes.length>20000||p.assets.length>1000)throw Error('工程超过体验版限制');const ids=new Set();for(const n of p.nodes){if(!n||typeof n.id!=='string'||ids.has(n.id)||!['say','choice','end'].includes(n.type)||typeof n.name!=='string'||typeof n.text!=='string')throw Error('剧情节点格式错误');ids.add(n.id);if(n.next!=null&&typeof n.next!=='string')throw Error('跳转目标格式错误');if(n.type==='choice'&&(!Array.isArray(n.options)||n.options.length>100||n.options.some(o=>!o||typeof o.text!=='string'||typeof o.target!=='string')))throw Error('选项格式错误');if(p.schema>=3&&!Array.isArray(n.effects))throw Error('缺少演出列表');if(p.schema>=4&&(typeof n.speakerId!=='string'||typeof n.expressionId!=='string'||!Array.isArray(n.cast)||n.cast.length>20))throw Error('说话人绑定格式错误');if(p.schema>=5&&typeof n.paragraphId!=='string')throw Error('段落归属格式错误');if(p.schema>=2){if(!['own','inherit'].includes(n.sceneMode)||!Array.isArray(n.layers)||n.layers.length>100)throw Error('场景格式错误');checkLayers(n.layers)}}const aids=new Set();for(const a of p.assets){if(!a||typeof a.id!=='string'||aids.has(a.id)||typeof a.name!=='string'||!['bg','char'].includes(a.kind)||typeof a.data!=='string'||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(a.data))throw Error('图片素材格式错误');aids.add(a.id)}if(p.schema>=2){if(typeof p.id!=='string'||!Array.isArray(p.presets)||p.presets.length>200)throw Error('工程信息格式错误');for(const t of p.presets){if(!t||typeof t.id!=='string'||typeof t.name!=='string'||!Array.isArray(t.layers)||t.layers.length>100)throw Error('预设格式错误');checkLayers(t.layers)}}if(p.schema>=4)checkCharacters(p);if(p.schema>=5)checkChapters(p);checkAudio(p);checkTitle(p);return true}
+ function validate(p){if(!p||![1,2,3,4,5].includes(p.schema)||typeof p.title!=='string'||!Array.isArray(p.nodes)||!Array.isArray(p.assets))throw Error('不是有效的纸间工程');if(p.nodes.length>20000||p.assets.length>1000)throw Error('工程超过体验版限制');const ids=new Set();for(const n of p.nodes){if(!n||typeof n.id!=='string'||ids.has(n.id)||!['say','choice','end'].includes(n.type)||typeof n.name!=='string'||typeof n.text!=='string')throw Error('剧情节点格式错误');ids.add(n.id);if(n.next!=null&&typeof n.next!=='string')throw Error('跳转目标格式错误');if(n.type==='choice'&&(!Array.isArray(n.options)||n.options.length>100||n.options.some(o=>!o||typeof o.text!=='string'||typeof o.target!=='string')))throw Error('选项格式错误');if(p.schema>=3&&!Array.isArray(n.effects))throw Error('缺少演出列表');if(p.schema>=4&&(typeof n.speakerId!=='string'||typeof n.expressionId!=='string'||!Array.isArray(n.cast)||n.cast.length>20))throw Error('说话人绑定格式错误');if(p.schema>=5&&typeof n.paragraphId!=='string')throw Error('段落归属格式错误');if(p.schema>=2){if(!['own','inherit'].includes(n.sceneMode)||!Array.isArray(n.layers)||n.layers.length>100)throw Error('场景格式错误');checkLayers(n.layers)}}const aids=new Set();for(const a of p.assets){if(!a||typeof a.id!=='string'||aids.has(a.id)||typeof a.name!=='string'||!['bg','char'].includes(a.kind)||typeof a.data!=='string'||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(a.data))throw Error('图片素材格式错误');aids.add(a.id)}if(p.schema>=2){if(typeof p.id!=='string'||!Array.isArray(p.presets)||p.presets.length>200)throw Error('工程信息格式错误');for(const t of p.presets){if(!t||typeof t.id!=='string'||typeof t.name!=='string'||!Array.isArray(t.layers)||t.layers.length>100)throw Error('预设格式错误');checkLayers(t.layers)}}if(p.schema>=4)checkCharacters(p);if(p.schema>=5)checkChapters(p);checkAudio(p);checkTitle(p);checkPublish(p);return true}
  function checkLayers(ls){const ids=new Set();for(const l of ls){if(!l||typeof l.id!=='string'||ids.has(l.id)||typeof l.asset!=='string'||typeof l.name!=='string'||!['bg','char'].includes(l.kind)||!finite(l.x,-500,500)||!finite(l.y,-500,500)||!finite(l.w,1,1000)||!finite(l.h,1,1000)||!finite(l.opacity,0,100)||typeof l.hidden!=='boolean'||typeof l.locked!=='boolean'||!['contain','cover','fill'].includes(l.fit)||!['none','breathe','sway'].includes(l.motion))throw Error('图层设置格式错误');if(l.characterId!=null&&typeof l.characterId!=='string')throw Error('图层角色绑定格式错误');if(l.expressionId!=null&&typeof l.expressionId!=='string')throw Error('图层表情绑定格式错误');ids.add(l.id)}}
  /* ---------- V0.5 基础音频：数据校验与纯状态推导 ----------
     音频与图片完全分表：audioAssets 用 data:audio/... 内嵌，磁盘另存 assets/audio/。
@@ -71,6 +71,73 @@ function createVNCore(){
  }
  /* 标题背景只校验「是不是素材 ID 字符串」；素材是否还在由 analyze 报告，
    因为缺图应当回退默认标题页并提示，而不是让整个工程打不开。 */
+ /* ---------- V0.7.2 游戏发行设置 ----------
+    发行信息属于工程内容：跟着保存、另存为、备份与撤销走，不写进 userData。
+    缺字段一律按默认值补，旧工程与网页版工程都不受影响。 */
+ function defaultPublish(){
+  return {gameName:'',author:'',version:'1.0.0',copyright:'',icon:null,
+   window:{width:1280,height:840,resizable:true,mode:'window'},releaseId:''};
+ }
+ /* 发行标识只允许小写字母、数字与连字符：它决定 %APPDATA% 下的存档目录名，
+    必须跨平台稳定。工程 id 变了（复制示例、另存为）发行标识就跟着变，存档自然隔离。 */
+ function slugReleaseId(raw){
+  const s=String(raw||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48);
+  if(s.length>=3)return s;
+  /* 太短的 id 用 FNV-1a 补一段稳定后缀，避免所有短 id 挤进同一个存档目录。 */
+  let h=2166136261;const str=String(raw||'');
+  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)>>>0}
+  return 'game-'+h.toString(16).padStart(8,'0');
+ }
+ function releaseIdOf(p){
+  const custom=p&&p.publish&&typeof p.publish.releaseId==='string'?p.publish.releaseId.trim():'';
+  return /^[a-z0-9-]{3,64}$/.test(custom)?custom:slugReleaseId(p&&p.id);
+ }
+ function iconDataOk(icon){
+  if(!icon||typeof icon!=='object'||typeof icon.data!=='string')return false;
+  if(icon.data.length>4*1024*1024)return false;
+  return /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(icon.data.replace(/[\r\n]/g,''));
+ }
+ function numIn(v,min,max,def){
+  const n=Number(v);
+  return Number.isFinite(n)?Math.min(max,Math.max(min,Math.round(n))):def;
+ }
+ function toPublish(p){
+  const d=defaultPublish();
+  const src=p.publish&&typeof p.publish==='object'?p.publish:{};
+  const w=src.window&&typeof src.window==='object'?src.window:{};
+  const customRelease=typeof src.releaseId==='string'?src.releaseId.trim():'';
+  const icon=iconDataOk(src.icon)?{name:String(src.icon.name||'游戏图标').slice(0,80),data:src.icon.data}:null;
+  if(icon){
+   const iw=numIn(src.icon.width,16,1024,0),ih=numIn(src.icon.height,16,1024,0);
+   if(iw)icon.width=iw;if(ih)icon.height=ih;
+  }
+  p.publish={
+   gameName:typeof src.gameName==='string'?src.gameName.slice(0,80):'',
+   author:typeof src.author==='string'?src.author.slice(0,80):'',
+   version:typeof src.version==='string'&&src.version.trim()?src.version.trim().slice(0,32):d.version,
+   copyright:typeof src.copyright==='string'?src.copyright.slice(0,160):'',
+   icon,
+   window:{width:numIn(w.width,640,3840,d.window.width),height:numIn(w.height,480,2160,d.window.height),
+    resizable:typeof w.resizable==='boolean'?w.resizable:d.window.resizable,
+    mode:w.mode==='fullscreen'?'fullscreen':'window'},
+   releaseId:/^[a-z0-9-]{3,64}$/.test(customRelease)?customRelease:''
+  };
+  return p;
+ }
+ function checkPublish(p){
+  const pub=p.publish;
+  if(pub===undefined)return;
+  if(!pub||typeof pub!=='object')throw Error('发行设置格式错误');
+  for(const k of ['gameName','author','version','copyright','releaseId']){
+   if(pub[k]!==undefined&&typeof pub[k]!=='string')throw Error('发行设置字段「'+k+'」格式错误');
+  }
+  if(pub.icon!==null&&pub.icon!==undefined&&!iconDataOk(pub.icon))throw Error('游戏图标格式错误：请重新导入 PNG 图片');
+  if(pub.window!==undefined){
+   const w=pub.window;
+   if(!w||typeof w!=='object'||!Number.isFinite(w.width)||!Number.isFinite(w.height)||
+    typeof w.resizable!=='boolean'||!['window','fullscreen'].includes(w.mode))throw Error('窗口设置格式错误');
+  }
+ }
  function checkTitle(p){
   if(p.titleBackground===undefined)return;
   if(typeof p.titleBackground!=='string'||p.titleBackground.length>200)throw Error('标题背景格式错误');
@@ -789,7 +856,7 @@ function applyPasteEffects(p,plan,onlySafe){
   return created;
  }
  function makeNode(type='say'){return {id:id(),type,name:'',text:'',next:'',sceneMode:'inherit',layers:[],effects:[],speakerId:'',expressionId:'',cast:[],paragraphId:'',audio:null,...(type==='choice'?{options:[{text:'选项一',target:''},{text:'选项二',target:''}]}:{})}}
- function blank(){const p={schema:5,id:id(),title:'未命名的故事',titleBackground:'',assets:[],audioAssets:[],nodes:[],presets:[],characters:[],chapters:[]};const g={id:'pg_'+id(),title:'默认段落',collapsed:false};p.chapters.push({id:'ch_'+id(),title:'第一章',collapsed:false,paragraphs:[g]});return p}
+ function blank(){const p={schema:5,id:id(),title:'未命名的故事',titleBackground:'',publish:defaultPublish(),assets:[],audioAssets:[],nodes:[],presets:[],characters:[],chapters:[]};const g={id:'pg_'+id(),title:'默认段落',collapsed:false};p.chapters.push({id:'ch_'+id(),title:'第一章',collapsed:false,paragraphs:[g]});return p}
  function sample(){const p=blank();p.title='晚风来信 · 局部分支示例';const a=makeNode(),b=makeNode('choice'),c=makeNode(),d=makeNode(),e=makeNode(),merge=makeNode(),end=makeNode('end');a.sceneMode='own';a.name='旁白';a.text='放学后的走廊，风把书页轻轻翻开。';b.name='澪';b.text='要不要一起走一段？';c.name='我';c.text='先去图书馆吧。我想给你看一本书。';d.name='我';d.text='绕操场走走？今天的晚风很舒服。';e.name='我';e.text='我们到门口等一等，看看天边的云。';merge.name='旁白';merge.text='聊着不同的话题，我们还是并肩走出了校门。';end.name='结局';end.text='这一次，选择改变了沿途的谈话，却没有改变共同的约定。';b.options=[{text:'去图书馆',target:c.id},{text:'绕操场走走',target:d.id},{text:'在门口看云',target:e.id}];c.next=d.next=e.next=merge.id;p.nodes=[a,b,c,d,e,merge,end];const pid=p.chapters[0].paragraphs[0].id;for(const n of p.nodes)n.paragraphId=pid;return p}
  /* 素材查重按「图片数据 + 用途」而不是只看图片数据：同一张图既能当背景也能当角色，
     只按 data 复用会把先导入那一次的 kind 带回新图层，用途就错了。 */
@@ -820,6 +887,7 @@ function applyPasteEffects(p,plan,onlySafe){
   tree,checkChapters,paragraphMap,chapterOf,paragraphIds,orderSuccessor,orderDiff,flattenOrder,
   moveNodeToParagraph,moveImpact,moveParagraph,moveChapter,applyTreeOrder,removeParagraph,removeChapter,addParagraph,addChapter,
   entryPath,entryPlan,followGraph,sceneFor,sceneForCast,planBatch,applyBatch,planPasteScene,applyPasteScene,planPasteEffects,applyPasteEffects,parseScript,applyScriptPlan,
-  checkAudio,checkNodeAudio,audioCue,hasBgmInstruction,hasAnyAudio,audioStateAlong,bgmAt,audioUsage,assetForAudioImport,audioAsset,AUDIO_CATS,AUDIO_MAX_BYTES};
+  checkAudio,checkNodeAudio,audioCue,hasBgmInstruction,hasAnyAudio,audioStateAlong,bgmAt,audioUsage,assetForAudioImport,audioAsset,AUDIO_CATS,AUDIO_MAX_BYTES,
+  defaultPublish,toPublish,checkPublish,releaseIdOf,slugReleaseId,iconDataOk};
 }
 if(typeof module!=='undefined')module.exports=createVNCore;

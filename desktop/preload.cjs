@@ -21,6 +21,12 @@ contextBridge.exposeInMainWorld('paperDesktop', {
   experienceSample: () => call('sample:experience'),
   copySample: () => call('sample:copy'),
   saveFile: payload => call('file:save', payload),
+  gameToolchain: () => call('game:toolchain'),
+  pickGameIcon: () => call('game:pickIcon'),
+  exportGame: payload => call('game:export', payload),
+  cancelExport: () => call('game:cancelExport'),
+  revealFile: target => call('game:reveal', target),
+  onExportProgress: handler => ipcRenderer.on('game:exportProgress', (_event, progress) => handler(progress)),
   onCommand: handler => ipcRenderer.on('app:command', (_event, command) => handler(command)),
   onSaveBeforeClose: handler => ipcRenderer.on('app:saveBeforeClose', (_event, token) => handler(token)),
   finishSaveBeforeClose: result => call('app:finishSaveBeforeClose', result)

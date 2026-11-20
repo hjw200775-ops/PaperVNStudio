@@ -316,7 +316,8 @@ function createProjectStore(options = {}) {
       nodes: p.nodes,
       presets: p.presets,
       characters: p.characters || [],
-      chapters: p.chapters || []
+      chapters: p.chapters || [],
+      publish: p.publish && typeof p.publish === 'object' ? p.publish : undefined
     };
     return { disk, used };
   }
@@ -338,6 +339,27 @@ function createProjectStore(options = {}) {
     }
     if (disk.chapters !== undefined && !Array.isArray(disk.chapters)) {
       throw new Error('桌面工程章节列表格式错误');
+    }
+    /* 发行设置是可选增量字段：旧工程没有它，读出来用运行时默认值。 */
+    if (disk.publish !== undefined) {
+      const pub = disk.publish;
+      if (!pub || typeof pub !== 'object') throw new Error('桌面工程发行设置格式错误');
+      for (const k of ['gameName', 'author', 'version', 'copyright', 'releaseId']) {
+        if (pub[k] !== undefined && typeof pub[k] !== 'string') throw new Error('发行设置字段格式错误：' + k);
+      }
+      if (pub.icon !== null && pub.icon !== undefined) {
+        if (typeof pub.icon !== 'object' || typeof pub.icon.data !== 'string' ||
+            !/^data:image\/png;base64,/.test(pub.icon.data) || pub.icon.data.length > 4 * 1024 * 1024) {
+          throw new Error('游戏图标格式错误：请重新导入 PNG 图片');
+        }
+      }
+      if (pub.window !== undefined) {
+        const w = pub.window;
+        if (!w || typeof w !== 'object' || !Number.isFinite(w.width) || !Number.isFinite(w.height) ||
+            typeof w.resizable !== 'boolean' || !['window', 'fullscreen'].includes(w.mode)) {
+          throw new Error('窗口设置格式错误');
+        }
+      }
     }
     if (disk.audioAssets !== undefined) {
       if (!Array.isArray(disk.audioAssets) || disk.audioAssets.length > 200) {
@@ -445,6 +467,7 @@ function createProjectStore(options = {}) {
       characters: Array.isArray(disk.characters) ? disk.characters : [],
       chapters: Array.isArray(disk.chapters) ? disk.chapters : []
     };
+    if (disk.publish && typeof disk.publish === 'object') runtime.publish = disk.publish;
     return validateRuntime(runtime);
   }
 

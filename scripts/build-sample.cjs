@@ -76,6 +76,8 @@ function main() {
 
   /* 示例拥有稳定身份：两次体验读同一份存档，但不与作者原工程共用存档键。 */
   p.id = SAMPLE_ID;
+  /* 发行标识沿用 V0.7.1 已发布的 wanfeng-ch01：通用导出重新打包后，老玩家的存档目录不变。 */
+  p.publish = Object.assign({}, p.publish, { releaseId: 'wanfeng-ch01' });
 
   if (fs.existsSync(OUT)) {
     if (!path.resolve(OUT).startsWith(path.join(ROOT, 'dist', 'samples') + path.sep)) {

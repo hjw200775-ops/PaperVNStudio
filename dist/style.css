@@ -161,3 +161,45 @@ body.tree-dragging .node,body.tree-dragging .chapter-head,body.tree-dragging .pa
 .tabs{flex-wrap:wrap;gap:2px}
 .tabs button{flex:1 1 30%;min-width:0;white-space:nowrap;padding:6px 4px}
 .sample-card h3{font-size:16px;line-height:1.5}
+
+/* ---------- V0.7.2 游戏发行 ---------- */
+dialog.publish-dialog{max-width:760px;width:min(760px,94vw);max-height:90vh;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.publish-dialog:not([open]){display:none}
+.publish-head{display:flex;justify-content:space-between;align-items:flex-start;padding:20px 24px 12px;border-bottom:1px solid var(--line)}
+.publish-head h2{margin:2px 0 0;font:22px 'Songti SC',serif}
+.publish-body{padding:16px 24px 22px;overflow:auto}
+.publish-body .hint{font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 12px}
+.pub-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-bottom:14px}
+.pub-grid label{font-size:12px;display:grid;gap:6px}
+.pub-icon-row{display:flex;gap:16px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);margin-bottom:14px}
+.pub-icon-preview{width:88px;height:88px;flex:0 0 88px;border-radius:12px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;background:var(--soft);overflow:hidden;position:relative}
+.pub-icon-preview img{width:100%;height:100%;object-fit:contain;display:none}
+.pub-icon-preview.has-icon img{display:block}
+.pub-icon-preview.has-icon span{display:none}
+.pub-icon-preview span{font-size:11px;color:var(--muted)}
+.pub-icon-meta{flex:1;min-width:0}
+.pub-icon-meta b{display:block;margin-bottom:4px}
+.pub-icon-meta .hint{margin:0 0 8px}
+.pub-window{display:grid;gap:10px;margin-bottom:12px}
+.pub-window .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pub-window label{font-size:12px;display:grid;gap:6px}
+.pub-window .check-label{display:flex;align-items:center;gap:8px}
+.pub-id{margin:6px 0 14px!important;word-break:break-all}
+.pub-id code{background:var(--soft);padding:1px 5px;border-radius:3px;font-size:11px}
+.pub-issues{list-style:none;margin:6px 0 14px;padding:0;max-height:120px;overflow:auto;font-size:12px}
+.pub-issues li{padding:4px 0;border-bottom:1px solid var(--line);display:flex;gap:8px}
+.pub-issues li.error{color:#8f3a32}
+.pub-issues li.warn{color:#8a6a2f}
+.pub-issues li.ok{color:var(--accent)}
+.pub-export-head{font-size:12px;font-weight:600;letter-spacing:1px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;margin-bottom:8px}
+.pub-toolchain{font-size:11px;color:var(--muted);line-height:1.6;display:block;padding-top:6px}
+.stack-inline{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.pub-bar{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;margin:14px 0 6px}
+.pub-bar span{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.pub-stages{list-style:none;margin:8px 0 0;padding:0;font-size:12px;color:var(--muted);max-height:130px;overflow:auto}
+.pub-stages li{padding:2px 0}
+.pub-stages li b{color:var(--ink);font-weight:500}
+.pub-result{font-size:12px;margin:12px 0 0;line-height:1.8;word-break:break-all}
+.pub-result.error{color:#8f3a32}
+.pub-result.ok{color:var(--accent)}
+@media(max-width:640px){.pub-grid,.pub-window .two{grid-template-columns:1fr}}

@@ -22,7 +22,9 @@
 - `app.js`: editor state, user interactions, persistence, undo and exports.
 - `player.js`: standalone game runtime, embedded in exported HTML.
 - `index.html` + `style.css`: interface.
-- `game/`: 独立游戏包播放器壳（`main.cjs`）。只提供 `wanfeng://` 白名单协议、独立 userData 与窗口安全边界；没有 preload、IPC 与编辑器 UI，不引用 `dist/` 源码。
+- `desktop/game-builder.cjs` + `desktop/game-pack-worker.cjs`: 通用游戏导出。重活必须在子进程里做（主进程同步复制/NSIS 会阻塞事件循环，取消 IPC 进不来）。运行时取自当前 Electron，组件取自 `resources/toolchain` 或 `vendor/toolchain`，不写死盘符。
+- `desktop/game-shell/`: 通用播放器壳，读 `content/game.json`，按 `releaseId` 隔离存档。
+- `game/`: 《晚风》示例包的旧构建入口（V0.7.1 脚本仍在用）。只提供 `wanfeng://` 白名单协议、独立 userData 与窗口安全边界；没有 preload、IPC 与编辑器 UI，不引用 `dist/` 源码。
 
 不要只修改网页加载的 effects 文件而遗漏导出时嵌入的工厂函数。任何模块化调整必须验证自包含 HTML 输出。
 
