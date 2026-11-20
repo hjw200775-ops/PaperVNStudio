@@ -67,6 +67,18 @@ function findZip() {
   return path.join(OUT_ROOT, zips[0].f);
 }
 
+/* 单文件便携版按最新修改时间取；版本号只用于提示，不参与筛选（旧版本产物可能还在）。 */
+function findPortable(version) {
+  const given = argOf('portable');
+  if (given && given !== true) return path.resolve(given);
+  if (!fs.existsSync(OUT_ROOT)) return null;
+  const list = fs.readdirSync(OUT_ROOT)
+    .filter(f => /单文件便携版\.exe$/i.test(f))
+    .map(f => ({ f, t: fs.statSync(path.join(OUT_ROOT, f)).mtimeMs, m: version && f.includes('-' + version + '-') }))
+    .sort((a, b) => (b.m ? 1 : 0) - (a.m ? 1 : 0) || b.t - a.t);
+  return list.length ? path.join(OUT_ROOT, list[0].f) : null;
+}
+
 function extract(zipPath, dest) {
   fs.mkdirSync(dest, { recursive: true });
   const r = spawnSync(TAR, ['-x', '-f', zipPath, '-C', dest], { encoding: 'utf8' });
@@ -554,7 +566,17 @@ async function main() {
   }
   await closeGame(run);
 
-  /* 6. 三处存档隔离 */
+  /* 6. 单文件便携版：不解压，直接双击 */
+  const portablePath = findPortable(manifestVersion());
+  if (!portablePath) {
+    report.unverified.push('单文件便携版 EXE：没有找到产物（可能只构建了 dir）');
+  } else {
+    const pr = await portableCheck(portablePath, expected, saveKey);
+    if (pr.problems.length) bad('单文件便携版', pr.problems.join('；'), pr.detail);
+    else ok('单文件便携版', { summary: '直接运行无需解压，启动 ' + pr.detail.startupMs + ' ms，存档与解压目录版共用并可在重启后继续', ...pr.detail });
+  }
+
+  /* 7. 三处存档隔离 */
   const gameDir = appDataPath('PaperVNStudio-Game-wanfeng-ch01');
   const editorDir = appDataPath('PaperVNStudio');
   const sampleStore = path.join(editorDir, 'Partitions', 'papervn-sample', 'Local Storage', 'leveldb');
@@ -583,7 +605,7 @@ async function main() {
   else if (iso.editorHasKey) bad('存档隔离', '纸间编辑器默认存储里出现了游戏存档键');
   else ok('存档隔离', { summary: '游戏存档只在 ' + gameDir + '；编辑器默认存储无此键', ...iso, editorCross });
 
-  /* 7. ZIP 清单 */
+  /* 8. ZIP 清单 */
   const audit = zipAudit(zipPath, movedDir);
   ok('ZIP 清单', { summary: audit.summary + ' · 无编辑器入口 / 工程文件 / 本机路径', ...audit });
 
@@ -614,12 +636,105 @@ async function main() {
   process.exitCode = report.ok ? 0 : 1;
 }
 
+/* 取最新一份 manifest 的版本，用来在多个产物里优先选同版本的单文件便携版。 */
+function manifestVersion() {
+  const list = fs.readdirSync(OUT_ROOT).filter(f => /\.manifest\.json$/i.test(f))
+    .map(f => ({ f, t: fs.statSync(path.join(OUT_ROOT, f)).mtimeMs }))
+    .sort((a, b) => b.t - a.t);
+  if (!list.length) return '';
+  try { return JSON.parse(fs.readFileSync(path.join(OUT_ROOT, list[0].f), 'utf8')).game.version || ''; }
+  catch { return ''; }
+}
+
+/* 单文件便携版：从带中文与空格的目录里直接运行，验证不解压也能玩、存档与目录版共用。 */
+async function portableCheck(exePath, expected, saveKey) {
+  const detail = { exe: exePath, startupMs: 0, saveId: null, resumedId: null, leftover: [] };
+  const problems = [];
+  const dir = path.join(os.tmpdir(), '晚风 单文件 验收', stamp());
+  fs.mkdirSync(dir, { recursive: true });
+  const local = path.join(dir, path.basename(exePath));
+  fs.copyFileSync(exePath, local);
+  const before = fs.readdirSync(dir).sort();
+  let run = null;
+  try {
+    const t0 = Date.now();
+    run = await openGame(local);
+    detail.startupMs = Date.now() - t0;
+    const title = await titleCheck(run.cdp);
+    if (title.origin !== 'wanfeng://game') problems.push('页面来源不是 wanfeng://game：' + title.origin);
+    if (!title.bgLoaded) problems.push('标题背景没有加载');
+    if (title.nodes !== 45) problems.push('节点数不是 45：' + title.nodes);
+
+    await run.cdp.evaluate(`document.getElementById('startGame').click()`);
+    for (let i = 0; i < 4; i++) {
+      await sleep(160);
+      await run.cdp.evaluate(`document.getElementById('scene').click()`);
+    }
+    await sleep(300);
+    const at = await waitImages(run.cdp);
+    const saved = await saveAtCurrent(run.cdp, saveKey);
+    detail.saveId = saved.save.id;
+    detail.savedText = expected[at.i] ? expected[at.i].text.slice(0, 16) : '';
+    await closeGame(run);
+    run = null;
+    await sleep(900);
+
+    const after = fs.readdirSync(dir).sort();
+    detail.leftover = after.filter(f => !before.includes(f));
+    if (detail.leftover.length) problems.push('退出后在 EXE 旁边留下了文件：' + detail.leftover.join(', '));
+
+    run = await openGame(local);
+    const resumed = await resumeFromTitle(run.cdp);
+    detail.resumedId = expected[resumed.i] ? expected[resumed.i].id : null;
+    if (detail.resumedId !== detail.saveId) {
+      problems.push('重启后继续到 ' + detail.resumedId + '，不是存档的 ' + detail.saveId);
+    }
+    await closeGame(run);
+    run = null;
+    detail.signature = readPeSignature(local);
+  } catch (e) {
+    problems.push('单文件便携版运行失败：' + e.message);
+  } finally {
+    if (run) await closeGame(run).catch(() => {});
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* ignore */ }
+  }
+  return { problems, detail };
+}
+
+function readPeSignature(file) {
+  const fd = fs.openSync(file, 'r');
+  try {
+    const dos = Buffer.alloc(64);
+    fs.readSync(fd, dos, 0, 64, 0);
+    if (dos.readUInt16LE(0) !== 0x5a4d) return { isPe: false, signed: false };
+    const peOff = dos.readUInt32LE(0x3c);
+    const pe = Buffer.alloc(26);
+    fs.readSync(fd, pe, 0, 26, peOff);
+    if (pe.readUInt32LE(0) !== 0x00004550) return { isPe: false, signed: false };
+    const magic = pe.readUInt16LE(24);
+    const dirStart = peOff + 24 + (magic === 0x20b ? 112 : 96);
+    const dir = Buffer.alloc(8);
+    fs.readSync(fd, dir, 0, 8, dirStart + 4 * 8);
+    const size = dir.readUInt32LE(4);
+    return { isPe: true, signed: size > 0, certBytes: size };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 /* 纸间编辑器 → 内置示例体验：在同一个应用里写一份不同的存档，
  * 再确认游戏侧的存档没有被带动。 */
 async function sampleCrossCheck(editorExe, gameExe, expected, saveKey) {
-  const detail = { editorExe, sampleSaveId: null, gameStillAt: null, ok: false };
+  const detail = { editorExe, sampleSaveId: null, gameBefore: null, gameStillAt: null, ok: false };
   let editor = null;
   try {
+    /* 先记下游戏当前存档停在哪一句：交叉验证只要求「示例写存档后游戏不受影响」，
+     * 不假定一定是 road_17——前面的单文件便携版验收也会用到同一个存档槽。 */
+    const probe = await openGame(gameExe);
+    const before = await resumeFromTitle(probe.cdp);
+    detail.gameBefore = { i: before.i, id: expected[before.i] ? expected[before.i].id : null };
+    await closeGame(probe);
+    detail.gameStore = appDataPath('PaperVNStudio-Game-wanfeng-ch01', 'Local Storage', 'leveldb');
     const port = await freePort();
     const env = { ...process.env };
     delete env.ELECTRON_RUN_AS_NODE;
@@ -647,7 +762,10 @@ async function sampleCrossCheck(editorExe, gameExe, expected, saveKey) {
     }
     if (!sampleReady) throw new Error('示例窗口没有就绪');
     await scdp.evaluate(`document.getElementById('startGame').click()`);
-    for (let i = 0; i < 4; i++) { await sleep(160); await scdp.evaluate(`document.getElementById('scene').click()`); }
+    /* 故意停在与游戏存档不同的句子：若两边共用存储，游戏侧读档会跟着变。 */
+    const skip = Math.max(2, ((detail.gameBefore.i + 7) % (expected.length - 3)));
+    detail.sampleSteps = skip;
+    for (let i = 0; i < skip; i++) { await sleep(160); await scdp.evaluate(`document.getElementById('scene').click()`); }
     await sleep(300);
     await scdp.evaluate(`document.getElementById('menuBtn').click()`);
     await sleep(200);
@@ -660,14 +778,14 @@ async function sampleCrossCheck(editorExe, gameExe, expected, saveKey) {
 
     const game = await openGame(gameExe);
     const resumed = await resumeFromTitle(game.cdp);
-    detail.gameStillAt = { i: resumed.i, text: resumed.text.slice(0, 24) };
+    detail.gameStillAt = { i: resumed.i, id: expected[resumed.i] ? expected[resumed.i].id : null, text: resumed.text.slice(0, 24) };
     await closeGame(game);
-    detail.ok = detail.sampleSaveId && detail.sampleSaveId !== expected[24].id &&
-      resumed.i === 24 && resumed.text === expected[24].text;
+    detail.ok = !!detail.sampleSaveId && detail.sampleSaveId !== detail.gameBefore.id &&
+      detail.gameStillAt.id === detail.gameBefore.id;
     if (!detail.ok) {
       report.problems.push('交叉验证：编辑器内置示例写入存档后，游戏侧读档被影响');
     } else {
-      ok('编辑器 / 示例交叉验证', { summary: '示例存档 ' + detail.sampleSaveId + '，游戏仍回 road_17' });
+      ok('编辑器 / 示例交叉验证', { summary: '示例存档 ' + detail.sampleSaveId + '，游戏仍回 ' + detail.gameStillAt.id });
     }
   } catch (e) {
     report.unverified.push('编辑器 / 内置示例交叉验证失败：' + e.message);

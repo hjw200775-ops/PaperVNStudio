@@ -153,26 +153,29 @@ npm run net:check
 
 `desktop:smoke` 用真实主进程和真实 IPC 跑完整链路：导入图片 → 图层 → 修改布局与效果 → 自动保存 → 显式保存 → 重新打开 → 导出 HTML。烟测工程一律建在系统临时目录，源码树不接收任何工程产物。
 
-## 独立游戏包（V0.7 第一阶段）
+## 独立游戏包（V0.7 正式版）
 
-把内置示例《晚风经过二楼走廊》做成「解压 → 双击 → 断网可玩」的 Windows x64 便携包：
+把内置示例《晚风经过二楼走廊》做成「双击 → 断网可玩」的 Windows x64 发布包，同时提供两种形态：
 
 ```bash
-npm run game:build        # → release/game/<…>-独立试玩包.zip + manifest.json（含 SHA-256 与文件清单）
-npm run game:acceptance   # 解压 ZIP，驱动真实 EXE 通关、存档、移动目录、检查隔离与清单
+npm run game:icon         # 改图标后运行：SVG → 16–256 九档 ICO（产物已入库）
+npm run game:build        # → ZIP + 单文件便携 EXE + manifest.json（含各自 SHA-256）
+npm run game:acceptance   # 解压 ZIP 跑真实 EXE，并单独验收单文件便携版
 ```
 
 - 内容复用 `dist/game-html.js` + `player.js` 的唯一导出路径，不另写一套拼接逻辑；标题图、正文、`road_17` 演出与原作一致，不带测试音频。
-- 游戏身份独立：`cn.papervnstudio.game.wanfeng-ch01`，userData 在 `%APPDATA%\PaperVNStudio-Game-wanfeng-ch01`，与纸间编辑器、内置示例分区互不共用；移动解压目录不影响读档。
+- 游戏身份独立：`cn.papervnstudio.game.wanfeng-ch01`，userData 在 `%APPDATA%\PaperVNStudio-Game-wanfeng-ch01`，与纸间编辑器、内置示例分区互不共用；移动目录、换用单文件版都不影响读档。
 - 播放器壳 `sandbox` + `contextIsolation`、无 Node / 无 preload / 无 IPC、`wanfeng://` 白名单只服务包内 HTML、所有网络请求取消。
-- 通用「导出 Windows 游戏」按钮、安装包、单文件 EXE、图标与签名留到下一阶段。
+- 应用图标是矢量源（`game/icon/icon.svg`）渲染的 9 档 ICO；EXE 写入产品名、公司、版本、版权与商标。
+- 签名走 `CSC_LINK` / `CSC_KEY_PASSWORD`，由 electron-builder 完成；没有证书时构建如实标记 `signed: false`，不伪造信任。
+- 通用「导出 Windows 游戏」按钮、NSIS 安装包、自动更新留到下一阶段。
 
 细节、实测结果与未验证项见 `docs/V0.7_GAME_PACKAGE.md`。
 
 ## 当前状态
 
-- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复（素材复用语义、去重四类情况、工作区隔离）、V0.6.2 内置示例与标题背景、V0.7 第一阶段《晚风》独立试玩包。
-- 未开始：通用「导出 Windows 游戏」界面、安装包与单文件 EXE、应用图标、代码签名、自动更新、多平台。
+- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复（素材复用语义、去重四类情况、工作区隔离）、V0.6.2 内置示例与标题背景、V0.7《晚风》正式版（图标、版本信息、解压目录版 + 单文件便携版、签名管线）。
+- 未开始：通用「导出 Windows 游戏」界面、NSIS 安装包、真实证书签名（等证书）、自动更新、多平台。
 - 打包好的 Windows 产物在 [Releases](https://github.com/hjw200775-ops/PaperVNStudio/releases) 下载（便携版 / 安装包，附 SHA-256）；`release/` 本身是忽略目录，不随仓库分发。也可自行 `npm run build:win`。
 
 细节见 `docs/DESKTOP_PREVIEW.md`（交付说明与构建记录）、`docs/ACCEPTANCE.md`（验收清单）、`docs/KNOWN_LIMITATIONS.md`（已知限制）。C 层与 D 层怎么一步步点，见 `docs/MANUAL_ACCEPTANCE.md`。

@@ -21,12 +21,32 @@ assert.equal(game.build.appId, 'cn.papervnstudio.game.wanfeng-ch01');
 assert.notEqual(game.build.appId, editor.build.appId, '游戏不能复用编辑器 appId');
 assert.equal(game.build.productName, '晚风经过二楼走廊');
 assert.equal(game.build.win.executableName, '晚风经过二楼走廊');
-assert.equal(game.version, '0.7.0');
+assert.equal(game.version, '0.7.1');
 assert(!game.dependencies && !game.devDependencies, '游戏壳不应引入自己的依赖');
 assert.deepEqual(game.build.files.slice().sort(), ['content/**', 'main.cjs', 'package.json'].sort(),
   '游戏包里只能有播放器入口、内容与 manifest');
 assert.deepEqual(game.build.extraFiles.slice().sort(),
   ['LICENSE', 'NOTICE-素材与许可.txt', '试玩说明.txt'].sort(), '只额外带许可与试玩说明');
+
+/* 正式版的发布信息：图标、版权、单文件便携 target */
+const targets = game.build.win.target.map(t => t.target).sort();
+assert.deepEqual(targets, ['dir', 'portable'], '正式版同时出解压目录与单文件便携 EXE');
+assert.equal(game.build.win.icon, 'build-resources/icon.ico');
+assert.equal(game.build.directories.buildResources, 'build-resources');
+assert.match(game.build.copyright, /2026/, '需要版权信息');
+assert.equal(game.build.win.legalTrademarks, '晚风经过二楼走廊');
+assert.match(game.build.portable.artifactName, /单文件便携版/);
+
+const ico = fs.readFileSync(path.join(ROOT, 'game', 'build-resources', 'icon.ico'));
+assert.equal(ico.readUInt16LE(0), 0, 'ICO 保留字段');
+assert.equal(ico.readUInt16LE(2), 1, 'ICO 类型必须是 icon');
+const icoCount = ico.readUInt16LE(4);
+assert(icoCount >= 8, 'ICO 应包含多档尺寸，实际 ' + icoCount);
+const icoSizes = [];
+for (let i = 0; i < icoCount; i++) icoSizes.push(ico.readUInt8(6 + 16 * i) || 256);
+assert(icoSizes.includes(256) && icoSizes.includes(32) && icoSizes.includes(16),
+  'ICO 至少要有 16/32/256：' + icoSizes.join(','));
+assert(fs.existsSync(path.join(ROOT, 'game', 'icon', 'icon.svg')), '图标源文件应入库');
 
 assert.equal(editor.devDependencies.electron, '45.3.2');
 assert.equal(editor.devDependencies['electron-builder'], '26.18.0');
@@ -122,13 +142,33 @@ for (const [name, src] of [['build-game-package.cjs', build], ['game-package-acc
 }
 assert(/buildPlayerHTML/.test(build), '构建必须复用唯一的导出入口');
 assert(/nodes\.length !== 45/.test(build), '构建必须核对 45 个节点');
-assert(/--dir/.test(build), '首版只出解压目录，再自行压 ZIP');
+assert(!/--dir'/.test(build), '正式版要同时出 dir 与 portable，不能只跑 --dir');
+assert(/portableCandidates/.test(build) && /PORTABLE_NAME/.test(build), '构建要收集并输出单文件便携 EXE');
 assert(/listZip|writeZip/.test(build));
 assert(/extract\(/.test(accept), '验收必须先解压');
 assert(!/npm run desktop|serve\.cjs/.test(accept), '验收不能用源码启动冒充成品');
 assert(/sha256/.test(accept), '验收要报告 SHA-256');
+assert(/CSC_LINK/.test(build) && /readPeSignature/.test(build), '构建要支持签名并如实检测签名状态');
+assert(/signed: exeSig\.signed/.test(build), '清单里的签名状态必须来自真实 PE 检测，不能写死');
 
-console.log('  ok  游戏身份独立，依赖版本锁定，打包范围只有播放器入口 + 内容 + 许可');
+/* 6. 签名检测：用微软签名的系统程序做正例，用未签名文件做负例 */
+const buildLib = require('../scripts/build-game-package.cjs');
+const signedProbe = buildLib.readPeSignature(path.join(process.env.SystemRoot || 'C:\Windows', 'explorer.exe'));
+if (signedProbe.isPe) {
+  assert(signedProbe.signed, '签名检测器必须能认出微软签名的 explorer.exe');
+  assert(signedProbe.certBytes > 0, '已签名文件应有证书表长度');
+}
+const unsignedProbe = buildLib.readPeSignature(path.join(ROOT, 'node_modules', 'electron', 'dist', 'electron.exe'));
+assert(unsignedProbe.isPe && !unsignedProbe.signed, 'Electron 本体未签名，应判定为 signed=false');
+assert(!buildLib.signingStatus().configured || process.env.CSC_LINK || process.env.WIN_CSC_LINK,
+  '未配置 CSC_LINK 时不能声称已配置证书');
+process.env.CSC_LINK = 'C:\temp\fake.pfx';
+assert(buildLib.signingStatus().configured && buildLib.signingStatus().source === 'CSC_LINK',
+  '配置 CSC_LINK 后应识别为已配置');
+delete process.env.CSC_LINK;
+
+console.log('  ok  签名检测：微软签名文件判定为已签名，未签名文件判定为未签名，CSC_LINK 生效');
+console.log('  ok  正式版信息：多档 ICO 图标、版权与商标字段、dir + portable 双 target');
 console.log('  ok  游戏壳 sandbox / 上下文隔离 / 无 Node / 无 preload / 无 IPC，协议与网络都收窄');
 console.log('  ok  内容来自内置示例：45 节点、8 图、无音频，road_17 与标题图保持原作');
 console.log('  ok  ZIP 中文名为 UTF-8 且内容可还原，验收脚本只认解压后的成品');

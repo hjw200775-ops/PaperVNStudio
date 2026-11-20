@@ -35,7 +35,8 @@
     "sample:build": "node scripts/build-sample.cjs",
     "sample:acceptance": "node scripts/desktop.cjs --sample",
     "game:build": "node scripts/build-game-package.cjs",
-    "game:acceptance": "node scripts/game-package-acceptance.cjs"
+    "game:acceptance": "node scripts/game-package-acceptance.cjs",
+    "game:icon": "node scripts/build-game-icon.cjs"
   },
   "engines": {
     "node": ">=20"
