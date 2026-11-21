@@ -150,6 +150,51 @@ assert(html.includes('"home_01"') && html.includes('"demo_end"'), 'HTML 导出�
 assert(!/<script[^>]+src=/i.test(html) && !/<link[^>]+href=/i.test(html), 'HTML 导出必须自包含');
 assert(html.includes('paper-game-'), 'HTML 导出仍使用原来的存档键规则');
 
+
+/* 6. 版本归一：预发布后缀不能丢掉段位（0.7.2-test 曾经变成 0.7.0.0） */
+const builderLib = require('../desktop/game-builder.cjs')({
+  repoRoot: ROOT, execPath: process.execPath, resourcesPath: '', isPackaged: false
+});
+const cases = [
+  ['0.7.2-test', '0.7.2.0'],
+  ['1.2.3-beta.1', '1.2.3.1'],
+  ['2', '2.0.0.0'],
+  ['', '1.0.0.0'],
+  ['1.2.3', '1.2.3.0'],
+  ['abc', '1.0.0.0'],
+  ['1.2.3.4.5', '1.2.3.4']
+];
+for (const [input, expected] of cases) {
+  assert.equal(builderLib.numericVersion(input), expected,
+    '版本 " ' + input + ' " 应归一为 ' + expected);
+}
+
+/* worker 是 extraResources 单独分发的，两边必须用同一套归一逻辑 */
+const versionWorkerSrc = fs.readFileSync(path.join(ROOT, 'desktop', 'game-pack-worker.cjs'), 'utf8');
+assert(versionWorkerSrc.includes('.match(/^\\d+/)'),
+  'worker 里的 numericVersion 也要取前导数字，不能退回整段匹配');
+assert(!versionWorkerSrc.includes('/^\\d+$/'),
+  'worker 里不应再出现「整段必须是数字」的旧实现');
+
+/* 7. manifest 必须同时记录作者原值与实际写入的 EXE 版本 */
+const manifestBuilderSrc = fs.readFileSync(path.join(ROOT, 'desktop', 'game-builder.cjs'), 'utf8');
+assert(/exeVersion: numericVersion\(settings\.version\)/.test(manifestBuilderSrc),
+  'manifest 要记录实际写进 EXE 的四段版本');
+assert(/version: settings\.version/.test(manifestBuilderSrc),
+  'manifest.game.version 仍保留作者填的原始值');
+
+/* 8. PE 版本读取器：用微软签名的系统文件做正例，不能用外部命令 */
+const { readPeVersion } = require('../scripts/pe-version.cjs');
+const sysExe = path.join(process.env.SystemRoot || 'C:\\Windows', 'explorer.exe');
+if (fs.existsSync(sysExe)) {
+  const sysVer = readPeVersion(sysExe);
+  assert(sysVer && /^\d+\.\d+\.\d+\.\d+$/.test(sysVer.fileVersion),
+    '要能从 PE 资源读出 explorer.exe 的版本');
+}
+
+console.log('  ok  版本归一保留段位（0.7.2-test / 1.2.3-beta.1 / 2 / 空值），worker 与主进程同源');
+console.log('  ok  manifest 分别记录作者原值与 EXE 四段版本，PE 版本读取不依赖外部命令');
+
 console.log('  ok  发行设置默认值/迁移/校验/磁盘往返都成立');
 console.log('  ok  带发行设置的工程仍能导出为自包含 HTML');
 console.log('  ok  发行标识稳定且能区分同名工程，复制示例会换身份');

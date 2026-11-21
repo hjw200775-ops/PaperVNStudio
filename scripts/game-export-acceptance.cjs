@@ -17,6 +17,7 @@ const net = require('node:net');
 const crypto = require('node:crypto');
 const { spawn, spawnSync } = require('node:child_process');
 const { listZipEntries } = require('./zip-manifest.cjs');
+const { readPeVersion } = require('./pe-version.cjs');
 const fixtures = require('./game-export-fixtures.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -585,8 +586,16 @@ async function main() {
   const utf16 = v => Buffer.from(v, 'utf16le');
   const verFields = ['晚风经过二楼走廊', '黄嘉文', '1.0.0', 'Copyright © 2026 黄嘉文']
     .filter(v => exeBuf.includes(utf16(v)));
-  if (verFields.length !== 4) bad('A · EXE 版本信息', '缺少版本字段：' + verFields.join(' / '));
-  else ok('A · EXE 版本信息', { summary: '产品名 / 公司 / 版本 / 版权均写入 EXE 资源' });
+  /* 版本要分两处看：清单里的作者原值，和 PE 资源里实际写入的四段数字。 */
+  const peA = readPeVersion(exeA);
+  const verProblems = [];
+  if (verFields.length !== 4) verProblems.push('缺少版本字段：' + verFields.join(' / '));
+  if (manifestA.game.version !== '1.0.0') verProblems.push('清单里的作者版本不对：' + manifestA.game.version);
+  if (!/^\d+\.\d+\.\d+\.\d+$/.test(String(manifestA.exeVersion))) verProblems.push('exeVersion 不是四段数字：' + manifestA.exeVersion);
+  if (!peA || peA.fileVersion !== manifestA.exeVersion) verProblems.push('EXE FileVersion 与 exeVersion 不一致：' + (peA && peA.fileVersion));
+  if (!peA || peA.productVersion !== manifestA.exeVersion) verProblems.push('EXE ProductVersion 与 exeVersion 不一致：' + (peA && peA.productVersion));
+  if (verProblems.length) bad('A · EXE 版本信息', verProblems.join('；'), { manifest: manifestA, pe: peA });
+  else ok('A · EXE 版本信息', { summary: '产品名/公司/版权写入资源，清单 ' + manifestA.game.version + ' → EXE ' + peA.fileVersion });
 
   /* --- 玩 A：标题、窗口、通关、存档 --- */
   const portA = await freePort();
@@ -616,6 +625,59 @@ async function main() {
   }
   await closeGame(relaunchA);
   report.stages['A 游玩'] = { nodes: playA.seen.length, saved: savedA.save, resumed: resumedA && { i: resumedA.i, text: resumedA.text } };
+
+  /* --- 版本后缀专项：作者填 0.7.2-test，EXE 属性必须是 0.7.2.0 ---
+   * 纯数字的 1.0.0 走不出这个缺陷（旧实现也能得到 1.0.0.0），必须用带后缀的版本
+   * 端到端跑一次，否则回归保护是假的。 */
+  {
+    const outSuffix = path.join(work, '版本后缀');
+    fs.mkdirSync(outSuffix, { recursive: true });
+    let suffixEditor = null;
+    try {
+      suffixEditor = await openEditor({ projectDir: A.dir, title: A.title, workDir: work, exportDir: outSuffix });
+      await suffixEditor.cdp.evaluate(`document.getElementById('publish').click()`);
+      await sleep(500);
+      await suffixEditor.cdp.evaluate(`(() => { const el = document.getElementById('pubVersion');
+        el.value = '0.7.2-test'; el.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+      await sleep(500);
+      await clickExport(suffixEditor.cdp, 'zip');
+      const suffixResult = await waitExportResult(suffixEditor.cdp, 10 * 60 * 1000);
+      if (!/导出完成/.test(suffixResult.progress)) {
+        bad('版本后缀', '导出失败：' + suffixResult.progress);
+      } else {
+        const suffixZip = path.join(outSuffix,
+          fs.readdirSync(outSuffix).find(f => /0\.7\.2-test.*\.zip$/.test(f)) || '');
+        const suffixManifest = readManifest(suffixZip.replace(/\.zip$/, '.manifest.json'));
+        const suffixDir = extractZip(suffixZip, path.join(work, '解压 版本后缀'));
+        const suffixPe = readPeVersion(path.join(suffixDir, suffixManifest.entry.exe));
+        const suffixProblems = [];
+        if (suffixManifest.game.version !== '0.7.2-test') {
+          suffixProblems.push('清单里的作者原值被改：' + suffixManifest.game.version);
+        }
+        if (suffixManifest.exeVersion !== '0.7.2.0') {
+          suffixProblems.push('exeVersion 应为 0.7.2.0，实际 ' + suffixManifest.exeVersion);
+        }
+        if (!suffixPe || suffixPe.fileVersion !== '0.7.2.0') {
+          suffixProblems.push('EXE FileVersion 应为 0.7.2.0，实际 ' + (suffixPe && suffixPe.fileVersion));
+        }
+        if (!suffixPe || suffixPe.productVersion !== suffixManifest.exeVersion) {
+          suffixProblems.push('EXE ProductVersion 与 exeVersion 不一致：' + (suffixPe && suffixPe.productVersion));
+        }
+        if (!/0\.7\.2-test/.test(path.basename(suffixZip))) {
+          suffixProblems.push('文件名应保留作者原值：' + path.basename(suffixZip));
+        }
+        if (suffixProblems.length) bad('版本后缀', suffixProblems.join('；'), { manifest: suffixManifest, pe: suffixPe });
+        else {
+          ok('版本后缀', {
+            summary: '0.7.2-test → 清单原值 / EXE ' + suffixPe.fileVersion + ' / 文件名保留后缀',
+            manifest: suffixManifest.game.version, exeVersion: suffixManifest.exeVersion, pe: suffixPe
+          });
+        }
+      }
+    } finally {
+      if (suffixEditor) await closeEditor(suffixEditor);
+    }
+  }
 
   /* --- 工程 B：分支 + 音频 + 自定义图标 --- */
   editor = null;
@@ -649,7 +711,8 @@ async function main() {
 
   const zipB = path.join(outB, fs.readdirSync(outB).find(f => f.endsWith('.zip')) || '');
   const manifestB = readManifest(zipB.replace(/\.zip$/, '.manifest.json'));
-  if (manifestB.game.title !== '雨停之前' || manifestB.game.author !== '纸间测试组' || manifestB.game.version !== '2.3.1') {
+  if (manifestB.game.title !== '雨停之前' || manifestB.game.author !== '纸间测试组' || manifestB.game.version !== '2.3.1'
+    || manifestB.exeVersion !== '2.3.1.0') {
     bad('B · 清单', '标题/作者/版本不对：' + JSON.stringify(manifestB.game));
   } else if (!manifestB.game.window || manifestB.game.window.resizable !== false || manifestB.game.window.width !== 1024) {
     bad('B · 窗口配置', '清单窗口配置不对：' + JSON.stringify(manifestB.game.window));

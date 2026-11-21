@@ -49,7 +49,13 @@ function safeFileName(name, fallback = 'game') {
 }
 
 function numericVersion(v) {
-  const parts = String(v || '').trim().split('.').filter(x => /^\d+$/.test(x)).slice(0, 4).map(Number);
+  /* EXE 的版本资源只接受四段数字。版本号可能带预发布后缀（0.7.2-test），
+     取每段的前导数字并保留段位：0.7.2-test → 0.7.2.0，1.2.3-beta.1 → 1.2.3.1，2 → 2.0.0.0。
+     旧实现用整段匹配，会把 "2-test" 整段丢掉、导致段位左移（0.7.2-test → 0.7.0.0）。 */
+  const parts = String(v || '').trim().split('.')
+    .map(x => (x.match(/^\d+/) || [''])[0])
+    .filter(x => x !== '').slice(0, 4).map(Number);
+  if (!parts.length) return '1.0.0.0';
   while (parts.length < 4) parts.push(0);
   return parts.join('.');
 }
@@ -336,6 +342,9 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
           images: project.assets.length, audio: (project.audioAssets || []).length,
           window: settings.window
         },
+        /* 作者填的版本原值写在 game.version；EXE 版本资源里实际写入的四段数字单独记一份，
+           两者不一致时各自为准（例如 0.7.2-test → 0.7.2.0）。 */
+        exeVersion: numericVersion(settings.version),
         platform: 'win32-x64',
         type,
         entry: { exe: job.exeName, relativeTo: settings.fileBase },
