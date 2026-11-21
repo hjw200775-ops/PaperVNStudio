@@ -17,6 +17,47 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory){
  const hasAudio=!!(Array.isArray(P.audioAssets)&&P.audioAssets.length)||P.nodes.some(n=>n&&n.audio);
  const PREF_KEY='paper-audio-prefs',SAVE_KEY='paper-game-'+P.id;
  let state='title',i=0,trail=[],cancelEffect=()=>{},audio=null,msgTimer=0;
+ /* ---------- 标题音乐（V0.7.3） ----------
+    独立于剧情 BGM 的播放通道：进入游戏时暂停、返回标题时从暂停点继续，
+    两者不共用 audio.js 的 BGM 槽位，避免标题曲与场景曲相互叠加。 */
+ let titleAudio=null;
+ function titleTrack(){
+  const tm=P.titleMusic;if(!tm||!tm.audioId)return null;
+  const a=(P.audioAssets||[]).find(x=>x.id===tm.audioId);
+  return a?{asset:a,cfg:tm}:null;
+ }
+ function titleMusicEl(){
+  const t=titleTrack();if(!t)return null;
+  if(titleAudio&&titleAudio.dataset.id===t.asset.id)return titleAudio;
+  releaseTitleMusic();
+  const el=document.createElement('audio');
+  el.src=t.asset.data;el.loop=t.cfg.loop!==false;el.preload='auto';
+  el.volume=Math.min(1,Math.max(0,(Number(t.cfg.volume)||0)/100));
+  el.dataset.id=t.asset.id;
+  el.addEventListener('error',()=>{if(E('titleNote'))E('titleNote').textContent='标题音乐无法播放：'+(t.asset.name||'素材已损坏')+'。'});
+  /* 挂进 DOM：audio 不占布局，但这样开发者工具里能直接看到音源与播放状态。 */
+  el.hidden=true;
+  if(document.body)document.body.appendChild(el);
+  titleAudio=el;return el;
+ }
+ function playTitleMusic(){
+  const t=titleTrack();if(!t)return;
+  const el=titleMusicEl();if(!el||!el.paused)return;
+  const pr=el.play();
+  /* 自动播放被拒时不报错：第一次点击开始/继续会再试一次。 */
+  if(pr&&pr.catch)pr.catch(()=>{});
+ }
+ function pauseTitleMusic(){
+  if(titleAudio&&!titleAudio.paused){try{titleAudio.pause()}catch{}}
+ }
+ function releaseTitleMusic(){
+  if(!titleAudio)return;
+  try{titleAudio.pause()}catch{}
+  titleAudio.removeAttribute('src');
+  if(typeof titleAudio.load==='function')try{titleAudio.load()}catch{}
+  if(titleAudio.parentNode)titleAudio.parentNode.removeChild(titleAudio);
+  titleAudio=null;
+ }
  let saveInfo={ok:false,reason:''},settingsOrigin='title',confirmOrigin='playing';
  const MIXERS=[['master','volMaster','volMasterVal'],['bgm','volBgm','volBgmVal'],
   ['sfx','volSfx','volSfxVal'],['voice','volVoice','volVoiceVal']];
@@ -227,9 +268,11 @@ function applyTitleBackground(){
     :(saveInfo.ok?'继续游戏会回到上次保存的句子。':saveInfo.reason);
   }
   if(audio)showAudioStatus(audio.status());
+  playTitleMusic();
   focus(empty?E('titleSettings'):(saveInfo.ok?E('continueGame'):E('startGame')));
  }
  function startSession(id,path){
+  pauseTitleMusic();
   show(E('titleScreen'),false);show(E('gameRoot'),true);
   show(E('menuOverlay'),false);show(E('settingsOverlay'),false);show(E('confirmOverlay'),false);
   state='playing';
@@ -348,6 +391,12 @@ function applyTitleBackground(){
   pressAt=null;
   if(state==='playing')next();
  };
+ /* 关闭窗口或刷新时释放标题音乐，别把解码器与文件句柄留着。 */
+ const releaseOnExit=()=>{pauseTitleMusic();releaseTitleMusic();if(audio)audio.stopAll()};
+ if(typeof window!=='undefined'&&typeof window.addEventListener==='function'){
+  window.addEventListener('pagehide',releaseOnExit);
+  window.addEventListener('beforeunload',releaseOnExit);
+ }
  document.onkeydown=e=>{
   if(!e||e.repeat)return;
   const tag=e.target&&e.target.tagName;

@@ -1,6 +1,6 @@
 {
   "name": "paper-vn-studio",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "private": true,
   "description": "纸间 PaperVNStudio — 视觉小说 / 文字冒险创作工具：Electron 桌面版与自包含 HTML 导出",
   "author": "wenwenwen817",
@@ -41,7 +41,9 @@
     "export:acceptance": "node scripts/game-export-acceptance.cjs",
     "export:acceptance:packaged": "node scripts/game-export-acceptance.cjs --packaged",
     "interaction:acceptance": "node scripts/player-interaction-acceptance.cjs",
-    "interaction:acceptance:packaged": "node scripts/player-interaction-acceptance.cjs --packaged"
+    "interaction:acceptance:packaged": "node scripts/player-interaction-acceptance.cjs --packaged",
+    "music:acceptance": "node scripts/music-acceptance.cjs",
+    "music:import": "node scripts/import-ost.cjs"
   },
   "engines": {
     "node": ">=20"

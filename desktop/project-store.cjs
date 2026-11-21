@@ -296,6 +296,8 @@ function createProjectStore(options = {}) {
         file: rel, sha256: hash, bytes: buf.length
       };
       if (a.durationNote) item.durationNote = a.durationNote;
+      /* 素材库标签（分类/情绪/场景/曲目 ID）随工程保存，用于检索与「按 ID 替换音源」。 */
+      if (a.meta && typeof a.meta === 'object') item.meta = a.meta;
       audio.push(item);
     }
     return { assets: out, audioAssets: audio, used };
@@ -317,7 +319,8 @@ function createProjectStore(options = {}) {
       presets: p.presets,
       characters: p.characters || [],
       chapters: p.chapters || [],
-      publish: p.publish && typeof p.publish === 'object' ? p.publish : undefined
+      publish: p.publish && typeof p.publish === 'object' ? p.publish : undefined,
+      titleMusic: p.titleMusic && typeof p.titleMusic === 'object' ? p.titleMusic : undefined
     };
     return { disk, used };
   }
@@ -457,6 +460,7 @@ function createProjectStore(options = {}) {
         mime: info.mime, ext: info.ext, bytes: buf.length, duration: a.duration
       };
       if (a.durationNote) item.durationNote = a.durationNote;
+      if (a.meta && typeof a.meta === 'object') item.meta = a.meta;
       audioAssets.push(item);
     }
     if (missing.length) throw new Error('工程引用的素材缺失，可从备份恢复：' + missing.join('、'));
@@ -468,6 +472,14 @@ function createProjectStore(options = {}) {
       chapters: Array.isArray(disk.chapters) ? disk.chapters : []
     };
     if (disk.publish && typeof disk.publish === 'object') runtime.publish = disk.publish;
+    /* 标题音乐同样是可选增量字段：只有配过才存在。 */
+    if (disk.titleMusic !== undefined && disk.titleMusic !== null) {
+      const tm = disk.titleMusic;
+      if (typeof tm !== 'object' || typeof tm.audioId !== 'string' || !tm.audioId) {
+        throw new Error('桌面工程标题音乐格式错误');
+      }
+      runtime.titleMusic = tm;
+    }
     return validateRuntime(runtime);
   }
 

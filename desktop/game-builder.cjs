@@ -274,9 +274,11 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
       checkCancel();
       done = step('content', 8);
       let html;
+      /* 导出报告：只把被剧情/标题界面引用的音源打进包里，清单里记下包含与排除。 */
+      const audioReport = {};
       try {
         /* 游戏里显示「游戏名称」，不是工程内部标题；存档标识仍是工程 id。 */
-        html = buildPlayerHTML(Object.assign({}, project, { title: settings.title }));
+        html = buildPlayerHTML(Object.assign({}, project, { title: settings.title }), undefined, audioReport);
       } catch (e) {
         throw new Error('生成播放器内容失败：' + e.message);
       }
@@ -349,6 +351,8 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
         type,
         entry: { exe: job.exeName, relativeTo: settings.fileBase },
         artifact: { file: path.basename(workerResult.artifact), bytes, sizeLabel: mb(bytes), sha256: workerResult.sha256 },
+        /* 导出报告：哪些 BGM 进了包、哪些留在工程素材库。 */
+        audio: audioReport.audio || null,
         signature: workerResult.signature,
         icon: { source: icon.source, sizes: icon.sizes, bytes: fs.statSync(icon.path).size },
         toolchain: {

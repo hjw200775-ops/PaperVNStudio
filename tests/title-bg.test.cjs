@@ -137,9 +137,14 @@ function sha(buf) { return crypto.createHash('sha256').update(buf).digest('hex')
 
   assert.equal((p.chapters || []).length, 1, '保留一个章节');
   assert.equal(p.chapters[0].paragraphs.length, 3, '保留三个段落');
-  assert.equal((p.audioAssets || []).length, 0, '没有混入英文占位语音');
+  /* V0.7.3：示例带六首正式 OST，但不得混入早期测试用的占位语音。 */
+  assert.equal((p.audioAssets || []).length, 6, '示例素材库为六首正式 BGM');
+  assert(p.audioAssets.every(a => a.meta && /^ost_0[1-6]_/.test(a.meta.trackId)),
+    '只含 OST 曲目，没有混入英文占位语音或测试音频');
   assert(!fs.existsSync(path.join(SAMPLE, 'backups')), '不捆绑 backups');
-  assert(!fs.existsSync(path.join(SAMPLE, 'assets', 'audio')), '不捆绑测试音频');
+  const audioDir = path.join(SAMPLE, 'assets', 'audio');
+  assert(fs.existsSync(audioDir), '正式 BGM 随示例分发');
+  assert.equal(fs.readdirSync(audioDir).filter(f => /\.ogg$/.test(f)).length, 6, '六首 OGG 齐全');
 
   for (const a of disk.assets) {
     const file = path.join(SAMPLE, a.file);

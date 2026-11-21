@@ -92,12 +92,15 @@ assert.equal(project.nodes.length, 45);
 assert.equal(project.nodes[0].id, 'home_01');
 assert.equal(project.nodes[project.nodes.length - 1].id, 'demo_end');
 assert.equal(project.assets.length, 8);
-assert.equal((project.audioAssets || []).length, 0, '游戏包不应带音频，尤其不能混入测试语音');
+/* V0.7.3：示例带六首正式 OST，包内只允许出现的三首被引用曲目，
+   不得混入早期测试用的占位语音。 */
+const audioIds = (project.audioAssets || []).map(a => a.meta && a.meta.trackId).filter(Boolean);
+assert(audioIds.every(id => /^ost_0[1-6]_/.test(id)), '游戏包不得混入测试语音，只允许 OST 曲目');
 const html = buildPlayerHTML(project);
 const structural = html.slice(0, html.indexOf('<script>') + 8);
 assert(!/paper:\/\/|file:\/\/|https?:\/\//i.test(structural), '游戏内容不能引用协议 / 本机 / 远程地址');
-assert(!/data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]{64,}/i.test(html),
-  '无音频工程不应内嵌音频数据（播放器代码里提到 data:audio 属于正常引用）');
+const embeddedAudio = (html.match(/data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]{64,}/gi) || []).length;
+assert(embeddedAudio <= 3, '未引用的曲目不应进包，实际内嵌 ' + embeddedAudio + ' 段');
 assert(html.includes('asset_title_home_corridor'), '标题背景应是家中二楼走廊');
 assert(html.includes('林澈！'), 'road_17 台词应保持原作');
 for (const n of project.nodes) assert(html.includes('"' + n.id + '"'), '缺少节点 ' + n.id);
@@ -170,6 +173,6 @@ delete process.env.CSC_LINK;
 console.log('  ok  签名检测：微软签名文件判定为已签名，未签名文件判定为未签名，CSC_LINK 生效');
 console.log('  ok  正式版信息：多档 ICO 图标、版权与商标字段、dir + portable 双 target');
 console.log('  ok  游戏壳 sandbox / 上下文隔离 / 无 Node / 无 preload / 无 IPC，协议与网络都收窄');
-console.log('  ok  内容来自内置示例：45 节点、8 图、无音频，road_17 与标题图保持原作');
+console.log('  ok  内容来自内置示例：45 节点、8 图、只带被引用的 BGM，road_17 与标题图保持原作');
 console.log('  ok  ZIP 中文名为 UTF-8 且内容可还原，验收脚本只认解压后的成品');
 console.log('PASS: V0.7 standalone game package boundaries');

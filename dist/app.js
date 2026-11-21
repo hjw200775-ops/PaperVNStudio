@@ -1007,21 +1007,76 @@ function renderAudioTab(){
  const totalEl=$('#audioTotal');if(totalEl)totalEl.textContent=list.length+' 个素材 · '+A.pure.formatBytes(total);
  const legacy=$('#audioLegacyNote');if(legacy)legacy.hidden=!C.hasAnyAudio(p);
  const filter=$('#audioFilter')?$('#audioFilter').value:'all';
- const shown=filter==='all'?list:list.filter(a=>(a.categories||[]).includes(filter));
+ /* 情绪标签来自素材本身：换一套素材，筛选器自动跟着变。 */
+ const moods=[...new Set(list.flatMap(a=>(a.meta&&Array.isArray(a.meta.moodTags))?a.meta.moodTags:[]))];
+ const moodSel=$('#audioMood');
+ if(moodSel){
+  const sig=moods.join('|');
+  if(moodSel.dataset.sig!==sig){
+   moodSel.dataset.sig=sig;
+   moodSel.innerHTML='<option value="">全部标签</option>'+moods.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join('');
+  }
+ }
+ const mood=moodSel?moodSel.value:'';
+ let shown=list;
+ if(filter!=='all')shown=shown.filter(a=>(a.categories||[]).includes(filter));
+ if(mood)shown=shown.filter(a=>a.meta&&(a.meta.moodTags||[]).includes(mood));
  const box=$('#audioAssets');if(!box)return;
  box.innerHTML=shown.length?shown.map(a=>{
   const uses=C.audioUsage(p,a.id),cats=(a.categories||[]).map(c=>A.CATEGORY_NAMES[c]||c).join(' / ');
   const dur=a.duration==null?'时长未知':A.pure.formatSeconds(a.duration);
+  const meta=a.meta||{},tags=Array.isArray(meta.moodTags)?meta.moodTags:[];
+  const isBgm=(a.categories||[]).includes('bgm'),unused=uses.length===0;
   return '<div class="audio-asset-row'+(audioPreviewId===a.id?' playing':'')+'">'
    +'<div class="audio-name"><span>'+esc(a.name)+'</span><em>'+esc(cats)+'</em></div>'
-   +'<small>'+esc(dur)+' · '+esc(A.pure.formatBytes(a.bytes))+' · 引用 '+uses.length+' 处'
-   +(a.durationNote?' · '+esc(a.durationNote):'')+'</small>'
+   +(meta.category||tags.length?'<p class="audio-meta">'+(meta.category?'<b>'+esc(meta.category)+'</b>':'')
+     +tags.map(t=>'<span>'+esc(t)+'</span>').join('')+'</p>':'')
+   +'<small>'+esc(dur)+' · '+esc(A.pure.formatBytes(a.bytes))+' · '
+   +(unused?'<em class="audio-unused">未引用</em>':'引用 '+uses.length+' 处')
+   +(meta.scene?' · '+esc(meta.scene):'')+(a.durationNote?' · '+esc(a.durationNote):'')+'</small>'
    +'<div class="audio-actions"><button data-audio-preview="'+esc(a.id)+'">'+(audioPreviewId===a.id?'停止试听':'试听')+'</button>'
+   +(isBgm?'<button data-audio-bind="'+esc(a.id)+'">绑定到场景</button>':'')
    +'<button data-audio-delete="'+esc(a.id)+'" class="danger">删除</button></div></div>';
- }).join(''):'<p class="hint empty">还没有音频素材。选好分类后点「导入音频」；本版可靠支持 PCM WAV。</p>';
+ }).join(''):'<p class="hint empty">没有符合条件的音频素材。</p>';
  box.querySelectorAll('[data-audio-preview]').forEach(b=>b.onclick=()=>toggleAudioPreview(b.dataset.audioPreview));
+ box.querySelectorAll('[data-audio-bind]').forEach(b=>b.onclick=()=>bindSceneBgm(b.dataset.audioBind));
  box.querySelectorAll('[data-audio-delete]').forEach(b=>b.onclick=()=>deleteAudioAsset(b.dataset.audioDelete));
  syncMixerUI();
+}
+
+/* 场景入口绑定：每个段落只给第一句写 play，其余句子自然沿用，
+   避免逐句重启播放；批量选中时按段落去重。 */
+function sceneEntryTargets(){
+ const ids=batch.on&&batch.ids.size?[...batch.ids]:[selected];
+ const order=new Map(p.nodes.map((n,i)=>[n.id,i]));
+ const list=ids.filter(id=>order.has(id)).sort((a,b)=>order.get(a)-order.get(b));
+ const seen=new Set(),out=[];
+ for(const id of list){
+  const n=p.nodes[order.get(id)];
+  const key=n.paragraphId||('node:'+n.id);
+  if(seen.has(key))continue;
+  seen.add(key);out.push(n);
+ }
+ return {targets:out,selected:list.length};
+}
+function bindSceneBgm(audioId){
+ const {targets,selected}=sceneEntryTargets();
+ if(!targets.length)return toast('请先选中一句台词，或进入批量编辑勾选若干句子');
+ const asset=audioId?C.audioAsset(p,audioId):null;
+ if(audioId&&!asset)return toast('这个素材已经不存在，请重新选择');
+ edit(()=>{
+  for(const n of targets){
+   const base=n.audio&&typeof n.audio==='object'?JSON.parse(JSON.stringify(n.audio)):{};
+   base.sfx=Array.isArray(base.sfx)?base.sfx:[];
+   base.bgm=audioId?{action:'play',audioId,volume:.8,loop:true,fadeIn:.8,fadeOut:.8}:null;
+   n.audio=base;
+  }
+ },'场景配乐');
+ const inherit=Math.max(0,selected-targets.length);
+ toast(audioId
+  ?('已为 '+targets.length+' 个场景入口设置「'+asset.name+'」'+(inherit?'，'+inherit+' 句沿用':'')+'；后续台词自动沿用，不逐句重启')
+  :('已移除 '+targets.length+' 个场景入口的音乐指令'+(inherit?'，'+inherit+' 句一并清除':'')));
+ renderAudioTab();
 }
 function audioAssetOptions(value){
  const list=p.audioAssets||[],groups=[['bgm','背景音乐'],['sfx','音效'],['voice','语音']],used=new Set();
@@ -1265,6 +1320,27 @@ function renderTitleTab(){
   }
   if(document.activeElement!==sel)sel.value=list.some(a=>a.id===p.titleBackground)?p.titleBackground:'';
  }
+ /* 标题音乐：只有 BGM 类素材可选；未配置时标题界面保持安静。 */
+ const tm=p.titleMusic||null;
+ const tsel=$('#titleMusicAsset');
+ if(tsel){
+  const bgms=(p.audioAssets||[]).filter(a=>(a.categories||[]).includes('bgm'));
+  const sig=bgms.map(a=>a.id+'|'+a.name).join('~');
+  if(tsel.dataset.sig!==sig){
+   tsel.dataset.sig=sig;
+   tsel.innerHTML='<option value="">（没有标题音乐）</option>'+bgms.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');
+  }
+  if(document.activeElement!==tsel)tsel.value=(tm&&bgms.some(a=>a.id===tm.audioId))?tm.audioId:'';
+ }
+ const volEl=$('#titleMusicVolume'),fadeEl=$('#titleMusicFade');
+ if(volEl&&document.activeElement!==volEl)volEl.value=tm?tm.volume:80;
+ if(fadeEl&&document.activeElement!==fadeEl)fadeEl.value=tm?tm.fadeIn:1.2;
+ if($('#titleMusicNote')){
+  const ta=tm?C.audioAsset(p,tm.audioId):null;
+  $('#titleMusicNote').textContent=tm
+   ?('当前：'+(ta?ta.name:'素材缺失（不会播放）')+' · '+(tm.loop===false?'单次':'循环')+' · 音量 '+tm.volume+'%')
+   :'未配置标题音乐：标题界面保持安静。';
+ }
 }
 $('#titleBgApply').onclick=()=>{
  const id=$('#titleBgAsset').value;
@@ -1278,6 +1354,25 @@ $('#titleBgClear').onclick=()=>{
  edit(()=>{p.titleBackground=''});
  toast('已恢复默认标题页样式');
 };
+$('#titleMusicApply').onclick=()=>{
+ const id=$('#titleMusicAsset').value;
+ if(!id)return toast('先选一个背景音乐素材；要取消标题音乐请用「清除标题音乐」');
+ const a=C.audioAsset(p,id);
+ if(!a)return toast('这个素材已经不存在，请重新选择');
+ const vol=Math.max(0,Math.min(100,Math.round(Number($('#titleMusicVolume').value)||0)));
+ const fade=Math.max(0,Math.min(5,Number($('#titleMusicFade').value)||0));
+ edit(()=>{p.titleMusic={audioId:id,volume:vol,fadeIn:fade,loop:true}},'标题音乐');
+ toast('标题音乐已设为「'+a.name+'」（循环播放，进入游戏时暂停）');
+ renderTitleTab();
+};
+$('#titleMusicClear').onclick=()=>{
+ if(!p.titleMusic)return toast('当前没有标题音乐');
+ edit(()=>{p.titleMusic=null},'清除标题音乐');
+ toast('已清除标题音乐，标题界面保持安静');
+ renderTitleTab();
+};
+$('#audioMood').onchange=()=>renderAudioTab();
+$('#audioClearBgm').onclick=()=>bindSceneBgm(null);
 $('#titleBgImport').onclick=()=>pick('image/png,image/jpeg,image/webp',async f=>{
  if(f.size>12*1024*1024)throw Error('请使用小于 12MB 的图片');
  if(!['image/png','image/jpeg','image/webp'].includes(f.type))throw Error('仅支持 PNG、JPEG、WebP');

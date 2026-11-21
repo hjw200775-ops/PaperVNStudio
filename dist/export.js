@@ -14,7 +14,23 @@ function buildGameHTML(p, deps) {
       throw new Error('导出失败：素材含本地文件路径，拒绝生成依赖本机的游戏');
     }
   }
-  const audioAssets = Array.isArray(p.audioAssets) ? p.audioAssets : [];
+  const allAudio = Array.isArray(p.audioAssets) ? p.audioAssets : [];
+  /* 只把剧情/标题界面真正引用到的音源放进包体；素材库其余曲目留在工程里。
+     coreFactory 不可用时退回全量（宁可包大，也不让声音丢失）。 */
+  const core = typeof coreFactory === 'function' ? coreFactory() : null;
+  let audioAssets = allAudio;
+  if (core && typeof core.referencedAudioIds === 'function') {
+    const keep = new Set(core.referencedAudioIds(p));
+    audioAssets = allAudio.filter(a => keep.has(a.id));
+  }
+  if (deps.report) {
+    const kept = new Set(audioAssets.map(a => a.id));
+    deps.report.audio = {
+      included: audioAssets.map(a => ({ id: a.id, name: a.name, bytes: a.bytes })),
+      excluded: allAudio.filter(a => !kept.has(a.id)).map(a => ({ id: a.id, name: a.name, bytes: a.bytes })),
+      library: allAudio.length
+    };
+  }
   for (const a of audioAssets) {
     if (!a || typeof a.data !== 'string' || !/^data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=\r\n]+$/i.test(a.data)) {
       throw new Error('导出失败：音频素材「' + (a && a.name || '未命名') + '」不是内嵌音频，请重新打开工程后再导出');
@@ -23,7 +39,9 @@ function buildGameHTML(p, deps) {
       throw new Error('导出失败：音频素材含本地文件路径，拒绝生成依赖本机的游戏');
     }
   }
-  const data = JSON.stringify(p).replace(/</g, '\\u003c');
+  /* 播放器只拿到被引用的音源：包体小，也避免把未使用的曲目泄漏出去。 */
+  const gameProject = audioAssets.length === allAudio.length ? p : Object.assign({}, p, { audioAssets });
+  const data = JSON.stringify(gameProject).replace(/</g, '\\u003c');
   /* 没有音频工厂时传 null：旧无音频工程不创建播放任务，含音频工程则必须提供。 */
   const audioArg = typeof audioFactory === 'function' ? '(' + audioFactory.toString() + ')' : 'null';
   if (audioAssets.length && audioArg === 'null') throw new Error('导出失败：缺少音频运行层');

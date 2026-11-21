@@ -99,7 +99,152 @@
       "bytes": 1945893
     }
   ],
-  "audioAssets": [],
+  "audioAssets": [
+    {
+      "id": "audio_ost_01_title",
+      "name": "晚风经过二楼走廊",
+      "categories": [
+        "bgm"
+      ],
+      "mime": "audio/ogg",
+      "ext": "ogg",
+      "duration": 37.794,
+      "file": "assets/audio/2217366c9255ecbddcbbf811f23c79e8fd5a15bb24e2cb530789aaaf9563e7ae.ogg",
+      "sha256": "2217366c9255ecbddcbbf811f23c79e8fd5a15bb24e2cb530789aaaf9563e7ae",
+      "bytes": 1269067,
+      "meta": {
+        "category": "主题曲（Title BGM）",
+        "moodTags": [
+          "青春",
+          "温暖",
+          "怀旧",
+          "希望"
+        ],
+        "scene": "游戏标题界面、重要剧情主题再现",
+        "trackId": "ost_01_title"
+      }
+    },
+    {
+      "id": "audio_ost_02_morning",
+      "name": "九月的早晨",
+      "categories": [
+        "bgm"
+      ],
+      "mime": "audio/ogg",
+      "ext": "ogg",
+      "duration": 41.4,
+      "file": "assets/audio/f5cf8059444693528ced6d318fe092a57cd3ab0b2a4c8aa20c19848a74238a9b.ogg",
+      "sha256": "f5cf8059444693528ced6d318fe092a57cd3ab0b2a4c8aa20c19848a74238a9b",
+      "bytes": 1346631,
+      "meta": {
+        "category": "场景 BGM（日常/家庭）",
+        "moodTags": [
+          "温暖",
+          "日常",
+          "晨光",
+          "轻松"
+        ],
+        "scene": "家中早餐、起床、普通家庭日常",
+        "trackId": "ost_02_morning"
+      }
+    },
+    {
+      "id": "audio_ost_03_school_road",
+      "name": "桂花香的小路",
+      "categories": [
+        "bgm"
+      ],
+      "mime": "audio/ogg",
+      "ext": "ogg",
+      "duration": 39.942,
+      "file": "assets/audio/c7427899ec2e27fb2413b97dff938988a459fa971fddf8cb93abe3587a0b3092.ogg",
+      "sha256": "c7427899ec2e27fb2413b97dff938988a459fa971fddf8cb93abe3587a0b3092",
+      "bytes": 1382944,
+      "meta": {
+        "category": "场景 BGM（校园户外）",
+        "moodTags": [
+          "青春",
+          "轻快",
+          "明亮",
+          "陪伴"
+        ],
+        "scene": "上学途中、放学、街道、校园户外日常",
+        "trackId": "ost_03_school_road"
+      }
+    },
+    {
+      "id": "audio_ost_04_playful",
+      "name": "才没有在等你",
+      "categories": [
+        "bgm"
+      ],
+      "mime": "audio/ogg",
+      "ext": "ogg",
+      "duration": 39.052,
+      "file": "assets/audio/de47a782a9b1cf14f3d3eddb422b1b482dce3e9b18a08acc15cd1c67f8c6bfd6.ogg",
+      "sha256": "de47a782a9b1cf14f3d3eddb422b1b482dce3e9b18a08acc15cd1c67f8c6bfd6",
+      "bytes": 1293841,
+      "meta": {
+        "category": "角色 / 日常趣事 BGM",
+        "moodTags": [
+          "俏皮",
+          "可爱",
+          "小脾气",
+          "轻松"
+        ],
+        "scene": "林悠傲娇、兄妹拌嘴、轻松搞笑场景",
+        "trackId": "ost_04_playful"
+      }
+    },
+    {
+      "id": "audio_ost_05_after_school",
+      "name": "放学后的走廊",
+      "categories": [
+        "bgm"
+      ],
+      "mime": "audio/ogg",
+      "ext": "ogg",
+      "duration": 36.068,
+      "file": "assets/audio/5adba3a346e519d3e293d7f53bb43f50b81fca053618c28aaf8c8745e8507123.ogg",
+      "sha256": "5adba3a346e519d3e293d7f53bb43f50b81fca053618c28aaf8c8745e8507123",
+      "bytes": 1016706,
+      "meta": {
+        "category": "场景 BGM（黄昏校园）",
+        "moodTags": [
+          "怀旧",
+          "宁静",
+          "黄昏",
+          "希望"
+        ],
+        "scene": "黄昏校园、放学后、安静交流",
+        "trackId": "ost_05_after_school"
+      }
+    },
+    {
+      "id": "audio_ost_06_night",
+      "name": "灯还亮着",
+      "categories": [
+        "bgm"
+      ],
+      "mime": "audio/ogg",
+      "ext": "ogg",
+      "duration": 38.059,
+      "file": "assets/audio/5f129628ae4a7d4471c37aed6d564d3128d5e834b25150ce56c59f09e790c55b.ogg",
+      "sha256": "5f129628ae4a7d4471c37aed6d564d3128d5e834b25150ce56c59f09e790c55b",
+      "bytes": 1017932,
+      "meta": {
+        "category": "情感 BGM（夜晚/内省）",
+        "moodTags": [
+          "夜晚",
+          "内省",
+          "温暖收束",
+          "淡淡忧伤"
+        ],
+        "scene": "夜晚、家庭、内心独白、深层情感剧情",
+        "trackId": "ost_06_night"
+      }
+    }
+  ],
   "nodes": [
     {
       "id": "home_01",
@@ -175,7 +320,18 @@
         }
       ],
       "paragraphId": "pg_e6c00dff-0e86-4904-af90-9e63fc13287d",
-      "audio": null
+      "audio": {
+        "sfx": [],
+        "voice": null,
+        "bgm": {
+          "action": "play",
+          "audioId": "audio_ost_02_morning",
+          "volume": 0.8,
+          "loop": true,
+          "fadeIn": 0.8,
+          "fadeOut": 0.8
+        }
+      }
     },
     {
       "id": "home_02",
@@ -411,7 +567,18 @@
         }
       ],
       "paragraphId": "pg_d680721a-4ad3-4681-ba90-32b8dd7a6318",
-      "audio": null
+      "audio": {
+        "sfx": [],
+        "voice": null,
+        "bgm": {
+          "action": "play",
+          "audioId": "audio_ost_03_school_road",
+          "volume": 0.8,
+          "loop": true,
+          "fadeIn": 0.8,
+          "fadeOut": 0.8
+        }
+      }
     },
     {
       "id": "road_02",
@@ -1695,5 +1862,11 @@
         }
       ]
     }
-  ]
+  ],
+  "titleMusic": {
+    "audioId": "audio_ost_01_title",
+    "volume": 80,
+    "fadeIn": 1.2,
+    "loop": true
+  }
 }

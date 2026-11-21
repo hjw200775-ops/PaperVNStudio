@@ -11,6 +11,9 @@
 - 不随意格式化全部紧凑源码；如果整理结构，单独提交并验证行为一致。
 - 保留网页预览和独立 HTML 游戏导出。
 - 不把桌面封装、安装包构建与真实 Windows 验收混为一谈。
+- 音乐：素材库元数据放在 `audioAssets[].meta`（`category / moodTags / scene / trackId`），磁盘往返要一起保留；`trackId` 是逻辑曲目号，换完整版按它匹配、素材 id 不变，否则会断掉剧情绑定。
+- 场景配乐只写段落入口节点，后续句子靠继承；不要逐句写 `bgm: play`，那会每句重启播放。导出用 `referencedAudioIds()` 收包，未引用的曲目留在工程里。
+- 标题音乐走独立的 `<audio>` 通道（`p.titleMusic`），不占 `audio.js` 的 BGM 槽位：进入游戏 `pause`、返回标题续播、`pagehide` 释放。不要把它塞进剧情 BGM 状态机。
 - 版本号有两套值：作者填的原样进 `manifest.game.version` 与文件名；EXE 版本资源只收四段数字，由 `numericVersion()` 取每段前导数字再补齐（`0.7.2-test → 0.7.2.0`）。**不要用「整段必须是数字」的过滤**——那会把 `2-test` 整段丢掉导致段位左移，`1.2.3-beta` 还会静默变成 `1.2.0.0`。`desktop/game-builder.cjs` 与 `game-pack-worker.cjs` 各有一份，必须同源；worker 是 extraResources，改完要重新打包纸间。
 - 点击推进要区分手势：`pointerdown` 记坐标，位移超过 8px 不推进。播放器与编辑器试玩两边规则必须一致，否则拖动会无故跳句。
 - 游戏包只带播放器所需的文件、游戏资源与许可说明；不要复用编辑器的 appId / userData，也不要把测试音频、工程文件、开发路径打进包里。ZIP 内中文文件名必须按 UTF-8 写（`scripts/zip-writer.cjs`），否则换语言系统会乱码。
