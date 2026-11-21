@@ -203,3 +203,8 @@ dialog.publish-dialog{max-width:760px;width:min(760px,94vw);max-height:90vh;padd
 .pub-result.error{color:#8f3a32}
 .pub-result.ok{color:var(--accent)}
 @media(max-width:640px){.pub-grid,.pub-window .two{grid-template-columns:1fr}}
+
+/* V0.7.2 试玩禁选区：试玩时舞台就是游戏画面，不接受文本选择与图片原生拖拽。
+   只在 body.playing 下生效——创作模式照旧可以选中台词、拖动与缩放素材。 */
+body.playing #stage,body.playing #stage *{-webkit-user-select:none;user-select:none}
+body.playing #stage img{-webkit-user-drag:none;user-drag:none}

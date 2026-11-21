@@ -11,6 +11,7 @@
 - 不随意格式化全部紧凑源码；如果整理结构，单独提交并验证行为一致。
 - 保留网页预览和独立 HTML 游戏导出。
 - 不把桌面封装、安装包构建与真实 Windows 验收混为一谈。
+- 点击推进要区分手势：`pointerdown` 记坐标，位移超过 8px 不推进。播放器与编辑器试玩两边规则必须一致，否则拖动会无故跳句。
 - 游戏包只带播放器所需的文件、游戏资源与许可说明；不要复用编辑器的 appId / userData，也不要把测试音频、工程文件、开发路径打进包里。ZIP 内中文文件名必须按 UTF-8 写（`scripts/zip-writer.cjs`），否则换语言系统会乱码。
 - 检查并保留用户未提交的文件；不覆盖草稿、素材或本地工程。
 - 工程模型、资源路径与文件读写分层；运行时恢复逻辑由编辑器和播放器共用。
@@ -24,6 +25,7 @@
 - `index.html` + `style.css`: interface.
 - `desktop/game-builder.cjs` + `desktop/game-pack-worker.cjs`: 通用游戏导出。重活必须在子进程里做（主进程同步复制/NSIS 会阻塞事件循环，取消 IPC 进不来）。运行时取自当前 Electron，组件取自 `resources/toolchain` 或 `vendor/toolchain`，不写死盘符。
 - `desktop/game-shell/`: 通用播放器壳，读 `content/game.json`，按 `releaseId` 隔离存档。
+- 玩家端交互规则写在 `dist/player.js` 的 `paperPlayerCSS`（作用于 `#titleScreen` / `#gameRoot` / `.overlay` 这些结构容器，不绑对话框样式），图片靠 `-webkit-user-drag:none` + `draggable=false` 禁拖，另有一条 `dragstart` 兜底。**不要为了禁选去改 `pointer-events`**：`#layers` 靠 `pointer-events:none` 让点击穿透到舞台。编辑器试玩用 `body.playing` 作用域单独禁选，创作模式必须保持可选中、可拖动。
 - `game/`: 《晚风》示例包的旧构建入口（V0.7.1 脚本仍在用）。只提供 `wanfeng://` 白名单协议、独立 userData 与窗口安全边界；没有 preload、IPC 与编辑器 UI，不引用 `dist/` 源码。
 
 不要只修改网页加载的 effects 文件而遗漏导出时嵌入的工厂函数。任何模块化调整必须验证自包含 HTML 输出。

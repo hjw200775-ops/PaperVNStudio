@@ -39,7 +39,9 @@
     "game:icon": "node scripts/build-game-icon.cjs",
     "tools:prepare": "node scripts/prepare-game-toolchain.cjs",
     "export:acceptance": "node scripts/game-export-acceptance.cjs",
-    "export:acceptance:packaged": "node scripts/game-export-acceptance.cjs --packaged"
+    "export:acceptance:packaged": "node scripts/game-export-acceptance.cjs --packaged",
+    "interaction:acceptance": "node scripts/player-interaction-acceptance.cjs",
+    "interaction:acceptance:packaged": "node scripts/player-interaction-acceptance.cjs --packaged"
   },
   "engines": {
     "node": ">=20"

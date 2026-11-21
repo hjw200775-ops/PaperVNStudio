@@ -150,6 +150,7 @@ npm run net:check
 | 自动化 | Node 测试与静态检查 | `npm run check` |
 | 可见渲染 | 真实 Electron 窗口里驱动界面并断言 DOM 与落盘 | `npm run desktop:smoke`、`desktop:smoke:project`、`desktop:smoke:packaged`、`sample:acceptance` |
 | 游戏包成品 | 解压 ZIP、启动真实 EXE、通关 / 存档 / 移动目录 / 存储隔离 / ZIP 清单 | `npm run game:acceptance` |
+| 播放器交互 | 双击 / 拖选 / 拖立绘 / 单击推进 / 选项 / 音量滑块 / 创作模式 | `npm run interaction:acceptance` |
 | 人工点击 | 原生对话框、未保存关闭三选一、安装向导 | 人工，**尚未执行** |
 | 副机验收 | 另一台干净机器断网打开 EXE 与导出 HTML | 人工，**尚未执行** |
 
@@ -167,12 +168,15 @@ npm run net:check
 npm run tools:prepare              # 从本机缓存收集 rcedit + NSIS（约 3MB，随纸间分发）
 npm run export:acceptance          # 两套工程走 GUI 导出 + 真机游玩验收
 npm run export:acceptance:packaged # 已打包的纸间再跑一遍
+npm run interaction:acceptance     # 播放器交互：5 个载体上的真实鼠标手势
 ```
 
 - 发行设置是**工程内容**：跟着保存、另存为、备份与撤销走；旧工程缺字段时用默认值，HTML 导出不受影响。
 - 运行时不另外下载：直接复用正在运行的 Electron；rcedit / NSIS 随纸间分发在 `resources/toolchain`，ZIP 导出可完全离线。
 - 每个作品有稳定的发行标识，存档在 `%APPDATA%\PaperVNStudio-Game-<标识>`；同名不同工程也不会共用存档。
 - 构建在子进程里跑，界面不卡；可以取消，失败或取消都不会动已有产物。
+- 玩家端禁选区：标题页、舞台、台词、选项与菜单不出蓝色选区，立绘和背景不可拖成缩略图；设置面板的滑块与输入框照常可用。规则只挂在共享播放器的结构容器上，所以编辑器试玩、完整预览、HTML、ZIP、单文件行为一致；编辑器创作模式仍可选中台词、拖动素材。
+- 点击与拖动分开：按住拖动超过 8px 不推进剧情，避免拖选时无故跳句。
 
 细节、两套工程的实测结果与已知限制见 `docs/V0.7.2_GAME_EXPORT.md`，界面截图在 `docs/screenshots/`。
 
@@ -197,7 +201,7 @@ npm run game:acceptance   # 解压 ZIP 跑真实 EXE，并单独验收单文件�
 
 ## 当前状态
 
-- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复、V0.6.2 内置示例与标题背景、V0.7《晚风》正式版（图标、版本信息、双形态、签名管线）、V0.7.2 通用独立游戏导出（发行设置、图标、ZIP / 单文件、离线构建组件）。
+- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复、V0.6.2 内置示例与标题背景、V0.7《晚风》正式版（图标、版本信息、双形态、签名管线）、V0.7.2 通用独立游戏导出（发行设置、图标、ZIP / 单文件、离线构建组件）与播放器交互修复（禁选、禁拖、点击/拖动分离）。
 - 未开始：NSIS 安装包、真实证书签名（等证书）、多槽存档、剧情变量、AI 辅助、自动更新、macOS / Linux 导出。
 - 打包好的 Windows 产物在 [Releases](https://github.com/hjw200775-ops/PaperVNStudio/releases) 下载（便携版 / 安装包，附 SHA-256）；`release/` 本身是忽略目录，不随仓库分发。也可自行 `npm run build:win`。
 
