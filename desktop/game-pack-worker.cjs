@@ -168,6 +168,29 @@ function makePortable(job, runtimeRoot, exePath, outExe) {
   if (!fs.existsSync(outExe)) throw new Error('NSIS 没有产出单文件 EXE');
 }
 
+/* 目录版产物：整体搬到目标位置。同盘 rename 最快，跨盘退回复制再删。 */
+function moveTree(src, dst) {
+  fs.rmSync(dst, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(dst), { recursive: true });
+  try {
+    fs.renameSync(src, dst);
+  } catch {
+    fs.cpSync(src, dst, { recursive: true });
+    fs.rmSync(src, { recursive: true, force: true });
+  }
+}
+
+function treeBytes(dir) {
+  let total = 0, files = 0;
+  for (const n of fs.readdirSync(dir)) {
+    const abs = path.join(dir, n);
+    const st = fs.statSync(abs);
+    if (st.isDirectory()) { const sub = treeBytes(abs); total += sub.bytes; files += sub.files; }
+    else { total += st.size; files += 1; }
+  }
+  return { bytes: total, files };
+}
+
 function moveIntoPlace(tmpFile, finalFile) {
   try {
     fs.rmSync(finalFile, { force: true });
@@ -223,7 +246,13 @@ function run(job) {
   done(Date.now() - t0);
 
   let artifact;
-  if (job.type === 'zip') {
+  if (job.type === 'folder') {
+    t0 = Date.now();
+    stage('folder', 76);
+    moveTree(runtimeRoot, job.outPath);
+    done(Date.now() - t0);
+    artifact = job.outPath;
+  } else if (job.type === 'zip') {
     t0 = Date.now();
     stage('zip', 76);
     const tmpZip = path.join(job.workDir, 'out.zip');
@@ -242,13 +271,17 @@ function run(job) {
     artifact = job.outPath;
   }
 
-  const bytes = fs.statSync(artifact).size;
-  const probe = readPeSignature(job.type === 'zip' ? exePath : artifact);
+  const isDir = fs.statSync(artifact).isDirectory();
+  const bytes = isDir ? treeBytes(artifact).bytes : fs.statSync(artifact).size;
+  /* 目录版：产物是文件夹，PE 探测指向里面的 EXE。 */
+  const peTarget = isDir ? path.join(artifact, job.exeName) : (job.type === 'zip' ? exePath : artifact);
+  const probe = readPeSignature(peTarget);
   return {
     ok: true,
     artifact,
     bytes,
-    sha256: sha256(fs.readFileSync(artifact)),
+    /* 目录版没有单文件哈希：清单里记目录名与体积，逐文件哈希由 manifest 的资源表负责。 */
+    sha256: isDir ? null : sha256(fs.readFileSync(artifact)),
     exeName: job.exeName,
     stages: timings,
     signature: {

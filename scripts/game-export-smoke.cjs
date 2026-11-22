@@ -26,7 +26,7 @@ app.whenReady().then(async () => {
   });
   console.log('TOOLCHAIN', JSON.stringify(builder.toolchain(), null, 1));
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pvn-export-out-'));
-  const type = process.argv[2] === 'portable' ? 'portable' : 'zip';
+  const type = ['portable', 'folder'].includes(process.argv[2]) ? process.argv[2] : 'zip';
   try {
     const r = await builder.build({
       project, type, outDir, overwrite: true,

@@ -11,6 +11,8 @@
 - 不随意格式化全部紧凑源码；如果整理结构，单独提交并验证行为一致。
 - 保留网页预览和独立 HTML 游戏导出。
 - 不把桌面封装、安装包构建与真实 Windows 验收混为一谈。
+- 独立游戏同样资源分离：`content/index.html` 只放播放器与剧情数据，图片/音频落 `content/assets/<sha256>.<ext>`，页面用 `papergame://game/assets/...` 读。壳协议只放行 index.html 与 assets 白名单，别开任意路径。先按 `referencedImageIds`/`referencedAudioIds` 裁剪再写盘。
+- 工程格式仍是 data URI 内嵌：素材超过约 300MB 会在 `JSON.stringify` 或单图 12MB 上限处失败。要支持更大体量得先拆工程格式（下一轮），不要靠调大 `MAX_CONTENT_BYTES`。
 - 完整预览走「会话目录 + pvres://」：渲染进程只传工程对象，主进程把 data URI 落成内容寻址文件，HTML 里资源是 URL。**不要退回把整份 HTML 传进 IPC**——那会让素材量直接变成 HTML 体积。协议 handler 必须校验会话与路径，HTML 要带 CSP。
 - 会话目录 `userData/preview-sessions/s-<id>/`：窗口 closed 即删，启动时清一次；不要写进用户工程目录。
 - 导出时图片与音频都按引用收（`referencedImageIds` / `referencedAudioIds`），只在产物里排除，不动工程素材。

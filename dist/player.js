@@ -236,7 +236,8 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory){
 let titleBgOk=false;
 function applyTitleBackground(){
  const a=P.titleBackground?(P.assets||[]).find(x=>x.id===P.titleBackground):null;
- titleBgOk=!!(a&&typeof a.data==='string'&&/^data:image\//.test(a.data));
+ /* 背景可能是内嵌 data URI，也可能是包内资源协议（papergame:// / pvres://）。 */
+ titleBgOk=!!(a&&typeof a.data==='string'&&/^(data:image\/|(papergame|pvres):\/\/)/.test(a.data));
  const sec=E('titleScreen'),box=E('titleBg'),img=E('titleBgImg'),note=E('titleBgNote');
  if(box)box.hidden=!titleBgOk;
  if(img&&titleBgOk)img.src=a.data;   /* 缺图时容器整体隐藏，不保留半张图 */

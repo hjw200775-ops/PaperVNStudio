@@ -47,7 +47,7 @@ const APP_URL = SCHEME + '://game/index.html';
  * script-src 的 'unsafe-inline' 是「单文件、零请求」的实现代价：导出的播放器把
  * player.js 与工程数据内联在同一个 <script> 里，页面来源固定，注入面不随内容变化。 */
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
-  "img-src data:; media-src data:; font-src data:; connect-src 'none'; " +
+  "img-src 'self' data:; media-src 'self' data:; font-src data:; connect-src 'none'; " +
   "base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'";
 
 /* 每个作品一个独立目录：%APPDATA%\PaperVNStudio-Game-<releaseId>。
@@ -92,30 +92,48 @@ if (!app.requestSingleInstanceLock()) {
   app.on('web-contents-created', (_event, contents) => harden(contents));
 }
 
+/* 只服务包内 content/ 的白名单文件：index.html 与 assets 下的图片/音频。
+   路径先规范化再判断前缀，`..` 无法逃出 content；没有任意文件读取。 */
+const ASSET_TYPES = {
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
+  '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac', '.flac': 'audio/flac', '.webm': 'audio/webm'
+};
+
 function registerContentProtocol() {
   protocol.handle(SCHEME, async request => {
     let url;
     try { url = new URL(request.url); } catch { return new Response('Bad request', { status: 400 }); }
-    if (url.host !== 'game' || url.pathname !== '/index.html') {
-      return new Response('Not found', { status: 404 });
+    if (url.host !== 'game') return new Response('Not found', { status: 404 });
+
+    const rel = decodeURIComponent(url.pathname).replace(/^\/+/, '');
+    const isHtml = rel === 'index.html';
+    const isAsset = rel.startsWith('assets/') && !rel.includes('..') && !rel.includes('\\');
+    if (!isHtml && !isAsset) return new Response('Not found', { status: 404 });
+
+    const contentRoot = path.join(APP_DIR, 'content');
+    const abs = path.resolve(contentRoot, ...rel.split('/'));
+    if (abs !== contentRoot && !abs.startsWith(contentRoot + path.sep)) {
+      return new Response('Forbidden', { status: 403 });
     }
+
     let body;
     try {
-      body = fs.readFileSync(CONTENT_FILE);
+      body = fs.readFileSync(abs);
     } catch (e) {
       lastError = e.message;
-      return new Response('游戏内容缺失：content/index.html', { status: 500 });
+      return new Response(isHtml ? '游戏内容缺失：content/index.html' : '资源缺失：' + rel, { status: 500 });
     }
-    return new Response(new Uint8Array(body), {
-      status: 200,
-      headers: {
-        'content-type': 'text/html; charset=utf-8',
-        'content-security-policy': CSP,
-        'x-content-type-options': 'nosniff',
-        'referrer-policy': 'no-referrer',
-        'cache-control': 'no-store'
-      }
-    });
+
+    const ext = path.extname(abs).toLowerCase();
+    const headers = {
+      'content-type': isHtml ? 'text/html; charset=utf-8' : (ASSET_TYPES[ext] || 'application/octet-stream'),
+      'x-content-type-options': 'nosniff',
+      'referrer-policy': 'no-referrer',
+      'cache-control': 'no-store'
+    };
+    if (isHtml) headers['content-security-policy'] = CSP;
+    return new Response(new Uint8Array(body), { status: 200, headers });
   });
 }
 

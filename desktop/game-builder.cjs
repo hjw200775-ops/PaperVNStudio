@@ -60,6 +60,31 @@ function numericVersion(v) {
   return parts.join('.');
 }
 
+/* data URI → content/assets 下的内容寻址文件，返回 papergame:// 地址。
+   同一内容只写一次，避免重复素材把包撑大。 */
+function encodedBytes(s) {
+  if (typeof s !== 'string') return 0;
+  const i = s.indexOf('base64,');
+  return i < 0 ? s.length : Math.floor((s.length - i - 7) * 3 / 4);
+}
+
+function writeContentAsset(contentDir, sub, data) {
+  const m = /^data:([a-z0-9.+/-]+);base64,([\s\S]+)$/i.exec(String(data || ''));
+  if (!m) throw new Error('素材格式无效：只接受内嵌 data URI');
+  const buf = Buffer.from(m[2], 'base64');
+  if (!buf.length) throw new Error('素材为空');
+  const hash = require('node:crypto').createHash('sha256').update(buf).digest('hex');
+  const ext = {
+    'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
+    'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
+    'audio/wave': 'wav', 'audio/mp4': 'm4a', 'audio/aac': 'aac', 'audio/flac': 'flac', 'audio/webm': 'webm'
+  }[m[1].toLowerCase()];
+  if (!ext) throw new Error('不支持的素材类型：' + m[1]);
+  const abs = path.join(contentDir, sub, hash + '.' + ext);
+  if (!fs.existsSync(abs)) fs.writeFileSync(abs, buf);
+  return 'papergame://game/' + sub + '/' + hash + '.' + ext;
+}
+
 function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
   const core = require(path.join(repoRoot, 'dist', 'core.js'))();
   const { buildPlayerHTML } = require(path.join(repoRoot, 'dist', 'game-html.js'));
@@ -227,7 +252,7 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
   async function build(opts, deps) {
     const { nativeImage } = deps;
     const project = opts.project;
-    const type = opts.type === 'portable' ? 'portable' : 'zip';
+    const type = ['portable', 'folder'].includes(opts.type) ? opts.type : 'zip';
     const outDir = path.resolve(String(opts.outDir || ''));
     const cancelled = opts.isCancelled || (() => false);
     const startedAt = Date.now();
@@ -256,7 +281,8 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
     fs.mkdirSync(outDir, { recursive: true });
 
     const settings = resolveSettings(project);
-    const targetFile = path.join(outDir, settings.fileBase + (type === 'zip' ? '-独立试玩包.zip' : '-单文件便携版.exe'));
+    const suffix = type === 'zip' ? '-独立试玩包.zip' : (type === 'portable' ? '-单文件便携版.exe' : '-独立游戏');
+    const targetFile = path.join(outDir, settings.fileBase + suffix);
     if (fs.existsSync(targetFile) && !opts.overwrite) {
       const err = new Error('目标文件已存在：' + targetFile);
       err.code = 'EEXIST_TARGET';
@@ -273,27 +299,62 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
 
       checkCancel();
       done = step('content', 8);
+      const contentDir = path.join(pkgDir, 'content');
+      fs.mkdirSync(path.join(contentDir, 'assets', 'images'), { recursive: true });
+      fs.mkdirSync(path.join(contentDir, 'assets', 'audio'), { recursive: true });
       let html;
-      /* 导出报告：只把被剧情/标题界面引用的音源打进包里，清单里记下包含与排除。 */
-      const audioReport = {};
+      /* 资源分离：素材逐个落到 content/assets，HTML 只留播放器与剧情数据。
+         图片/音频用 papergame://game/assets/... 读取，不再拼成巨型 Base64。 */
+      const report = {};
       try {
-        /* 游戏里显示「游戏名称」，不是工程内部标题；存档标识仍是工程 id。 */
-        html = buildPlayerHTML(Object.assign({}, project, { title: settings.title }), undefined, audioReport);
+        /* 先按引用裁剪再落盘：未引用的备用素材不进包，工程里仍然保留。 */
+        const C = require(path.join(repoRoot, 'dist', 'core.js'))();
+        const keepImg = new Set(C.referencedImageIds(project));
+        const keepAudio = new Set(C.referencedAudioIds(project));
+        const allImages = project.assets || [];
+        const allAudio = project.audioAssets || [];
+        const usedImages = allImages.filter(a => keepImg.has(a.id));
+        const usedAudio = allAudio.filter(a => keepAudio.has(a.id));
+
+        const external = Object.assign({}, project, { title: settings.title });
+        external.assets = usedImages.map(a => Object.assign({}, a, {
+          data: writeContentAsset(contentDir, 'assets/images', a.data)
+        }));
+        external.audioAssets = usedAudio.map(a => Object.assign({}, a, {
+          data: writeContentAsset(contentDir, 'assets/audio', a.data)
+        }));
+        html = buildPlayerHTML(external, undefined, report, { mode: 'external' });
+
+        /* 统计按「素材库 → 实际打包 → 排除」记账，供 manifest 与验收对照。 */
+        const bytesOf = list => list.reduce((s, a) => s + encodedBytes(a && a.data), 0);
+        report.resources = {
+          mode: 'external',
+          images: { library: allImages.length, included: usedImages.length, excluded: allImages.length - usedImages.length,
+            bytes: { library: bytesOf(allImages), included: bytesOf(usedImages), excluded: bytesOf(allImages) - bytesOf(usedImages) } },
+          audio: { library: allAudio.length, included: usedAudio.length, excluded: allAudio.length - usedAudio.length,
+            bytes: { library: bytesOf(allAudio), included: bytesOf(usedAudio), excluded: bytesOf(allAudio) - bytesOf(usedAudio) } },
+          dataBytes: Buffer.byteLength(html, 'utf8')
+        };
       } catch (e) {
         throw new Error('生成播放器内容失败：' + e.message);
       }
-      if (!html || html.length > MAX_CONTENT_BYTES) throw new Error('游戏内容过大或为空');
-      done('内容 ' + mb(Buffer.byteLength(html)));
+      if (!html || !html.length) throw new Error('游戏内容为空');
+      /* 64MB 只约束「播放器 + 剧情数据」，素材不再进 HTML，不会因为美术量撞墙。 */
+      if (html.length > MAX_CONTENT_BYTES) {
+        throw new Error('播放器页面仍然过大（' + mb(html.length) + '），请检查剧情数据是否异常');
+      }
+      const audioReport = report;
 
       checkCancel();
       done = step('stage', 14);
-      fs.mkdirSync(path.join(pkgDir, 'content'), { recursive: true });
-      fs.writeFileSync(path.join(pkgDir, 'content', 'index.html'), html, 'utf8');
-      fs.writeFileSync(path.join(pkgDir, 'content', 'game.json'), JSON.stringify({
+      fs.writeFileSync(path.join(contentDir, 'index.html'), html, 'utf8');
+      fs.writeFileSync(path.join(contentDir, 'game.json'), JSON.stringify({
         title: settings.title,
         appId: 'cn.papervnstudio.game.' + settings.releaseId,
         releaseId: settings.releaseId,
-        window: settings.window
+        window: settings.window,
+        format: 'papervn-game-folder',
+        formatVersion: 1
       }, null, 2) + '\n', 'utf8');
       fs.copyFileSync(path.join(repoRoot, 'desktop', 'game-shell', 'main.cjs'), path.join(pkgDir, 'main.cjs'));
       fs.writeFileSync(path.join(pkgDir, 'package.json'), JSON.stringify({
@@ -336,7 +397,9 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
       const bytes = workerResult.bytes;
       const manifest = {
         format: 'papervn-game-package',
-        formatVersion: 3,
+        formatVersion: 4,
+        /* 产物形态：folder（目录）/ zip / portable，资源都是分离存放的。 */
+        exportMode: type,
         game: {
           title: settings.title, author: settings.author || '', version: settings.version,
           copyright: settings.copyright, releaseId: settings.releaseId,
@@ -350,7 +413,8 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
         platform: 'win32-x64',
         type,
         entry: { exe: job.exeName, relativeTo: settings.fileBase },
-        artifact: { file: path.basename(workerResult.artifact), bytes, sizeLabel: mb(bytes), sha256: workerResult.sha256 },
+        artifact: { file: path.basename(workerResult.artifact), bytes, sizeLabel: mb(bytes),
+          sha256: workerResult.sha256 || null, kind: type === 'folder' ? 'directory' : 'file' },
         /* 导出报告：哪些 BGM 进了包、哪些留在工程素材库。 */
         audio: audioReport.audio || null,
         signature: workerResult.signature,
@@ -364,7 +428,10 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
         builtAt: new Date().toISOString(),
         builtOn: os.platform() + '-' + os.arch()
       };
-      const manifestPath = workerResult.artifact.replace(/\.(zip|exe)$/i, '.manifest.json');
+      /* 目录版没有扩展名可替换，清单放在同级目录旁。 */
+      const manifestPath = type === 'folder'
+        ? path.join(path.dirname(workerResult.artifact), path.basename(workerResult.artifact) + '.manifest.json')
+        : workerResult.artifact.replace(/\.(zip|exe)$/i, '.manifest.json');
       fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
       progress('done', 100, '完成');
       return {

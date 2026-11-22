@@ -67,7 +67,9 @@ for (let i = 0; i < COUNT; i++) {
 }
 
 /* 7 位角色，31 张立绘里前 24 张做成表情；其余留在素材库但不引用。 */
-const charAssets = assets.filter(a => a.kind === 'char');
+/* 图少于 19 张时没有立绘，退回用背景图当立绘，保证工程结构仍然完整。 */
+const charPool = assets.filter(a => a.kind === 'char');
+const charAssets = charPool.length ? charPool : assets;
 for (let c = 0; c < 7; c++) {
   const from = c * 4;
   const expressions = [];
@@ -84,7 +86,7 @@ const chapters = [];
 const paragraph = { id: 'pg_big', title: '大型工程段落', collapsed: false };
 const nodes = [];
 for (let i = 0; i < NODES; i++) {
-  const bg = assets[i % 19];
+  const bg = assets[i % assets.length];
   const ch = charAssets[(i * 3) % Math.min(24, charAssets.length)];
   const node = {
     id: 'big_n' + String(i + 1).padStart(3, '0'),
