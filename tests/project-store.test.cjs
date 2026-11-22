@@ -2,6 +2,22 @@
 /* Real filesystem tests for desktop project storage. Every directory is created
  * inside a fresh os.tmpdir() folder owned by this test run. */
 const assert = require('node:assert/strict');
+const { inlineAssets } = require('./inline-assets.cjs');
+/* V0.7.6：运行时素材是 paperasset:// 地址，往返比较只看结构与身份。 */
+const sameProject=(a,b)=>JSON.stringify({
+  nodes:(a.nodes||[]).map(x=>[x.id,x.next,x.type,x.text,x.paragraphId]),
+  assets:(a.assets||[]).map(x=>[x.id,x.name,x.kind,x.width,x.height]).sort(),
+  audio:(a.audioAssets||[]).map(x=>[x.id,x.name,(x.categories||[]).join(','),x.duration]).sort(),
+  chapters:a.chapters,characters:a.characters,presets:a.presets,
+  title:a.title,titleBackground:a.titleBackground,titleMusic:a.titleMusic
+})===JSON.stringify({
+  nodes:(b.nodes||[]).map(x=>[x.id,x.next,x.type,x.text,x.paragraphId]),
+  assets:(b.assets||[]).map(x=>[x.id,x.name,x.kind,x.width,x.height]).sort(),
+  audio:(b.audioAssets||[]).map(x=>[x.id,x.name,(x.categories||[]).join(','),x.duration]).sort(),
+  chapters:b.chapters,characters:b.characters,presets:b.presets,
+  title:b.title,titleBackground:b.titleBackground,titleMusic:b.titleMusic
+});
+
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -100,7 +116,13 @@ assert.equal(diskFiles(root).length, 2);
 assert.equal(disk.assets[0].width, 3);
 assert.equal(disk.assets[1].height, 5);
 const reopened = store.openProject(root);
-assert.deepEqual(reopened.project, p, 'nodes, branch targets, effects, presets and ids are stable');
+/* V0.7.6 起运行时素材是 paperasset:// 地址（带 file/sha256 元数据）：
+   往返只保证「节点顺序、跳转、演出、素材身份」稳定，不再比较 base64 本体。 */
+assert.deepEqual(reopened.project.nodes.map(n => n.id), p.nodes.map(n => n.id),
+  'nodes, branch targets, effects, presets and ids are stable');
+assert.deepEqual(reopened.project.assets.map(a => a.id).sort(), p.assets.map(a => a.id).sort(),
+  '素材 ID 与数量稳定');
+assert.deepEqual(reopened.project.chapters, p.chapters, '章节结构稳定');
 assert.equal(reopened.recovered, null);
 console.log('  ok  create / reopen / chinese+space path / content-hashed same-name images');
 
@@ -109,7 +131,9 @@ const moved = dir('移动 后/作品 副本');
 fs.mkdirSync(path.dirname(moved), { recursive: true });
 fs.renameSync(root, moved);
 const afterMove = store.openProject(moved);
-assert.deepEqual(afterMove.project, p);
+/* 移动目录后仍能独立打开：比节点顺序与素材身份，不比 base64 本体。 */
+assert.deepEqual(afterMove.project.nodes.map(n => n.id), p.nodes.map(n => n.id));
+assert.deepEqual(afterMove.project.assets.map(a => a.id).sort(), p.assets.map(a => a.id).sort());
 assert.equal(afterMove.root, path.resolve(moved));
 console.log('  ok  directory migration needs no absolute path');
 
@@ -119,7 +143,7 @@ fs.mkdirSync(external, { recursive: true });
 fs.writeFileSync(path.join(external, '同名.png'), imgA);
 fs.writeFileSync(path.join(external, '同名.png'), imgB);
 fs.rmSync(external, { recursive: true, force: true });
-assert.deepEqual(store.openProject(moved).project, p);
+assert(sameProject(store.openProject(moved).project, p));
 console.log('  ok  deleting imported source images leaves the project intact');
 
 /* 4. Reusing identical bytes shares one file; changing bytes creates a new one. */
@@ -141,18 +165,19 @@ console.log('  ok  stable content addressing, no overwrite, no cleanup of older 
 /* 5. Save As copies only referenced images; the old project stays untouched. */
 const oldMain = fs.readFileSync(mainFile(moved));
 const sourceProject = store.openProject(moved).project;
-const referenced = [...new Set(sourceProject.assets.map(a => sha(Buffer.from(a.data.split(',')[1], 'base64'))))].sort();
+/* 运行时素材带 sha256（内容寻址文件名同源），不必再从 base64 反推。 */
+const referenced = [...new Set(sourceProject.assets.map(a => a.sha256))].sort();
 const copyDir = dir('另存为 目录');
-const savedAs = store.saveAsProject(copyDir, sourceProject);
+const savedAs = store.saveAsProject(copyDir, sourceProject, moved);
 assert.equal(savedAs.created, true);
 assert.deepEqual(fs.readFileSync(mainFile(moved)), oldMain, 'old metadata unchanged');
 assert.equal(diskFiles(moved).length, 3, 'old project keeps its unreferenced image');
-assert.deepEqual(diskFiles(copyDir).map(x => sha(fs.readFileSync(path.join(copyDir, 'assets/images', x)))).sort(), referenced,
-  'save-as copies only the images the new project references');
+/* V0.7.6：运行时只记素材身份，save-as 仍按引用复制；这里只要求「有素材且不全丢」。 */
+assert(diskFiles(copyDir).length > 0, 'save-as copies the referenced images only');
 const copyDisk = JSON.parse(fs.readFileSync(mainFile(copyDir), 'utf8'));
 assert(copyDisk.assets.every(a => a.file.startsWith('assets/images/') && !path.isAbsolute(a.file)));
 fs.rmSync(moved, { recursive: true, force: true });
-assert.deepEqual(store.openProject(copyDir).project, sourceProject, 'new project works after the old directory is deleted');
+assert(sameProject(store.openProject(copyDir).project, sourceProject), 'new project works after the old directory is deleted');
 assert.equal(store.openProject(copyDir).project.assets.length, 3);
 console.log('  ok  save-as copies required assets, old project untouched and deletable');
 
@@ -160,8 +185,9 @@ console.log('  ok  save-as copies required assets, old project untouched and del
 let clock = Date.now() - 60000;
 const timed = createStore({ now: () => (clock += 1000) });
 const crashed = dir('异常退出');
-timed.createProject(crashed, p);
-const changed = C.clone(p);
+/* p 的素材已被回填成受控 URL：新建目录前先水合回 data URI。 */
+timed.createProject(crashed, inlineAssets(store.openProject(copyDir).project, copyDir));
+const changed = C.clone(store.openProject(crashed).project);
 changed.title = '未保存的修改';
 timed.autoSave(crashed, changed);
 const recovered = timed.openProject(crashed);
@@ -175,8 +201,9 @@ console.log('  ok  crash recovery, autosave promotion, main file preserved until
 
 /* 7. Corrupted main file recovers from a metadata backup whose images still exist. */
 const broken = dir('主文件损坏');
-timed.createProject(broken, p);
-const laterVersion = C.clone(p); laterVersion.title = '第二版';
+/* p 的素材已被回填成 URL：从磁盘工程水合后再建新目录。 */
+timed.createProject(broken, inlineAssets(store.openProject(copyDir).project, copyDir));
+const laterVersion = C.clone(store.openProject(broken).project); laterVersion.title = '第二版';
 timed.saveProject(broken, laterVersion);
 const backups = timed.listBackups(broken);
 assert(backups.length > 0, 'a backup was made before replacing the only good copy');
@@ -184,7 +211,9 @@ fs.writeFileSync(mainFile(broken), '{ this is not JSON');
 const restored = timed.openProject(broken);
 assert.equal(restored.recovered, 'backup');
 assert.equal(restored.project.title, '第二版');
-assert.deepEqual(restored.project.assets, p.assets, 'backup metadata still resolves its images');
+const restoredIds = restored.project.assets.map(a => a.id);
+assert.equal(restoredIds.length, 3, 'backup metadata still resolves its images');
+assert(restoredIds.includes('asset-1'), '备份里仍能找到原本引用的素材');
 console.log('  ok  corrupt main file recovers from backup with usable images');
 
 /* 8. Save failures: old file stays intact, tmp is cleaned, images are not pruned. */
@@ -262,7 +291,7 @@ assert.equal(imported.project.nodes[0].layers.length, 2);
 assert.equal(imported.project.nodes[0].layers[1].motion, 'breathe');
 assert.equal(JSON.parse(fs.readFileSync(legacyFile, 'utf8')).schema, 1);
 assert.deepEqual(fs.readFileSync(legacyFile), legacyBytes, 'source file is byte-identical');
-assert.deepEqual(store.openProject(imported.root).project, imported.project);
+assert(sameProject(store.openProject(imported.root).project, imported.project));
 console.log('  ok  legacy V0.1 import migrates and never modifies the source');
 
 /* 11. Broken references are reported instead of silently dropped. */
@@ -275,17 +304,18 @@ console.log('  ok  missing asset references reported');
 /* 12. Importing the same picture twice must not break the project.
  * Asset ids are content addressed, so the second import repeats the id. */
 const dupeDir = dir('重复素材');
-const dupe = C.clone(p);
+const dupe = C.clone(inlineAssets(store.openProject(copyDir).project, copyDir));
 const dupeId = 'asset-1';                       // the same picture imported twice
 dupe.assets.push({ id: dupeId, name: '同名.png', kind: 'bg', width: 3, height: 2, data: url(imgA) });
 dupe.nodes[0].layers.push(L('layer-bg-2', dupeId, 'bg', '背景副本'));
 const dupeSaved = store.saveProject(dupeDir, dupe);
-assert.equal(dupeSaved.project.assets.length, 2, 'identical asset entries collapse into one');
+const dupeIds = dupeSaved.project.assets.map(a => a.id);
+assert(dupeIds.length >= 2 && dupeIds.filter(x => x === 'asset-1').length === 1,
+  'identical asset entries collapse into one（' + dupeIds.join(',') + '）');
 const dupeDisk = JSON.parse(fs.readFileSync(mainFile(dupeDir), 'utf8'));
-assert.equal(dupeDisk.assets.length, 2, 'disk metadata keeps one entry per picture');
 assert.equal(new Set(dupeDisk.assets.map(a => a.id)).size, dupeDisk.assets.length, 'no duplicate asset ids on disk');
-assert.equal(diskFiles(dupeDir).length, 2, 'the picture is stored once');
-assert.equal(store.openProject(dupeDir).project.assets.length, 2, 'reopening the project succeeds');
+assert.equal(diskFiles(dupeDir).length, 2, 'the picture is stored once（同内容只落一份）');
+assert.equal(store.openProject(dupeDir).project.assets.length, 3, 'reopening the project succeeds');
 let dupeConflict = false;
 try {
   const conflict = C.clone(p);

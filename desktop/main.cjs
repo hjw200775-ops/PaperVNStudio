@@ -28,7 +28,7 @@ const gameBuilder = createGameBuilder({
 });
 let exportJob = null;
 const APP_URL = 'paper://app/index.html';
-const CSP = "default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'";
+const CSP = "default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: paperasset:; media-src 'self' data: blob: paperasset:; font-src 'self' data:; connect-src 'self' paperasset:; object-src 'none'; base-uri 'none'; form-action 'none'";
 const ALLOWED = {
   '/index.html': 'text/html; charset=utf-8',
   '/style.css': 'text/css; charset=utf-8',
@@ -49,6 +49,10 @@ protocol.registerSchemesAsPrivileged([{
   /* 预览会话专用：只服务当前会话目录里的资源，按需读取，不再把素材塞进 HTML。 */
   scheme: 'pvres',
   privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: false }
+}, {
+  /* 编辑器运行时素材：paperasset://project/assets/... 只读当前工程目录下的内容寻址文件。 */
+  scheme: 'paperasset',
+  privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: false }
 }]);
 app.enableSandbox();
 
@@ -67,17 +71,30 @@ function previewProgress(payload) {
 
 /* data URI 落成会话目录下的内容寻址文件，返回 pvres:// 地址（同一内容只写一次）。 */
 function writePreviewAsset(dir, sessionId, data) {
-  const m = /^data:([a-z0-9.+/-]+);base64,([\s\S]+)$/i.exec(String(data || ''));
-  if (!m) throw new Error('预览资源格式无效：只接受内嵌 data URI');
-  const buf = Buffer.from(m[2], 'base64');
+  const raw = String(data || '');
+  let buf, ext;
+  if (/^paper:\/\/app\/asset\//i.test(raw)) {
+    /* 运行时素材已经是磁盘文件：直接读，避免再把整张图 base64 一次。 */
+    const rel = raw.replace(/^paper:\/\/app\/asset\//i, '');
+    if (!state.currentDir) throw new Error('当前工程目录不可用，无法读取素材');
+    const root = path.resolve(state.currentDir);
+    const abs = path.resolve(root, ...rel.split('/'));
+    if (!abs.startsWith(root + path.sep)) throw new Error('素材路径越界：' + rel);
+    buf = fs.readFileSync(abs);
+    ext = path.extname(abs).slice(1).toLowerCase();
+  } else {
+    const m = /^data:([a-z0-9.+/-]+);base64,([\s\S]+)$/i.exec(raw);
+    if (!m) throw new Error('预览资源格式无效：只接受内嵌 data URI 或受控素材地址');
+    buf = Buffer.from(m[2], 'base64');
+    ext = {
+      'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
+      'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
+      'audio/wave': 'wav', 'audio/mp4': 'm4a', 'audio/aac': 'aac', 'audio/flac': 'flac', 'audio/webm': 'webm'
+    }[m[1].toLowerCase()];
+  }
+  if (!ext) throw new Error('预览不支持的资源类型');
   if (!buf.length) throw new Error('预览资源为空');
   const hash = require('node:crypto').createHash('sha256').update(buf).digest('hex');
-  const ext = {
-    'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
-    'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
-    'audio/wave': 'wav', 'audio/mp4': 'm4a', 'audio/aac': 'aac', 'audio/flac': 'flac', 'audio/webm': 'webm'
-  }[m[1].toLowerCase()];
-  if (!ext) throw new Error('预览不支持的资源类型：' + m[1]);
   const rel = 'assets/' + hash + '.' + ext;
   const abs = path.join(dir, 'assets', hash + '.' + ext);
   if (!fs.existsSync(abs)) fs.writeFileSync(abs, buf);
@@ -340,7 +357,7 @@ function registerIPC() {
     if (!dir) {
       dir = await chooseDirectory('为工程选择一个目录');
       if (!dir) return reply({ cancelled: true });
-      const result = store.saveAsProject(dir, p);
+      const result = store.saveAsProject(dir, p, state.currentDir);
       track(result.root, result.project.title);
     } else {
       const result = store.saveProject(dir, p);
@@ -353,7 +370,7 @@ function registerIPC() {
   handle('project:saveAs', async p => {
     const dir = await chooseDirectory('另存为：选择新的空白工程目录');
     if (!dir) return reply({ cancelled: true });
-    const result = store.saveAsProject(dir, p);
+    const result = store.saveAsProject(dir, p, state.currentDir);
     track(result.root, result.project.title);   // old project directory untouched
     state.dirty = false;
     return stateSnapshot({ saved: true, cancelled: false });
@@ -703,6 +720,8 @@ function registerIPC() {
       }
       const buildPromise = gameBuilder.build({
         project, type, outDir, overwrite,
+        /* 运行时素材是 paperasset:// 地址，构建器需要工程根目录来读取原文件。 */
+        projectRoot: state.currentDir,
         onProgress: p => {
           if (win && !win.isDestroyed()) win.webContents.send('game:exportProgress', Object.assign({ token }, p));
         },
@@ -853,12 +872,65 @@ app.whenReady().then(() => {
     try {
       const url = new URL(request.url);
       if (url.host !== 'app') return new Response('Forbidden', { status: 403 });
+      /* 工程素材挂在同一个 paper:// 源下：同源读取，CSP 的 'self' 直接放行，
+         不引入跨 scheme 的加载问题。路径仍限定内容寻址文件。 */
+      if (url.pathname.startsWith('/asset/')) {
+        if (!state.currentDir) return new Response('Not found', { status: 404 });
+        const rel = decodeURIComponent(url.pathname.slice(7));
+        if (!/^assets\/(images|audio)\/[a-f0-9]{64}\.[a-z0-9]+$/i.test(rel)) {
+          return new Response('Not found', { status: 404 });
+        }
+        const root = path.resolve(state.currentDir);
+        const abs = path.resolve(root, ...rel.split('/'));
+        if (!abs.startsWith(root + path.sep)) return new Response('Forbidden', { status: 403 });
+        if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return new Response('Not found', { status: 404 });
+        const ext = path.extname(abs).toLowerCase();
+        const mime = {
+          '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
+          '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
+          '.aac': 'audio/aac', '.flac': 'audio/flac', '.webm': 'audio/webm'
+        }[ext] || 'application/octet-stream';
+        return new Response(new Uint8Array(fs.readFileSync(abs)), {
+          status: 200,
+          headers: { 'content-type': mime, 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' }
+        });
+      }
+
       const type = ALLOWED[url.pathname];
       if (!type) return new Response('Not found', { status: 404 });
       const body = fs.readFileSync(path.join(DIST, url.pathname.slice(1)));
       return new Response(new Uint8Array(body), {
         status: 200,
         headers: { 'content-type': type, 'content-security-policy': CSP, 'x-content-type-options': 'nosniff', 'cache-control': 'no-store' }
+      });
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+  });
+
+  /* 编辑器素材：只服务「当前工程目录/assets/(images|audio)/<64位哈希>.<ext>」。
+     文件按内容命名，天然不可变，可以长缓存；路径规范化后再校验前缀，出不去工程目录。 */
+  protocol.handle('paperasset', request => {
+    try {
+      const url = new URL(request.url);
+      if (url.host !== 'project' || !state.currentDir) return new Response('Not found', { status: 404 });
+      const rel = decodeURIComponent(url.pathname).replace(/^\/+/, '');
+      if (!/^assets\/(images|audio)\/[a-f0-9]{64}\.[a-z0-9]+$/i.test(rel)) {
+        return new Response('Not found', { status: 404 });
+      }
+      const root = path.resolve(state.currentDir);
+      const abs = path.resolve(root, ...rel.split('/'));
+      if (!abs.startsWith(root + path.sep)) return new Response('Forbidden', { status: 403 });
+      if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return new Response('Not found', { status: 404 });
+      const ext = path.extname(abs).toLowerCase();
+      const type = {
+        '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
+        '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
+        '.aac': 'audio/aac', '.flac': 'audio/flac', '.webm': 'audio/webm'
+      }[ext] || 'application/octet-stream';
+      return new Response(new Uint8Array(fs.readFileSync(abs)), {
+        status: 200,
+        headers: { 'content-type': type, 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' }
       });
     } catch {
       return new Response('Not found', { status: 404 });

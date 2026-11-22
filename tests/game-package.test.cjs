@@ -5,6 +5,7 @@
  *   2. 游戏壳没有 preload、IPC、Node 集成，内容只来自内置示例；
  *   3. 自写 ZIP 写入器把中文名写成 UTF-8，并在别的机器解压后仍是同一个名字。 */
 const assert = require('node:assert/strict');
+const { inlineAssets } = require('./inline-assets.cjs');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -96,7 +97,7 @@ assert.equal(project.assets.length, 8);
    不得混入早期测试用的占位语音。 */
 const audioIds = (project.audioAssets || []).map(a => a.meta && a.meta.trackId).filter(Boolean);
 assert(audioIds.every(id => /^ost_0[1-6]_/.test(id)), '游戏包不得混入测试语音，只允许 OST 曲目');
-const html = buildPlayerHTML(project);
+const html = buildPlayerHTML(inlineAssets(project, sampleDir));
 const structural = html.slice(0, html.indexOf('<script>') + 8);
 assert(!/paper:\/\/|file:\/\/|https?:\/\//i.test(structural), '游戏内容不能引用协议 / 本机 / 远程地址');
 const embeddedAudio = (html.match(/data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]{64,}/gi) || []).length;

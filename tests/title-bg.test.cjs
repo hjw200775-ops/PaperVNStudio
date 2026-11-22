@@ -2,6 +2,7 @@
 /* V0.6.2 标题背景与内置示例：
    数据校验、存储往返（保存 / 重开 / 另存）、导出结构、模板完整性与复制契约。 */
 const assert = require('node:assert/strict');
+const { inlineAssets } = require('./inline-assets.cjs');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -75,7 +76,7 @@ function project() {
   assert.equal(reopened.project.titleBackground, 'bg1', '重开后保留');
 
   const again = tmp('saveas');
-  store.saveAsProject(again, reopened.project);
+  store.saveAsProject(again, reopened.project, dir);
   const third = store.openProject(again);
   assert.equal(third.project.titleBackground, 'bg1', '另存为后保留');
 
@@ -90,7 +91,7 @@ function project() {
 
 /* 4. 导出：标题背景随 HTML 内嵌，不出现本机路径 */
 {
-  const html = buildPlayerHTML(project());
+  const html = buildPlayerHTML(inlineAssets(project(), SAMPLE));
   assert(html.includes('id="titleBg"'), '导出骨架包含标题背景容器');
   assert(html.includes('id="titleBgImg"'), '标题图由程序渲染');
   assert(html.includes('data:image/png;base64,' + PNG), '素材内嵌');
@@ -166,7 +167,7 @@ function sha(buf) { return crypto.createHash('sha256').update(buf).digest('hex')
   })();
   const copy = JSON.parse(JSON.stringify(template));
   copy.id = C.id();
-  store.createProject(target, copy);
+  store.createProject(target, copy, SAMPLE);
   const reopened = store.openProject(target);
   assert.notEqual(reopened.project.id, template.id, '副本使用新的工程 ID');
   assert.equal(reopened.project.id, copy.id);

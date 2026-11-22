@@ -1,6 +1,6 @@
 {
   "name": "paper-vn-studio",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "private": true,
   "description": "纸间 PaperVNStudio — 视觉小说 / 文字冒险创作工具：Electron 桌面版与自包含 HTML 导出",
   "author": "wenwenwen817",
@@ -49,7 +49,9 @@
     "resources:report": "node scripts/resource-report.cjs",
     "make:large-project": "node scripts/make-large-project.cjs",
     "export:large": "node_modules/electron/dist/electron.exe scripts/export-large.cjs",
-    "game:folder-smoke": "node scripts/game-folder-smoke.cjs"
+    "game:folder-smoke": "node scripts/game-folder-smoke.cjs",
+    "assets:probe": "node scripts/cdp-probe.cjs",
+    "assets:save-probe": "node scripts/cdp-save-probe.cjs"
   },
   "engines": {
     "node": ">=20"

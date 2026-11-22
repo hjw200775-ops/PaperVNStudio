@@ -29,14 +29,18 @@ function createVNCore(){
     但旧版保存时会丢字段——这一点在 docs 里如实写明，不当成兼容承诺）。 */
  function toTitle(p){if(typeof p.titleBackground!=='string')p.titleBackground='';return p}
  function finish(p){return toPublish(toTitleMusic(toTitle(toAudio(p))))}
- function migrate(input){const p=clone(input);if(p.schema===5)return finish(p);if(p.schema===4)return finish(toV5(p));if(p.schema===2){p.schema=3;for(const n of p.nodes)n.effects=[];return finish(toV5(toV4(p)))}if(p.schema===3)return finish(toV5(toV4(p)));if(p.schema!==1)throw Error('不支持的工程版本');p.schema=2;p.id=id();p.presets=[];for(const n of p.nodes){n.sceneMode='own';n.layers=[];if(n.bg)n.layers.push({id:id(),asset:n.bg,name:'背景',kind:'bg',x:0,y:0,w:100,h:100,fit:'cover',opacity:100,hidden:false,locked:false,motion:'none'});if(n.char){const a=p.assets.find(a=>a.id===n.char);let h=n.scale||85,w=Math.min(90,h*9/16*((a?.width&&a?.height)?a.width/a.height:.65));n.layers.push({id:id(),asset:n.char,name:'角色立绘',kind:'char',x:n.align==='left'?4:n.align==='right'?96-w:50-w/2,y:100-h,w,h,fit:'contain',opacity:100,hidden:false,locked:false,motion:n.motion||'none',legacy:true})}delete n.bg;delete n.char;delete n.align;delete n.scale;delete n.motion;n.effects=[]}p.schema=3;return finish(toV5(toV4(p)))}
+ function migrate(input){
+  /* schema 5 已经是当前格式：原地归一即可，不再 clone。素材量大时整份深拷贝会
+     复制一份运行时对象，既慢又容易被单字符串上限卡住。 */
+  if(input&&input.schema===5)return finish(input);
+  const p=clone(input);if(p.schema===4)return finish(toV5(p));if(p.schema===2){p.schema=3;for(const n of p.nodes)n.effects=[];return finish(toV5(toV4(p)))}if(p.schema===3)return finish(toV5(toV4(p)));if(p.schema!==1)throw Error('不支持的工程版本');p.schema=2;p.id=id();p.presets=[];for(const n of p.nodes){n.sceneMode='own';n.layers=[];if(n.bg)n.layers.push({id:id(),asset:n.bg,name:'背景',kind:'bg',x:0,y:0,w:100,h:100,fit:'cover',opacity:100,hidden:false,locked:false,motion:'none'});if(n.char){const a=p.assets.find(a=>a.id===n.char);let h=n.scale||85,w=Math.min(90,h*9/16*((a?.width&&a?.height)?a.width/a.height:.65));n.layers.push({id:id(),asset:n.char,name:'角色立绘',kind:'char',x:n.align==='left'?4:n.align==='right'?96-w:50-w/2,y:100-h,w,h,fit:'contain',opacity:100,hidden:false,locked:false,motion:n.motion||'none',legacy:true})}delete n.bg;delete n.char;delete n.align;delete n.scale;delete n.motion;n.effects=[]}p.schema=3;return finish(toV5(toV4(p)))}
  function upgradeLayer(l){if(!l||typeof l!=='object')return l;if(typeof l.characterId!=='string')l.characterId='';if(typeof l.expressionId!=='string')l.expressionId='';return l}
  function toV4(p){p.schema=4;if(!Array.isArray(p.characters))p.characters=[];for(const n of p.nodes||[]){if(typeof n.speakerId!=='string')n.speakerId='';if(typeof n.expressionId!=='string')n.expressionId='';if(!Array.isArray(n.cast))n.cast=[];for(const l of n.layers||[])upgradeLayer(l)}for(const t of p.presets||[])for(const l of t.layers||[])upgradeLayer(l);return p}
  /* Schema 5 增加章节/段落分组。分组只补充「归属」与「显示结构」，不改 p.nodes
     的播放顺序：旧工程整体进入一个默认章节与默认段落，节点顺序、分支与演出原样保留。 */
  function toV5(p){p.schema=5;if(!Array.isArray(p.chapters))p.chapters=[];if(!p.chapters.length){p.chapters=[{id:'ch_'+id(),title:'第一章',collapsed:false,paragraphs:[{id:'pg_'+id(),title:'默认段落',collapsed:false}]}]}for(const c of p.chapters){if(typeof c.collapsed!=='boolean')c.collapsed=false;if(!Array.isArray(c.paragraphs))c.paragraphs=[]}const known=new Set(paragraphIds(p));const first=known.size?[...known][0]:'';for(const n of p.nodes||[]){if(typeof n.paragraphId!=='string'||!known.has(n.paragraphId))n.paragraphId=first}return p}
  function paragraphIds(p){const out=[];for(const c of p.chapters||[])for(const g of c.paragraphs||[])out.push(g.id);return out}
- function validate(p){if(!p||![1,2,3,4,5].includes(p.schema)||typeof p.title!=='string'||!Array.isArray(p.nodes)||!Array.isArray(p.assets))throw Error('不是有效的纸间工程');if(p.nodes.length>20000||p.assets.length>1000)throw Error('工程超过体验版限制');const ids=new Set();for(const n of p.nodes){if(!n||typeof n.id!=='string'||ids.has(n.id)||!['say','choice','end'].includes(n.type)||typeof n.name!=='string'||typeof n.text!=='string')throw Error('剧情节点格式错误');ids.add(n.id);if(n.next!=null&&typeof n.next!=='string')throw Error('跳转目标格式错误');if(n.type==='choice'&&(!Array.isArray(n.options)||n.options.length>100||n.options.some(o=>!o||typeof o.text!=='string'||typeof o.target!=='string')))throw Error('选项格式错误');if(p.schema>=3&&!Array.isArray(n.effects))throw Error('缺少演出列表');if(p.schema>=4&&(typeof n.speakerId!=='string'||typeof n.expressionId!=='string'||!Array.isArray(n.cast)||n.cast.length>20))throw Error('说话人绑定格式错误');if(p.schema>=5&&typeof n.paragraphId!=='string')throw Error('段落归属格式错误');if(p.schema>=2){if(!['own','inherit'].includes(n.sceneMode)||!Array.isArray(n.layers)||n.layers.length>100)throw Error('场景格式错误');checkLayers(n.layers)}}const aids=new Set();for(const a of p.assets){if(!a||typeof a.id!=='string'||aids.has(a.id)||typeof a.name!=='string'||!['bg','char'].includes(a.kind)||typeof a.data!=='string'||!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(a.data))throw Error('图片素材格式错误');aids.add(a.id)}if(p.schema>=2){if(typeof p.id!=='string'||!Array.isArray(p.presets)||p.presets.length>200)throw Error('工程信息格式错误');for(const t of p.presets){if(!t||typeof t.id!=='string'||typeof t.name!=='string'||!Array.isArray(t.layers)||t.layers.length>100)throw Error('预设格式错误');checkLayers(t.layers)}}if(p.schema>=4)checkCharacters(p);if(p.schema>=5)checkChapters(p);checkAudio(p);checkTitle(p);checkTitleMusic(p);checkPublish(p);return true}
+ function validate(p){if(!p||![1,2,3,4,5].includes(p.schema)||typeof p.title!=='string'||!Array.isArray(p.nodes)||!Array.isArray(p.assets))throw Error('不是有效的纸间工程');if(p.nodes.length>20000||p.assets.length>1000)throw Error('工程超过体验版限制');const ids=new Set();for(const n of p.nodes){if(!n||typeof n.id!=='string'||ids.has(n.id)||!['say','choice','end'].includes(n.type)||typeof n.name!=='string'||typeof n.text!=='string')throw Error('剧情节点格式错误');ids.add(n.id);if(n.next!=null&&typeof n.next!=='string')throw Error('跳转目标格式错误');if(n.type==='choice'&&(!Array.isArray(n.options)||n.options.length>100||n.options.some(o=>!o||typeof o.text!=='string'||typeof o.target!=='string')))throw Error('选项格式错误');if(p.schema>=3&&!Array.isArray(n.effects))throw Error('缺少演出列表');if(p.schema>=4&&(typeof n.speakerId!=='string'||typeof n.expressionId!=='string'||!Array.isArray(n.cast)||n.cast.length>20))throw Error('说话人绑定格式错误');if(p.schema>=5&&typeof n.paragraphId!=='string')throw Error('段落归属格式错误');if(p.schema>=2){if(!['own','inherit'].includes(n.sceneMode)||!Array.isArray(n.layers)||n.layers.length>100)throw Error('场景格式错误');checkLayers(n.layers)}}const aids=new Set();for(const a of p.assets){if(!a||typeof a.id!=='string'||aids.has(a.id)||typeof a.name!=='string'||!['bg','char'].includes(a.kind)||!imageDataOk(a.data))throw Error('图片素材格式错误');aids.add(a.id)}if(p.schema>=2){if(typeof p.id!=='string'||!Array.isArray(p.presets)||p.presets.length>200)throw Error('工程信息格式错误');for(const t of p.presets){if(!t||typeof t.id!=='string'||typeof t.name!=='string'||!Array.isArray(t.layers)||t.layers.length>100)throw Error('预设格式错误');checkLayers(t.layers)}}if(p.schema>=4)checkCharacters(p);if(p.schema>=5)checkChapters(p);checkAudio(p);checkTitle(p);checkTitleMusic(p);checkPublish(p);return true}
  function checkLayers(ls){const ids=new Set();for(const l of ls){if(!l||typeof l.id!=='string'||ids.has(l.id)||typeof l.asset!=='string'||typeof l.name!=='string'||!['bg','char'].includes(l.kind)||!finite(l.x,-500,500)||!finite(l.y,-500,500)||!finite(l.w,1,1000)||!finite(l.h,1,1000)||!finite(l.opacity,0,100)||typeof l.hidden!=='boolean'||typeof l.locked!=='boolean'||!['contain','cover','fill'].includes(l.fit)||!['none','breathe','sway'].includes(l.motion))throw Error('图层设置格式错误');if(l.characterId!=null&&typeof l.characterId!=='string')throw Error('图层角色绑定格式错误');if(l.expressionId!=null&&typeof l.expressionId!=='string')throw Error('图层表情绑定格式错误');ids.add(l.id)}}
  /* ---------- V0.5 基础音频：数据校验与纯状态推导 ----------
     音频与图片完全分表：audioAssets 用 data:audio/... 内嵌，磁盘另存 assets/audio/。
@@ -44,6 +48,15 @@ function createVNCore(){
  const AUDIO_CATS=['bgm','sfx','voice'];
  const AUDIO_DATA_RE=/^data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=\r\n]+$/i;
  const AUDIO_MAX_BYTES=16*1024*1024;
+ /* 素材内容的三种合法形态：内嵌 data URI（单文件导出 / 浏览器版）、桌面受控协议
+    （paperasset://，编辑器运行时）、浏览器 blob（网页版导入）。素材本体在磁盘上，
+    元数据只记 id / 哈希 / 路径，运行时不再把整张图 base64 塞进工程对象。 */
+ const imageDataOk=v=>typeof v==='string'&&(
+  /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(v)||
+  /^paper:\/\/app\/asset\/assets\//i.test(v)||/^blob:/i.test(v));
+ const audioDataOk=v=>typeof v==='string'&&(
+  /^data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=\r\n]+$/i.test(v)||
+  /^paper:\/\/app\/asset\/assets\//i.test(v)||/^blob:/i.test(v));
  const okNum=(x,a,b)=>Number.isFinite(x)&&x>=a&&x<=b;
  function checkNodeAudio(a,where){
   if(a==null)return;
@@ -76,7 +89,7 @@ function createVNCore(){
   for(const a of p.audioAssets){
    if(!a||typeof a.id!=='string'||!a.id||ids.has(a.id)||typeof a.name!=='string'||
     !Array.isArray(a.categories)||!a.categories.length||a.categories.some(c=>!AUDIO_CATS.includes(c))||
-    typeof a.mime!=='string'||typeof a.ext!=='string'||!AUDIO_DATA_RE.test(a.data)||
+    typeof a.mime!=='string'||typeof a.ext!=='string'||!audioDataOk(a.data)||
     !Number.isInteger(a.bytes)||a.bytes<0||a.bytes>AUDIO_MAX_BYTES||
     !(a.duration===null||okNum(a.duration,0,86400)))throw Error('音频素材格式错误');
    if(a.meta!==undefined&&(a.meta===null||typeof a.meta!=='object'||
@@ -228,7 +241,8 @@ function createVNCore(){
    for(const l of n.layers||[])if(l&&l.asset)ids.add(l.asset);
   }
   for(const c of p.characters||[]){
-   for(const e of c.expressions||[])if(e&&e.assetId)ids.add(e.assetId);
+   /* 表情可能用 assetId（现行）或 asset（早期字段）：两种都算引用，避免导出漏图。 */
+   for(const e of c.expressions||[]){const id=e&&(e.assetId||e.asset);if(id)ids.add(id);}
   }
   return [...ids];
  }

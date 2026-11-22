@@ -2,6 +2,7 @@
 /* V0.7.3 音乐素材库与场景配乐：模型、引用、导出过滤的静态约束。
  * 真实播放行为由 scripts/music-acceptance.cjs 在窗口里验。 */
 const assert = require('node:assert');
+const { inlineAssets } = require('./inline-assets.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -50,7 +51,7 @@ assert(C.audioUsage(p, p.titleMusic.audioId).some(u => u.where === '标题音乐
 
 /* 5. 导出只内嵌被引用的三首，其余留在工程里 */
 const report = {};
-const html = buildPlayerHTML(p, undefined, report);
+const html = buildPlayerHTML(inlineAssets(p, sampleDir), undefined, report);
 assert.equal(report.audio.library, 6);
 assert.equal(report.audio.included.length, 3, '包内只应有 3 首');
 assert.equal(report.audio.excluded.length, 3, '应排除另外 3 首');

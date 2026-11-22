@@ -18,12 +18,13 @@ function buildGameHTML(p, deps) {
   if (p.format || p.formatVersion) throw new Error('导出失败：请先以运行时工程打开，磁盘相对路径不能直接导出');
   for (const a of p.assets) {
     const imageOk = a && typeof a.data === 'string' && (previewMode
-      ? /^((pvres|papergame):\/\/|data:image\/(png|jpeg|webp);base64,)/.test(a.data)
+      ? /^((pvres|papergame):\/\/|paper:\/\/app\/asset\/|data:image\/(png|jpeg|webp);base64,)/.test(a.data)
       : /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(a.data));
     if (!imageOk) {
       throw new Error('导出失败：素材「' + (a && a.name || '未命名') + '」不是内嵌图片，请重新打开工程后再导出');
     }
-    if ('file' in a || 'sha256' in a || 'path' in a || 'src' in a) {
+    /* 受控相对路径（file/sha256）只是元数据；真正危险的是绝对路径与外部地址。 */
+    if ('path' in a || 'src' in a || ('file' in a && !/^assets\/(images|audio)\/[a-f0-9]{64}\.[a-z0-9]+$/i.test(String(a.file)))) {
       throw new Error('导出失败：素材含本地文件路径，拒绝生成依赖本机的游戏');
     }
   }
@@ -46,18 +47,20 @@ function buildGameHTML(p, deps) {
   }
   for (const a of audioAssets) {
     const audioOk = a && typeof a.data === 'string' && (previewMode
-      ? /^((pvres|papergame):\/\/|data:audio\/[a-z0-9.+-]+;base64,)/i.test(a.data)
+      ? /^((pvres|papergame):\/\/|paper:\/\/app\/asset\/|data:audio\/[a-z0-9.+-]+;base64,)/i.test(a.data)
       : /^data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=\r\n]+$/i.test(a.data));
     if (!audioOk) {
       throw new Error('导出失败：音频素材「' + (a && a.name || '未命名') + '」不是内嵌音频，请重新打开工程后再导出');
     }
-    if ('file' in a || 'sha256' in a || 'path' in a || 'src' in a) {
+    if ('path' in a || 'src' in a || ('file' in a && !/^assets\/(images|audio)\/[a-f0-9]{64}\.[a-z0-9]+$/i.test(String(a.file)))) {
       throw new Error('导出失败：音频素材含本地文件路径，拒绝生成依赖本机的游戏');
     }
   }
   const allImages = Array.isArray(p.assets) ? p.assets : [];
   let images = allImages;
-  if (!previewMode && core && typeof core.referencedImageIds === 'function') {
+  /* 单文件 HTML 默认全量内嵌：作者明确选择「单文件」时优先保证画面不缺图，
+     引用裁剪由发布构建器（目录版 / ZIP）负责。需要裁剪时传 deps.filterImages。 */
+  if (!previewMode && deps.filterImages === true && core && typeof core.referencedImageIds === 'function') {
     const keepImg = new Set(core.referencedImageIds(p));
     images = allImages.filter(a => keepImg.has(a.id));
   }

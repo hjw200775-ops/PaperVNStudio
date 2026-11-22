@@ -469,12 +469,46 @@ $('#check').onclick=()=>{
 $('#slotSave').onclick=()=>{slot={revision,current,trail:[...trail]};toast('已存档（当前编辑会话）')};$('#slotLoad').onclick=()=>{if(!slot)return toast('暂无试玩存档');if(slot.revision!==revision)return toast('工程已变化，请重新试玩并存档');current=slot.current;trail=[...slot.trail];playbackAnimate=false;renderCanvas();enterAudioInto(current,'rebuild');toast('已读取试玩存档')};
 $('#flatten').onclick=async()=>{if(effectMode!=='layout')return toast('请先返回布局。PNG 合成导出只包含原始布局；演出效果保留在试玩网页中。');const ls=C.clone(displayed());if(!ls.some(l=>!l.hidden))return;try{const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d');for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)throw Error('图片丢失');const im=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('图片无法解码'));img.src=a.data});ctx.save();const x=l.x*12.8,y=l.y*7.2,w=l.w*12.8,h=l.h*7.2;ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.globalAlpha=l.opacity/100;if(l.fit==='fill')ctx.drawImage(im,x,y,w,h);else{const f=l.fit==='cover'?Math.max(w/im.width,h/im.height):Math.min(w/im.width,h/im.height);ctx.drawImage(im,x+(w-im.width*f)/2,y+(h-im.height*f)/2,im.width*f,im.height*f)}ctx.restore()}canvas.toBlob(blob=>{if(blob)download(blob,filename()+'-合成场景.png','image/png')},'image/png');toast('导出 1280×720 场景合成图（透明底，不含对话框）')}catch(e){toast('导出失败：'+e.message)}};
 /* 导出、「完整预览」与内置示例体验共用 dist/game-html.js 的同一个入口。 */
-function exportHTML(project){return buildPlayerHTML(project||p)}
+/* 单文件 HTML 必须自带素材：把受控 URL 读回 data URI，只在这一步做 Base64。
+   桌面版素材在磁盘上，浏览器版本来就是 data URI / blob，不会被重复编码。 */
+function isAssetUrl(src){return /^paper:\/\/app\/asset\//i.test(String(src||''))}
+async function assetToDataUrl(src){
+ if(!isAssetUrl(src))return src;
+ const r=await fetch(src);
+ if(!r.ok)throw Error('素材读取失败（'+r.status+'）：请确认工程目录仍然存在');
+ const b=await r.blob();
+ return await new Promise((res,rej)=>{
+  const fr=new FileReader();
+  fr.onload=()=>res(fr.result);
+  fr.onerror=()=>rej(Error('素材编码失败'));
+  fr.readAsDataURL(b);
+ });
+}
+async function hydrateProject(project){
+ const out=Object.assign({},project,{assets:[],audioAssets:[]});
+ for(const a of project.assets||[])out.assets.push(Object.assign({},a,{data:await assetToDataUrl(a.data)}));
+ for(const a of project.audioAssets||[])out.audioAssets.push(Object.assign({},a,{data:await assetToDataUrl(a.data)}));
+ return out;
+}
+function projectAssetBytes(project){
+ const list=[...(project.assets||[]),...(project.audioAssets||[])];
+ return list.reduce((n,a)=>n+(Number(a.bytes)||0),0);
+}
+/* 单文件 HTML 的体积上限：超过就建议改用独立游戏目录，而不是让编辑器卡死。 */
+const SINGLE_HTML_ASSET_LIMIT=200*1024*1024;
+async function exportHTML(project){
+ const src=project||p;
+ const urls=(src.assets||[]).some(a=>isAssetUrl(a.data))||(src.audioAssets||[]).some(a=>isAssetUrl(a.data));
+ if(!urls)return buildPlayerHTML(src);
+ const total=projectAssetBytes(src);
+ if(total>SINGLE_HTML_ASSET_LIMIT)throw Error('素材共 '+Math.round(total/1048576)+' MB，超出单文件 HTML 的稳妥范围（约 200 MB）。请改用「游戏发行 → 独立游戏目录」或 ZIP 发布包');
+ return buildPlayerHTML(await hydrateProject(src));
+}
 $('#export').onclick=()=>{
  const report=C.analyze(p);if(report.errors.length){$('#check').click();return}
- const doExport=()=>{
+ const doExport=async ()=>{
   let html;
-  try{html=exportHTML()}
+  try{html=await exportHTML()}
   catch(e){toast('导出失败：'+e.message);return}
   download(html,filename()+'.html','text/html');
   toast('已导出独立 HTML，含图层、演出、分支'+(p.audioAssets?.length?'与内嵌音频':''));
@@ -504,7 +538,7 @@ if(H&&H.onPreviewProgress){
   else previewStatus(ev.text||'');
  });
 }
-$('#fullPreview').onclick=()=>{
+$('#fullPreview').onclick=async ()=>{
  const report=C.analyze(p);if(report.errors.length){$('#check').click();return}
  if(H&&H.previewGame){
   previewStatus('正在准备预览…');
@@ -518,7 +552,7 @@ $('#fullPreview').onclick=()=>{
   return;
  }
  let html;
- try{html=exportHTML()}
+ try{html=await exportHTML()}
  catch(e){toast('预览失败：'+e.message);return}
  try{
   const url=URL.createObjectURL(new Blob([html],{type:'text/html'}));

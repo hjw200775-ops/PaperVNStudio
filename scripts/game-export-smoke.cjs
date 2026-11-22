@@ -30,6 +30,7 @@ app.whenReady().then(async () => {
   try {
     const r = await builder.build({
       project, type, outDir, overwrite: true,
+      projectRoot: path.join(ROOT, 'dist', 'samples', 'wanfeng-ch01'),
       onProgress: p => console.log('  [' + p.percent + '%] ' + p.label + (p.detail ? ' · ' + p.detail : '')),
       isCancelled: () => false
     }, { nativeImage });

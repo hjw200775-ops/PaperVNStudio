@@ -5,6 +5,7 @@
  *   3. 构建器：不硬编码任何作品/盘符，运行时取自当前 Electron，缺组件要报清楚；
  *   4. 播放器外壳：读 game.json、按 releaseId 隔离存档、保持沙箱与无网络。 */
 const assert = require('node:assert/strict');
+const { inlineAssets } = require('./inline-assets.cjs');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -144,7 +145,7 @@ const { buildPlayerHTML } = require('../dist/game-html.js');
 const sampleDir = path.join(ROOT, 'dist', 'samples', 'wanfeng-ch01');
 const sampleDisk = JSON.parse(fs.readFileSync(path.join(sampleDir, 'project.paper.json'), 'utf8'));
 const sampleProject = require('../desktop/project-store.cjs')().diskToRuntime(sampleDir, sampleDisk);
-const html = buildPlayerHTML(sampleProject);
+const html = buildPlayerHTML(inlineAssets(sampleProject, path.join(ROOT, 'dist', 'samples', 'wanfeng-ch01')));
 assert(/^<!doctype html>/i.test(html));
 assert(html.includes('"home_01"') && html.includes('"demo_end"'), 'HTML 导出应包含完整剧情');
 assert(!/<script[^>]+src=/i.test(html) && !/<link[^>]+href=/i.test(html), 'HTML 导出必须自包含');

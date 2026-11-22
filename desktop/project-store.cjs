@@ -34,9 +34,11 @@ const AUDIO_REL = 'assets/audio';
 const BACKUPS_REL = 'backups';
 const LATEST_REL = 'backups/latest';
 const AUTOSAVE_REL = 'backups/autosave';
-const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
+/* 单图上限从 12MiB 放开到 64MiB：高分辨率背景/立绘需要，同时保留上限防止误导入。 */
+const MAX_IMAGE_BYTES = 64 * 1024 * 1024;
 const MAX_AUDIO_BYTES = 16 * 1024 * 1024;
-const MAX_AUDIO_TOTAL = 96 * 1024 * 1024;
+/* 音频总量：支持 1GiB 级工程（15 首 OST + 配音）。 */
+const MAX_AUDIO_TOTAL = 1536 * 1024 * 1024;
 const MAX_PROJECT_BYTES = 80 * 1024 * 1024;
 const MAX_BACKUPS = 20;
 const ASSET_FILE_RE = /^assets\/images\/([a-f0-9]{64})\.(png|jpg|webp)$/;
@@ -47,6 +49,16 @@ function safeAssetId(id) {
   return typeof id === 'string' && id.length > 0 && id.length <= 128 &&
     !/[\\/\0]/.test(id) && !id.includes('..') && !/^(file|app|paper|blob|data|https?):/i.test(id);
 }
+/* 素材内容指纹：已落盘的用 sha256，内存里的 data URI 现算；两种表示可以互比，
+   这样「同一张图从磁盘打开 + 再次导入」仍能正确去重。 */
+function assetContentKey(a) {
+  if (!a) return '';
+  if (typeof a.sha256 === 'string' && a.sha256) return a.sha256;
+  const m = /^data:[^;]+;base64,([\s\S]+)$/.exec(String(a.data || ''));
+  if (!m) return String(a.data || '');
+  return sha256(Buffer.from(m[1], 'base64'));
+}
+
 const DATA_URL_RE = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=\r\n]+)$/;
 const AUDIO_DATA_URL_RE = /^data:(audio\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\r\n]+)$/i;
 const MIME_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
@@ -205,7 +217,7 @@ function createProjectStore(options = {}) {
     for (const a of list) {
       const prev = byId.get(a && a.id);
       if (prev) {
-        if (String(prev.data) !== String(a.data)) throw new Error('音频素材 ID 重复且内容不同：' + a.id);
+        if (assetContentKey(prev) !== assetContentKey(a)) throw new Error('音频素材 ID 重复且内容不同：' + a.id);
         continue;
       }
       byId.set(a && a.id, a);
@@ -260,18 +272,40 @@ function createProjectStore(options = {}) {
       if (!safeAssetId(a.id)) throw new Error('音频素材 ID 含非法字符：' + a.id);
       if (audioIds.has(a.id)) throw new Error('音频素材 ID 重复');
       audioIds.add(a.id);
-      if ('file' in a || 'sha256' in a || 'path' in a || 'src' in a) {
-        throw new Error('运行时音频素材含本地文件路径，请先以工程目录打开');
+      /* 运行时可以带「受控相对路径 + 内容哈希」（V0.7.6 起素材本体在磁盘），
+         但绝不能带本机绝对路径或外部 URL。 */
+      if ('path' in a || 'src' in a) throw new Error('运行时音频素材含本机绝对路径');
+      if ('file' in a && !/^assets\/audio\/[a-f0-9]{64}\.[a-z0-9]+$/i.test(String(a.file))) {
+        throw new Error('运行时音频素材路径不合法：' + a.file);
+      }
+      if ('sha256' in a && !/^[a-f0-9]{64}$/i.test(String(a.sha256))) {
+        throw new Error('运行时音频素材哈希不合法：' + a.sha256);
       }
     }
     return p;
   }
 
-  function diskAssets(p) {
+  function diskAssets(p, root) {
     /* Decode each data URL exactly once; the result is reused for writing. */
     const out = [], audio = [];
     const used = new Map();
-    for (const a of p.assets) {
+    for (const a of p.assets || []) {
+      /* 打开自磁盘的素材已经是「受控 URL + 已落盘文件」：沿用元数据，不重新编码。 */
+      if (a.file && /^paper:\/\/app\/asset\//i.test(String(a.data || ''))) {
+        const m = ASSET_FILE_RE.exec(a.file);
+        if (!m) throw new Error('素材路径无效：' + a.file);
+        /* 关键：另存为/备份靠 used 决定要写哪些文件。URL 素材必须把原文件读进来，
+           否则目标工程只有元数据、没有图片。 */
+        const abs = path.join(root, ...a.file.split('/'));
+        let buf;
+        try { buf = io.readFileSync(abs); } catch { throw new Error('素材文件缺失：' + a.file); }
+        const hash = sha256(buf);
+        if (hash !== m[1]) throw new Error('素材内容与文件名不一致：' + a.file);
+        used.set(a.file, { buf, hash });
+        out.push({ id: a.id, name: a.name, kind: a.kind, width: a.width, height: a.height,
+          mime: EXT_MIME[m[2]], file: a.file, sha256: hash, bytes: buf.length });
+        continue;
+      }
       const { buf, mime, hash } = parseDataUrl(a.data);
       const ext = MIME_EXT[mime];
       const rel = IMAGES_REL + '/' + hash + '.' + ext;
@@ -286,6 +320,25 @@ function createProjectStore(options = {}) {
     }
     /* 音频按内容哈希单独存到 assets/audio/，工程元数据只留受控相对路径。 */
     for (const a of p.audioAssets || []) {
+      if (a.file && /^paper:\/\/app\/asset\//i.test(String(a.data || ''))) {
+        const m = AUDIO_FILE_RE.exec(a.file);
+        if (!m) throw new Error('音频路径无效：' + a.file);
+        const absA = path.join(root, ...a.file.split('/'));
+        let bufA;
+        try { bufA = io.readFileSync(absA); } catch { throw new Error('音频文件缺失：' + a.file); }
+        const hashA = sha256(bufA);
+        if (hashA !== m[1]) throw new Error('音频内容与文件名不一致：' + a.file);
+        used.set(a.file, { buf: bufA, hash: hashA });
+        const item = {
+          id: a.id, name: a.name, categories: [...(a.categories || [])],
+          mime: AUDIO_EXT_MIME[m[2]], ext: m[2], duration: a.duration == null ? null : a.duration,
+          file: a.file, sha256: hashA, bytes: bufA.length
+        };
+        if (a.durationNote) item.durationNote = a.durationNote;
+        if (a.meta && typeof a.meta === 'object') item.meta = a.meta;
+        audio.push(item);
+        continue;
+      }
       const { buf, ext, hash } = parseAudioDataUrl(a.data);
       const mime = AUDIO_EXT_MIME[ext];
       const rel = AUDIO_REL + '/' + hash + '.' + ext;
@@ -303,8 +356,8 @@ function createProjectStore(options = {}) {
     return { assets: out, audioAssets: audio, used };
   }
 
-  function toDisk(p) {
-    const { assets, audioAssets, used } = diskAssets(p);
+  function toDisk(p, root) {
+    const { assets, audioAssets, used } = diskAssets(p, root);
     const disk = {
       format: FORMAT,
       formatVersion: FORMAT_VERSION,
@@ -438,7 +491,9 @@ function createProjectStore(options = {}) {
       assets.push({
         id: a.id, name: a.name, kind: a.kind,
         width: a.width || size.width, height: a.height || size.height,
-        data: 'data:' + info.mime + ';base64,' + buf.toString('base64')
+        file: a.file, sha256: a.sha256, bytes: buf.length, mime: info.mime,
+        /* 运行时只持有受控 URL：舞台按需读取，不再把整张图 base64 进内存。 */
+        data: 'paper://app/asset/' + a.file
       });
     }
     const audioAssets = [];
@@ -456,7 +511,8 @@ function createProjectStore(options = {}) {
       }
       const item = {
         id: a.id, name: a.name, categories: [...a.categories],
-        data: 'data:' + info.mime + ';base64,' + buf.toString('base64'),
+        file: a.file, sha256: a.sha256,
+        data: 'paper://app/asset/' + a.file,
         mime: info.mime, ext: info.ext, bytes: buf.length, duration: a.duration
       };
       if (a.durationNote) item.durationNote = a.durationNote;
@@ -625,22 +681,34 @@ function createProjectStore(options = {}) {
     return root;
   }
 
-  function writeProject(root, runtime, { backup = true, autosave = false } = {}) {
+  function writeProject(root, runtime, { backup = true, autosave = false, sourceRoot = null } = {}) {
     const p = validateRuntime(runtime);
-    const { disk, used } = toDisk(p);
+    /* sourceRoot：另存为时素材仍在旧目录，读源文件用旧根，写新文件用新根。 */
+    const { disk, used } = toDisk(p, sourceRoot || root);
     writeAssets(root, used);                           // never deletes old images
     const target = autosave ? path.join(root, AUTOSAVE_REL, MAIN_FILE) : path.resolve(root, MAIN_FILE);
     io.mkdirSync(path.dirname(target), { recursive: true });
     if (!autosave && backup) makeBackup(root, 'save'); // before replacing the only good copy
     atomicWrite(target, disk);                        // metadata last, with rollback
     if (!autosave) updateLastGood(root, target);      // newest verified saved state
+    /* 保存后运行时改用受控 URL：素材已经在磁盘上，内存里没必要再留一份 base64。
+       下一次编辑、撤销与自动保存都只处理元数据。 */
+    for (const a of p.assets || []) {
+      const d = (disk.assets || []).find(x => x.id === a.id);
+      if (d && d.file) { a.file = d.file; a.sha256 = d.sha256; a.bytes = d.bytes; a.data = 'paper://app/asset/' + d.file; }
+    }
+    for (const a of p.audioAssets || []) {
+      const d = (disk.audioAssets || []).find(x => x.id === a.id);
+      if (d && d.file) { a.file = d.file; a.sha256 = d.sha256; a.bytes = d.bytes; a.data = 'paper://app/asset/' + d.file; }
+    }
     return { root, disk, project: p };
   }
 
-  function createProject(dir, runtime) {
+  /* sourceRoot：素材已经是受控 URL 时，从旧目录读原文件；省略则与目标目录相同。 */
+  function createProject(dir, runtime, sourceRoot) {
     const root = ensureProjectDir(dir);
     if (io.existsSync(path.join(root, MAIN_FILE))) throw new Error('该目录已有工程，请选择空白目录或先打开它');
-    const result = writeProject(root, runtime, { backup: false });
+    const result = writeProject(root, runtime, { backup: false, sourceRoot });
     return { ...result, created: true };
   }
 
@@ -702,10 +770,10 @@ function createProjectStore(options = {}) {
 
   /* Save As: write only the images the current project actually references into
      a brand new directory. The old project is read-only in this operation. */
-  function saveAsProject(dir, runtime) {
+  function saveAsProject(dir, runtime, sourceRoot) {
     const root = ensureProjectDir(dir);
     if (io.existsSync(path.join(root, MAIN_FILE))) throw new Error('目标目录已有工程，请选择空白目录');
-    return { ...writeProject(root, runtime, { backup: false }), created: true };
+    return { ...writeProject(root, runtime, { backup: false, sourceRoot }), created: true };
   }
 
   /* Import a V0.1/V0.2/V0.3 .paper.json (data URLs). The source is read-only. */

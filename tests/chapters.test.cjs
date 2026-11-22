@@ -8,6 +8,7 @@
  * 6) TXT 解析与导入预览是纯计划，确认前不碰工程；
  * 7) 落盘、回读与导出都带章节数据。 */
 const assert = require('node:assert/strict');
+const { inlineAssets } = require('./inline-assets.cjs');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -251,7 +252,7 @@ assert.deepEqual(reopened.chapters, q.chapters);
 assert.deepEqual(reopened.nodes.map(n => n.id), q.nodes.map(n => n.id), '重开后播放顺序一致');
 assert.deepEqual(C.tree(reopened).chapters[1].paragraphs[0].nodes, ['n4', 'n5', 'end']);
 
-const html = buildGameHTML(q, { player: paperPlayer, coreFactory: createVNCore, effectFactory: createPaperEffects, css: paperPlayerCSS, esc });
+const html = buildGameHTML(inlineAssets(q, root), { player: paperPlayer, coreFactory: createVNCore, effectFactory: createPaperEffects, css: paperPlayerCSS, esc });
 assert(html.includes('"chapters"'), '导出携带章节数据');
 assert(html.includes('"paragraphId"'));
 const nodes = {};

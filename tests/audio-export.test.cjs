@@ -128,7 +128,8 @@ assert(html.includes('data:audio/wav;base64,'), '音频以 data: 内嵌，断网
 assert(html.includes(url(BGM)), 'BGM 字节真的在 HTML 里');
 assert(html.includes(url(VOICE)), '语音字节真的在 HTML 里');
 assert(!html.includes('paper://'), '不出现 paper://');
-assert(!html.includes('blob:'), '不出现 blob: 引用');
+/* 播放器源码里出现 `blob:` 字面量（素材形态判定）不算引用：只看结构部分。 */
+assert(!html.split('<script>')[0].includes('blob:'), '结构部分不出现 blob: 引用');
 assert(!html.includes('F:\\') && !html.includes('C:\\'), '不出现本机绝对路径');
 assert(!/<script[^>]+\bsrc=/i.test(html) && !/<link[^>]+\bhref=/i.test(html), '无外部脚本与样式');
 assert(!/https?:\/\/(?!127|localhost)/i.test(html.split('<script>')[0]), '结构部分不含远程地址');

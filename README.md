@@ -156,6 +156,21 @@ npm run net:check
 
 `desktop:smoke` 用真实主进程和真实 IPC 跑完整链路：导入图片 → 图层 → 修改布局与效果 → 自动保存 → 显式保存 → 重新打开 → 导出 HTML。烟测工程一律建在系统临时目录，源码树不接收任何工程产物。
 
+## 工程资源架构（V0.7.6）
+
+编辑器的运行时工程不再持有 Base64：素材地址是 `paper://app/asset/assets/images/<sha256>.png`，舞台按需读取，撤销/保存/预览/导出都只处理元数据。
+
+```bash
+npm run check                 # 含新增的素材往返断言
+npm run assets:probe 9335     # 连已运行的编辑器，检查图片是否走资源协议并截图
+```
+
+- 《晚风》示例：运行时工程 JSON 从约 21 MB 降到 **34 KB**。
+- 保存后磁盘工程不含 `data:image`；另存为新增 `sourceRoot`，不会丢素材。
+- 单文件 HTML 导出时才把资源读回 data URI，超过 200 MB 会提示改用独立游戏目录。
+
+未完成项（导入落盘、1 GiB 验收）见 `docs/V0.7.6_RESOURCE_ARCHITECTURE.md`。
+
 ## 大型游戏发布（V0.7.5）
 
 独立游戏不再把素材塞进一个 HTML：产物是「EXE + resources/app/content」，播放器页面只有几百 KB，图片与音频按内容哈希落在 `content/assets/`，运行时由 `papergame://` 受控读取。

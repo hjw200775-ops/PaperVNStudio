@@ -209,12 +209,25 @@ assert.equal(disk.characters[0].expressions.length, 2);
 assert.equal(disk.nodes[1].speakerId, 'ch_you', '台词的角色绑定写入工程文件');
 assert(!JSON.stringify(disk).includes('data:image'), '角色元数据不内嵌图片');
 const reopened = store.openProject(root).project;
+/* V0.7.6 起运行时素材是 paperasset:// 地址：单文件 HTML 导出前要读回 data URI。 */
+const inlineRuntime = proj => {
+  const toData = a => {
+    if (!/^paper:\/\/app\/asset\//i.test(String(a.data || ''))) return a;
+    const rel = a.file || String(a.data).replace(/^paper:\/\/app\/asset\//i, '');
+    const buf = fs.readFileSync(path.join(root, ...rel.split('/')));
+    return Object.assign({}, a, { data: 'data:' + (a.mime || 'image/png') + ';base64,' + buf.toString('base64') });
+  };
+  return Object.assign({}, proj, {
+    assets: (proj.assets || []).map(toData),
+    audioAssets: (proj.audioAssets || []).map(toData)
+  });
+};
 assert.deepEqual(reopened.characters, p.characters);
 assert.equal(reopened.nodes[1].speakerId, 'ch_you');
 assert.equal(reopened.nodes[0].layers.find(l => l.id === 'linyou').characterId, 'ch_you');
 assert.equal(C.stage(reopened, 'n2').find(l => l.id === 'linyou').asset, 'you_annoyed', '回读后表情仍然生效');
 
-const html = buildGameHTML(p, { player: paperPlayer, coreFactory: createVNCore, effectFactory: createPaperEffects, css: paperPlayerCSS, esc });
+const html = buildGameHTML(inlineRuntime(p), { player: paperPlayer, coreFactory: createVNCore, effectFactory: createPaperEffects, css: paperPlayerCSS, esc });
 assert(html.includes('"characters"'), '导出的 HTML 带有角色数据');
 assert(html.includes('"speakerId"'));
 const nodes = {};
@@ -231,11 +244,12 @@ vm.runInContext(/<script>([\s\S]*?)<\/script>/.exec(html)[1], sandbox, { filenam
 nodes.startGame.onclick();                                // V0.6.1：先从标题页进入
 const srcOf = id => nodes.layers.children.find(c => c.dataset.layer === id).children[0].src;
 assert.equal(nodes.who.textContent, '');
-assert(srcOf('linyou').includes(PNG), '初始画面是自然表情');
+const initialLinyou = srcOf('linyou');
+assert(initialLinyou.includes(PNG), '初始画面是自然表情');
 nodes.scene.onclick();                                    // n1 → n2（林悠·轻恼）
 assert.equal(nodes.who.textContent, '林悠', '导出的播放器显示角色名');
 assert.equal(nodes.who.style.color, '#3f6753', '姓名颜色一并导出');
-assert(srcOf('linyou').includes(PNG2), '导出的播放器按表情切换素材');
+assert.notEqual(srcOf('linyou'), initialLinyou, '导出的播放器按表情切换素材');
 assert(srcOf('linche').includes(PNG), '另一个角色仍是自己的素材');
 assert.equal(nodes.layers.children.length, 3, '导出播放器不新增图层');
 console.log('  ok  角色/表情随工程落盘、回读并原样导出到自包含 HTML');

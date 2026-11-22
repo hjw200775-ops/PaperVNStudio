@@ -68,18 +68,31 @@ function encodedBytes(s) {
   return i < 0 ? s.length : Math.floor((s.length - i - 7) * 3 / 4);
 }
 
-function writeContentAsset(contentDir, sub, data) {
-  const m = /^data:([a-z0-9.+/-]+);base64,([\s\S]+)$/i.exec(String(data || ''));
-  if (!m) throw new Error('素材格式无效：只接受内嵌 data URI');
-  const buf = Buffer.from(m[2], 'base64');
+function writeContentAsset(contentDir, sub, data, projectRoot) {
+  const raw = String(data || '');
+  let buf, ext;
+  if (/^paper:\/\/app\/asset\//i.test(raw)) {
+    /* 运行时素材就是磁盘文件：按相对路径读，避免重新编码整份素材。 */
+    const rel = raw.replace(/^paper:\/\/app\/asset\//i, '');
+    if (!projectRoot) throw new Error('缺少工程目录，无法读取素材：' + rel);
+    const root = path.resolve(projectRoot);
+    const abs = path.resolve(root, ...rel.split('/'));
+    if (!abs.startsWith(root + path.sep)) throw new Error('素材路径越界：' + rel);
+    buf = fs.readFileSync(abs);
+    ext = path.extname(abs).slice(1).toLowerCase();
+  } else {
+    const m = /^data:([a-z0-9.+/-]+);base64,([\s\S]+)$/i.exec(raw);
+    if (!m) throw new Error('素材格式无效：只接受内嵌 data URI 或受控素材地址');
+    buf = Buffer.from(m[2], 'base64');
+    ext = {
+      'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
+      'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
+      'audio/wave': 'wav', 'audio/mp4': 'm4a', 'audio/aac': 'aac', 'audio/flac': 'flac', 'audio/webm': 'webm'
+    }[m[1].toLowerCase()];
+  }
+  if (!ext) throw new Error('不支持的素材类型');
   if (!buf.length) throw new Error('素材为空');
   const hash = require('node:crypto').createHash('sha256').update(buf).digest('hex');
-  const ext = {
-    'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
-    'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
-    'audio/wave': 'wav', 'audio/mp4': 'm4a', 'audio/aac': 'aac', 'audio/flac': 'flac', 'audio/webm': 'webm'
-  }[m[1].toLowerCase()];
-  if (!ext) throw new Error('不支持的素材类型：' + m[1]);
   const abs = path.join(contentDir, sub, hash + '.' + ext);
   if (!fs.existsSync(abs)) fs.writeFileSync(abs, buf);
   return 'papergame://game/' + sub + '/' + hash + '.' + ext;
@@ -318,10 +331,10 @@ function createGameBuilder({ repoRoot, execPath, resourcesPath, isPackaged }) {
 
         const external = Object.assign({}, project, { title: settings.title });
         external.assets = usedImages.map(a => Object.assign({}, a, {
-          data: writeContentAsset(contentDir, 'assets/images', a.data)
+          data: writeContentAsset(contentDir, 'assets/images', a.data, opts.projectRoot)
         }));
         external.audioAssets = usedAudio.map(a => Object.assign({}, a, {
-          data: writeContentAsset(contentDir, 'assets/audio', a.data)
+          data: writeContentAsset(contentDir, 'assets/audio', a.data, opts.projectRoot)
         }));
         html = buildPlayerHTML(external, undefined, report, { mode: 'external' });
 
