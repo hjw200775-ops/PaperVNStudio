@@ -205,11 +205,12 @@ function dirStats(dir) {
 
     /* 截一张真实预览窗口，作为交付证据。 */
     try {
-      if (path.basename(PROJECT) !== 'pvn-large-project') throw new Error('skip');
+      const base = path.basename(PROJECT);
+      if (base !== 'pvn-large-project' && !ARGS.includes('--shot')) throw new Error('skip');
       const shot = await pcdp.send('Page.captureScreenshot', { format: 'png' });
       const shots = path.join(ROOT, 'docs', 'screenshots');
       fs.mkdirSync(shots, { recursive: true });
-      const shotFile = path.join(shots, 'v074-large-preview.png');
+      const shotFile = path.join(shots, base === 'pvn-large-project' ? 'v074-large-preview.png' : 'v074-wanfeng-preview.png');
       fs.writeFileSync(shotFile, Buffer.from(shot.data, 'base64'));
       detail.screenshot = path.relative(ROOT, shotFile);
     } catch { report.unverified.push('预览截图失败'); }
