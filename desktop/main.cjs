@@ -45,11 +45,51 @@ const ALLOWED = {
 protocol.registerSchemesAsPrivileged([{
   scheme: 'paper',
   privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: false }
+}, {
+  /* 预览会话专用：只服务当前会话目录里的资源，按需读取，不再把素材塞进 HTML。 */
+  scheme: 'pvres',
+  privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: false }
 }]);
 app.enableSandbox();
 
 let win = null;
 let previewWin = null;
+/* 预览会话：每个窗口一个目录，关闭即删；资源按 pvres://<session>/... 读取。 */
+const previewSessions = new Map();
+const previewRoot = () => path.join(app.getPath('userData'), 'preview-sessions');
+const PREVIEW_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
+  "img-src 'self' data:; media-src 'self' data:; font-src data:; connect-src 'none'; " +
+  "base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'";
+
+function previewProgress(payload) {
+  if (win && !win.isDestroyed()) win.webContents.send('preview:progress', payload);
+}
+
+/* data URI 落成会话目录下的内容寻址文件，返回 pvres:// 地址（同一内容只写一次）。 */
+function writePreviewAsset(dir, sessionId, data) {
+  const m = /^data:([a-z0-9.+/-]+);base64,([\s\S]+)$/i.exec(String(data || ''));
+  if (!m) throw new Error('预览资源格式无效：只接受内嵌 data URI');
+  const buf = Buffer.from(m[2], 'base64');
+  if (!buf.length) throw new Error('预览资源为空');
+  const hash = require('node:crypto').createHash('sha256').update(buf).digest('hex');
+  const ext = {
+    'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp',
+    'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav',
+    'audio/wave': 'wav', 'audio/mp4': 'm4a', 'audio/aac': 'aac', 'audio/flac': 'flac', 'audio/webm': 'webm'
+  }[m[1].toLowerCase()];
+  if (!ext) throw new Error('预览不支持的资源类型：' + m[1]);
+  const rel = 'assets/' + hash + '.' + ext;
+  const abs = path.join(dir, 'assets', hash + '.' + ext);
+  if (!fs.existsSync(abs)) fs.writeFileSync(abs, buf);
+  return 'pvres://' + sessionId + '/' + rel;
+}
+
+function disposePreviewSession(id) {
+  const s = previewSessions.get(id);
+  if (!s) return;
+  previewSessions.delete(id);
+  fs.promises.rm(s.dir, { recursive: true, force: true }).catch(() => {});
+}
 let sampleWin = null;
 let recentFile = '';
 let draftDir = '';
@@ -464,24 +504,59 @@ function registerIPC() {
   });
 
   // invoke/handle pair: the renderer's await resolves, and the sender is validated.
-  /* 完整预览：只加载与导出完全相同的自包含 HTML，不暴露工程/编辑器能力。
-     单文件写到 userData/preview，避免在用户工程目录留下临时文件。 */
-  handle('player:preview', async html => {
-    if (typeof html !== 'string' || !html.length) throw new Error('预览内容为空');
-    if (html.length > 64 * 1024 * 1024) throw new Error('预览内容超过 64MB');
-    const dir = path.join(app.getPath('userData'), 'preview');
-    fs.mkdirSync(dir, { recursive: true });
-    const file = path.join(dir, 'game-preview.html');
-    fs.writeFileSync(file, html, 'utf8');
-    if (previewWin && !previewWin.isDestroyed()) previewWin.close();
-    previewWin = new BrowserWindow({
-      width: 1200, height: 860, minWidth: 720, minHeight: 600,
-      title: '完整游戏预览', backgroundColor: '#17261f',
-      webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true }
-    });
-    previewWin.on('closed', () => { previewWin = null; });
-    await previewWin.loadFile(file);
-    return reply({ preview: true });
+  /* 完整预览（V0.7.4）：渲染进程只传工程数据，素材由主进程落到会话目录，
+     页面通过 pvres:// 按需读取——HTML 从「素材总量」里解耦，不再受旧 64MB 限制。
+     会话目录在窗口关闭后删除；启动时清一次，避免历史残留。 */
+  handle('player:preview', async payload => {
+    /* 渲染进程直接传工程对象；兼容旧的 { project } 包法。 */
+    const project = payload && typeof payload === 'object' && payload.project ? payload.project : payload;
+    if (!project || typeof project !== 'object' || !Array.isArray(project.nodes) || !Array.isArray(project.assets)) {
+      throw new Error('预览内容为空：请先打开一个工程（旧版会把 HTML 传进来，V0.7.4 起只传工程数据）');
+    }
+    const sessionId = 's-' + require('node:crypto').randomBytes(6).toString('hex');
+    const dir = path.join(previewRoot(), sessionId);
+    fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
+    const startedAt = Date.now();
+    try {
+      previewProgress({ phase: 'prepare', text: '正在准备预览…' });
+      const preview = Object.assign({}, project);
+      preview.assets = (project.assets || []).map(a => Object.assign({}, a, {
+        data: writePreviewAsset(dir, sessionId, a.data)
+      }));
+      preview.audioAssets = (project.audioAssets || []).map(a => Object.assign({}, a, {
+        data: writePreviewAsset(dir, sessionId, a.data)
+      }));
+
+      previewProgress({ phase: 'build', text: '正在生成播放器…' });
+      const { buildPlayerHTML } = require(path.join(ROOT, 'dist', 'game-html.js'));
+      const report = {};
+      const html = buildPlayerHTML(preview, undefined, report, { mode: 'preview' });
+      fs.writeFileSync(path.join(dir, 'index.html'), html, 'utf8');
+      previewSessions.set(sessionId, { dir, at: startedAt });
+
+      if (previewWin && !previewWin.isDestroyed()) previewWin.close();
+      const thisWin = new BrowserWindow({
+        width: 1200, height: 860, minWidth: 720, minHeight: 600,
+        title: '完整游戏预览', backgroundColor: '#17261f',
+        webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true }
+      });
+      previewWin = thisWin;
+      const myId = sessionId;
+      thisWin.on('closed', () => {
+        if (previewWin === thisWin) previewWin = null;
+        disposePreviewSession(myId);
+      });
+      previewProgress({ phase: 'load', text: '正在加载游戏…' });
+      await thisWin.loadURL('pvres://' + sessionId + '/index.html');
+      const stats = report.resources || null;
+      previewProgress({ phase: 'ready', text: '预览已打开' });
+      return reply({ preview: true, session: sessionId, stats, elapsedMs: Date.now() - startedAt });
+    } catch (e) {
+      previewSessions.delete(sessionId);
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* 清理失败不影响报错 */ }
+      previewProgress({ phase: 'failed', text: '预览失败：' + ((e && e.message) || e) });
+      throw e;
+    }
   });
 
   /* 体验示例：与导出完全相同的自包含 HTML，独立窗口 + 独立持久分区。
@@ -542,6 +617,12 @@ function registerIPC() {
 
 
   /* ---------- 通用独立游戏导出（V0.7.2） ---------- */
+
+  /* 关闭预览窗口：会话目录在 closed 事件里清理，这里只负责关窗。 */
+  handle('player:closePreview', () => {
+    if (previewWin && !previewWin.isDestroyed()) previewWin.close();
+    return reply({ closed: true });
+  });
 
   handle('game:toolchain', () => reply({ status: gameBuilder.toolchain() }));
 
@@ -783,6 +864,35 @@ app.whenReady().then(() => {
       return new Response('Not found', { status: 404 });
     }
   });
+
+  /* 预览资源：只认活跃会话，路径必须落在该会话目录内，HTML 带 CSP。 */
+  protocol.handle('pvres', request => {
+    try {
+      const url = new URL(request.url);
+      const session = previewSessions.get(url.host);
+      if (!session) return new Response('Not found', { status: 404 });
+      const rel = decodeURIComponent(url.pathname).replace(/^\/+/, '');
+      const abs = path.resolve(session.dir, rel);
+      if (abs !== session.dir && !abs.startsWith(session.dir + path.sep)) {
+        return new Response('Forbidden', { status: 403 });
+      }
+      if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return new Response('Not found', { status: 404 });
+      const ext = path.extname(abs).toLowerCase();
+      const type = {
+        '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+        '.webp': 'image/webp', '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
+        '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.flac': 'audio/flac', '.webm': 'audio/webm'
+      }[ext] || 'application/octet-stream';
+      const headers = { 'content-type': type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
+      if (type.startsWith('text/html')) headers['content-security-policy'] = PREVIEW_CSP;
+      return new Response(new Uint8Array(fs.readFileSync(abs)), { status: 200, headers });
+    } catch {
+      return new Response('Not found', { status: 404 });
+    }
+  });
+
+  /* 启动时清掉上次遗留的预览会话目录（窗口异常退出时可能留下）。 */
+  try { fs.rmSync(previewRoot(), { recursive: true, force: true }); } catch { /* 忽略 */ }
 
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   registerIPC();

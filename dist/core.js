@@ -218,6 +218,21 @@ function createVNCore(){
   if(typeof tm!=='object'||typeof tm.audioId!=='string'||!tm.audioId)throw Error('标题音乐配置格式错误：缺少音源');
   if(!okNum(tm.volume,0,100)||!okNum(tm.fadeIn,0,5)||typeof tm.loop!=='boolean')throw Error('标题音乐参数格式错误');
  }
+ /* 图片引用面：标题背景 + 所有节点的图层 + 角色表情表。
+    按「全部节点」收集而不是当前试玩路线，分支里用到的立绘不会漏；
+    没被任何图层/表情引用的备用立绘会被排除，但只排除导出产物，不动工程。 */
+ function referencedImageIds(p){
+  const ids=new Set();
+  if(p.titleBackground)ids.add(p.titleBackground);
+  for(const n of p.nodes||[]){
+   for(const l of n.layers||[])if(l&&l.asset)ids.add(l.asset);
+  }
+  for(const c of p.characters||[]){
+   for(const e of c.expressions||[])if(e&&e.assetId)ids.add(e.assetId);
+  }
+  return [...ids];
+ }
+
  /* 导出时只需要「剧情或标题界面真正引用到」的音频；素材库其余曲目留在工程里。 */
  function referencedAudioIds(p){
   const ids=new Set();
@@ -943,6 +958,6 @@ function applyPasteEffects(p,plan,onlySafe){
   entryPath,entryPlan,followGraph,sceneFor,sceneForCast,planBatch,applyBatch,planPasteScene,applyPasteScene,planPasteEffects,applyPasteEffects,parseScript,applyScriptPlan,
   checkAudio,checkNodeAudio,audioCue,hasBgmInstruction,hasAnyAudio,audioStateAlong,bgmAt,audioUsage,assetForAudioImport,audioAsset,AUDIO_CATS,AUDIO_MAX_BYTES,
   defaultPublish,toPublish,checkPublish,releaseIdOf,slugReleaseId,iconDataOk,
-  defaultTitleMusic,toTitleMusic,checkTitleMusic,referencedAudioIds};
+  defaultTitleMusic,toTitleMusic,checkTitleMusic,referencedAudioIds,referencedImageIds};
 }
 if(typeof module!=='undefined')module.exports=createVNCore;

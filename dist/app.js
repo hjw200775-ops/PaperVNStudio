@@ -487,16 +487,39 @@ $('#export').onclick=()=>{
   +'<div class="stack"><button id="confirmAudioExport" class="primary">继续导出自包含 HTML</button></div>');
  $('#confirmAudioExport').onclick=()=>{$('#modal').close();doExport()};
 };
-/* 完整预览：与导出同一个播放器，独立窗口打开，不强迫作者走标题页才能从本句试玩。 */
+/* 完整预览：与导出同一个播放器，独立窗口打开，不强迫作者走标题页才能从本句试玩。
+   V0.7.4：桌面版只传工程数据，素材由主进程落到预览会话目录、页面按 pvres:// 读取，
+   工程再大也不会被旧 64MB HTML 限制挡住。 */
+function previewStatus(text,isError){
+ const el=$('#previewStatus');if(!el)return;
+ el.textContent=text||'';
+ el.hidden=!text;
+ el.classList.toggle('error',!!isError);
+}
+if(H&&H.onPreviewProgress){
+ H.onPreviewProgress(ev=>{
+  if(!ev||!ev.phase)return;
+  if(ev.phase==='failed')previewStatus(ev.text||'预览失败',true);
+  else if(ev.phase==='ready')setTimeout(()=>previewStatus(''),1500);
+  else previewStatus(ev.text||'');
+ });
+}
 $('#fullPreview').onclick=()=>{
  const report=C.analyze(p);if(report.errors.length){$('#check').click();return}
+ if(H&&H.previewGame){
+  previewStatus('正在准备预览…');
+  H.previewGame(p).then(r=>{
+   const mb=r&&r.stats?((r.stats.dataBytes||0)/1048576).toFixed(1):'';
+   toast('已打开完整预览'+(r&&r.elapsedMs?'（'+(r.elapsedMs/1000).toFixed(1)+' s）':'')+(mb?' · 页面 '+mb+' MB':''));
+  }).catch(e=>{
+   previewStatus('预览失败：'+(e.message||e),true);
+   toast('预览失败：'+(e.message||e));
+  });
+  return;
+ }
  let html;
  try{html=exportHTML()}
  catch(e){toast('预览失败：'+e.message);return}
- if(H&&H.previewGame){
-  H.previewGame(html).then(()=>toast('已打开完整预览窗口')).catch(e=>toast('预览失败：'+e.message));
-  return;
- }
  try{
   const url=URL.createObjectURL(new Blob([html],{type:'text/html'}));
   const w=window.open(url,'_blank');

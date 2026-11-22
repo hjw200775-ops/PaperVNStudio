@@ -221,3 +221,7 @@ body.playing #stage img{-webkit-user-drag:none;user-drag:none}
 .audio-filter{gap:8px}
 .audio-filter .audio-mood{flex:0 0 auto}
 #audioClearBgm{font-size:10px;padding:4px 8px;margin-left:auto}
+
+/* V0.7.4 预览加载状态：只占一行小字，失败时转红。 */
+.preview-status{display:inline-block;margin-left:10px;font-size:11px;color:var(--accent)}
+.preview-status.error{color:var(--danger)}

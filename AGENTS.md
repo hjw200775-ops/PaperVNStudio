@@ -11,6 +11,9 @@
 - 不随意格式化全部紧凑源码；如果整理结构，单独提交并验证行为一致。
 - 保留网页预览和独立 HTML 游戏导出。
 - 不把桌面封装、安装包构建与真实 Windows 验收混为一谈。
+- 完整预览走「会话目录 + pvres://」：渲染进程只传工程对象，主进程把 data URI 落成内容寻址文件，HTML 里资源是 URL。**不要退回把整份 HTML 传进 IPC**——那会让素材量直接变成 HTML 体积。协议 handler 必须校验会话与路径，HTML 要带 CSP。
+- 会话目录 `userData/preview-sessions/s-<id>/`：窗口 closed 即删，启动时清一次；不要写进用户工程目录。
+- 导出时图片与音频都按引用收（`referencedImageIds` / `referencedAudioIds`），只在产物里排除，不动工程素材。
 - 音乐：素材库元数据放在 `audioAssets[].meta`（`category / moodTags / scene / trackId`），磁盘往返要一起保留；`trackId` 是逻辑曲目号，换完整版按它匹配、素材 id 不变，否则会断掉剧情绑定。
 - 场景配乐只写段落入口节点，后续句子靠继承；不要逐句写 `bgm: play`，那会每句重启播放。导出用 `referencedAudioIds()` 收包，未引用的曲目留在工程里。
 - 标题音乐走独立的 `<audio>` 通道（`p.titleMusic`），不占 `audio.js` 的 BGM 槽位：进入游戏 `pause`、返回标题续播、`pagehide` 释放。不要把它塞进剧情 BGM 状态机。
