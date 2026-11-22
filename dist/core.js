@@ -53,10 +53,10 @@ function createVNCore(){
     元数据只记 id / 哈希 / 路径，运行时不再把整张图 base64 塞进工程对象。 */
  const imageDataOk=v=>typeof v==='string'&&(
   /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(v)||
-  /^paper:\/\/app\/asset\/assets\//i.test(v)||/^blob:/i.test(v));
+  /^paper:\/\/app\/(asset\/assets|staging)\//i.test(v)||/^blob:/i.test(v));
  const audioDataOk=v=>typeof v==='string'&&(
   /^data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=\r\n]+$/i.test(v)||
-  /^paper:\/\/app\/asset\/assets\//i.test(v)||/^blob:/i.test(v));
+  /^paper:\/\/app\/(asset\/assets|staging)\//i.test(v)||/^blob:/i.test(v));
  const okNum=(x,a,b)=>Number.isFinite(x)&&x>=a&&x<=b;
  function checkNodeAudio(a,where){
   if(a==null)return;
@@ -262,14 +262,22 @@ function createVNCore(){
 
 /* 同内容文件复用底层资源，不产生重复素材 ID；分类只是「用途」标签，可合并，
     引用端只按 audioId，因此同一文件可以同时被 BGM / 音效 / 语音使用。 */
- function assetForAudioImport(p,{id:newId,name,categories,data,mime,ext,bytes,duration,durationNote}){
-  const same=(p.audioAssets||[]).find(a=>a.data===data);
+ /* 内容寻址标识：V0.7.6 起导入与已落盘素材都带 sha256；旧工程只有 data URL。
+    两种表示共用这个键，改名、换路径、从 data URL 改为受控 URL 都能精确查重。 */
+ function contentKey(a){return a&&typeof a.sha256==='string'&&a.sha256?a.sha256:String(a&&a.data||'')}
+ function assetForAudioImport(p,{id:newId,name,categories,data,mime,ext,bytes,duration,durationNote,sha256,meta}){
+  const key=sha256||data;
+  const same=(p.audioAssets||[]).find(a=>contentKey(a)===key);
   if(same){
+   /* 旧工程素材可能只有 data URI：复用时顺手补齐内容哈希，之后仍能精确查重。 */
+   if(sha256&&!same.sha256)same.sha256=sha256;
    const merged=[...new Set([...(same.categories||[]),...(categories||[])])];
    return {asset:same,reused:true,categories:merged};
   }
   const a={id:newId,name,categories:[...new Set(categories||[])],data,mime,ext,bytes,
    duration:Number.isFinite(duration)?duration:null};
+  if(sha256)a.sha256=sha256;
+  if(meta&&typeof meta==='object')a.meta=meta;
   if(durationNote)a.durationNote=durationNote;
   return {asset:a,reused:false,categories:a.categories};
  }
@@ -943,10 +951,12 @@ function applyPasteEffects(p,plan,onlySafe){
  function sample(){const p=blank();p.title='晚风来信 · 局部分支示例';const a=makeNode(),b=makeNode('choice'),c=makeNode(),d=makeNode(),e=makeNode(),merge=makeNode(),end=makeNode('end');a.sceneMode='own';a.name='旁白';a.text='放学后的走廊，风把书页轻轻翻开。';b.name='澪';b.text='要不要一起走一段？';c.name='我';c.text='先去图书馆吧。我想给你看一本书。';d.name='我';d.text='绕操场走走？今天的晚风很舒服。';e.name='我';e.text='我们到门口等一等，看看天边的云。';merge.name='旁白';merge.text='聊着不同的话题，我们还是并肩走出了校门。';end.name='结局';end.text='这一次，选择改变了沿途的谈话，却没有改变共同的约定。';b.options=[{text:'去图书馆',target:c.id},{text:'绕操场走走',target:d.id},{text:'在门口看云',target:e.id}];c.next=d.next=e.next=merge.id;p.nodes=[a,b,c,d,e,merge,end];const pid=p.chapters[0].paragraphs[0].id;for(const n of p.nodes)n.paragraphId=pid;return p}
  /* 素材查重按「图片数据 + 用途」而不是只看图片数据：同一张图既能当背景也能当角色，
     只按 data 复用会把先导入那一次的 kind 带回新图层，用途就错了。 */
- function assetForImport(p,{id:newId,name,kind,data,width,height}){
-  const same=(p.assets||[]).find(a=>a.data===data&&a.kind===kind);
-  if(same)return {asset:same,reused:true};
+ function assetForImport(p,{id:newId,name,kind,data,width,height,sha256}){
+  const key=sha256||data;
+  const same=(p.assets||[]).find(a=>contentKey(a)===key&&a.kind===kind);
+  if(same){if(sha256&&!same.sha256)same.sha256=sha256;return {asset:same,reused:true}}
   const a={id:newId,name,kind,data};
+  if(sha256)a.sha256=sha256;
   if(Number.isFinite(width)&&Number.isFinite(height)){a.width=width;a.height=height}
   return {asset:a,reused:false};
  }
@@ -966,7 +976,7 @@ function applyPasteEffects(p,plan,onlySafe){
   else node.layers.push(l);
   return l;
  }
- return {clone,id,validate,migrate,scene,castAlong,stage,characterIn,expressionIn,speakerOf,characterUsage,expressionUsage,edges,analyze,makeNode,blank,sample,assetForImport,defaultLayer,appendAssetLayer,
+ return {clone,id,validate,migrate,scene,castAlong,stage,characterIn,expressionIn,speakerOf,characterUsage,expressionUsage,edges,analyze,makeNode,blank,sample,assetForImport,defaultLayer,appendAssetLayer,contentKey,
   tree,checkChapters,paragraphMap,chapterOf,paragraphIds,orderSuccessor,orderDiff,flattenOrder,
   moveNodeToParagraph,moveImpact,moveParagraph,moveChapter,applyTreeOrder,removeParagraph,removeChapter,addParagraph,addChapter,
   entryPath,entryPlan,followGraph,sceneFor,sceneForCast,planBatch,applyBatch,planPasteScene,applyPasteScene,planPasteEffects,applyPasteEffects,parseScript,applyScriptPlan,

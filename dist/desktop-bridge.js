@@ -16,11 +16,11 @@
    * consume without changing their editor logic. */
   function fileLike(f) {
     if (!f) return null;
-    return {
-      name: f.name, size: f.size, type: f.type,
-      dataUrl: f.dataUrl, id: f.id,
+    /* 复制主进程返回的元数据（哈希 / 大小 / MIME / 时长 / 受控 URL）。
+       桌面版没有 Base64：dataUrl 字段只是兼容旧回调的受控 paper:// 地址。 */
+    return Object.assign({}, f, {
       text: () => Promise.resolve(f.text == null ? '' : f.text)
-    };
+    });
   }
 
   function applyState(s) {
@@ -51,8 +51,18 @@
     open: () => call(() => api.open()),
     openRecent: index => call(() => api.openRecent(index)),
     recent: () => call(() => api.recent()),
-    pickImage: assetKind => api.pickImage(assetKind).then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
-    pickAudio: () => api.pickAudio().then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
+    /* 单文件入口复用旧回调；批量导入走 stageFiles，两者都由主进程流式暂存。 */
+    pickImage: assetKind => api.stageAssets({ kind: 'image', assetKind, multiple: false })
+      .then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.files && v.files[0]); }),
+    pickAudio: () => api.stageAssets({ kind: 'audio', multiple: false })
+      .then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.files && v.files[0]); }),
+    stageFiles: payload => api.stageAssets(Object.assign({ multiple: true }, payload || {}))
+      .then(r => { const v = ok(r); return { cancelled: !!v.cancelled, files: (v.files || []).map(fileLike), errors: v.errors || [] }; }),
+    cancelStage: token => call(() => api.cancelStage(token)),
+    gcStaging: payload => call(() => api.gcStaging(payload)),
+    stagingStats: () => call(() => api.stagingStats()),
+    metrics: () => call(() => api.metrics()),
+    onStageProgress: handler => { try { api.onStageProgress(handler); } catch { /* 浏览器版没有 */ } },
     pickText: () => api.pickText().then(r => { const v = ok(r); return v.cancelled ? null : fileLike(v.file); }),
     previewGame: project => call(() => api.previewGame(project)),
     onPreviewProgress: handler => { try { api.onPreviewProgress(handler); } catch { /* 浏览器版没有 */ } },

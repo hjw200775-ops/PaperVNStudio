@@ -21,10 +21,56 @@ function toast(t){$('#toast').textContent=t;$('#toast').style.display='block';cl
 function modal(title,body){$('#modalBody').innerHTML='<h2>'+esc(title)+'</h2>'+body;$('#modal').showModal()}
 $('#closeModal').onclick=()=>$('#modal').close();
 function queueSave(){$('#saved').textContent='正在保存…';clearTimeout(saveTimer);saveTimer=setTimeout(persist,350)}
-function persist(){if(H){H.autoSave(p).then(r=>{$('#saved').textContent=r.ok?'已自动保存':'自动保存失败 · '+(r.message||'')}).catch(e=>{$('#saved').textContent='自动保存失败';toast(e.message||'自动保存失败')});return}if(!db){$('#saved').textContent='请下载工程备份';return}try{const tx=db.transaction('projects','readwrite');tx.objectStore('projects').put(p,'draft');tx.oncomplete=()=>$('#saved').textContent='已保存在此浏览器';tx.onerror=()=>{$('#saved').textContent='自动保存失败';toast('浏览器空间不足，请保存工程文件备份。')}}catch{$('#saved').textContent='请下载工程备份'}}
+function persist(){if(H){H.autoSave(savePayload()).then(r=>{$('#saved').textContent=r.ok?'已自动保存':'自动保存失败 · '+(r.message||'')}).catch(e=>{$('#saved').textContent='自动保存失败';toast(e.message||'自动保存失败')});return}if(!db){$('#saved').textContent='请下载工程备份';return}try{const tx=db.transaction('projects','readwrite');tx.objectStore('projects').put(p,'draft');tx.oncomplete=()=>$('#saved').textContent='已保存在此浏览器';tx.onerror=()=>{$('#saved').textContent='自动保存失败';toast('浏览器空间不足，请保存工程文件备份。')}}catch{$('#saved').textContent='请下载工程备份'}}
 async function decodeAsset(a){if(a.width&&a.height)return;await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{a.width=im.naturalWidth;a.height=im.naturalHeight;resolve()};im.onerror=()=>reject(Error('图片「'+a.name+'」无法解码'));im.src=a.data})}
-async function loadProject(raw){C.validate(raw);const x=C.clone(raw);await Promise.all(x.assets.map(decodeAsset));const out=C.migrate(x);C.validate(out);out.nodes.forEach(n=>F.validate(n.effects));return out}
+async function loadProject(raw){C.validate(raw);const x=C.clone(raw);await ensureContentHashes(x);await Promise.all(x.assets.map(decodeAsset));const out=C.migrate(x);C.validate(out);out.nodes.forEach(n=>F.validate(n.effects));return out}
 async function initialize(){if(H){const started=revision;try{const s=await H.bootstrap();H.applyState(s);if(s.notice)toast(s.notice);if(s.project){const restored=await loadProject(s.project);if(revision!==started)return;p=restored;selected=p.nodes[0]?.id;selectedLayer=null;audioStopAll();render();$('#saved').textContent=s.currentDir?'已打开工程':'已恢复草稿 · 请另存为';if(C.hasAnyAudio(p))toast('恢复的工程含音频：请勿用 0.4.3 及更早版本保存，旧版会丢失音频素材；请保留备份。')}else $('#saved').textContent='准备就绪 · 保存工程以创建目录'}catch(e){toast('启动恢复失败：'+e.message);$('#saved').textContent='请手动保存工程'}return}try{const req=indexedDB.open('paper-vn-studio',1);req.onupgradeneeded=()=>req.result.createObjectStore('projects');req.onsuccess=()=>{db=req.result;const started=revision,r=db.transaction('projects').objectStore('projects').get('draft');r.onsuccess=async()=>{if(!r.result)return;try{const restored=await loadProject(r.result);if(revision!==started)return;p=restored;selected=p.nodes[0]?.id;selectedLayer=null;audioStopAll();render();$('#saved').textContent='已恢复本地工程'+(r.result.schema<3?' · 已兼容升级':'');if(C.hasAnyAudio(p))toast('恢复的工程含音频：请勿用 0.4.3 及更早版本保存，旧版会丢失音频素材；请保留备份。')}catch(e){toast('本地工程未覆盖：'+e.message)}}};req.onerror=()=>$('#saved').textContent='请下载工程备份'}catch{$('#saved').textContent='请下载工程备份'}}
+/* ---------- V0.7.6-M3 暂存引用 / 导入进度 ---------- */
+function stagedHashOf(data){const m=/^paper:\/\/app\/staging\/([a-f0-9]{64})\./i.exec(String(data||''));return m?m[1].toLowerCase():''}
+function stagedRefs(){
+ const out=new Set();
+ const scan=a=>{const h=stagedHashOf(a&&a.data);if(h)out.add(h)};
+ const scanProject=q=>{for(const a of q.assets||[])scan(a);for(const a of q.audioAssets||[])scan(a)};
+ scanProject(p);for(const q of past)scanProject(q);for(const q of future)scanProject(q);
+ return [...out];
+}
+function savePayload(){return {project:p,protected:stagedRefs()}}
+let stageToken='';
+function initAssetProgress(){
+ if(!H||!H.onStageProgress)return;
+ H.onStageProgress(pr=>{
+  const box=$('#assetProgress');if(!box)return;
+  if(pr.phase==='start'){stageToken=pr.token;box.hidden=false;$('#assetProgressCancel').disabled=false}
+  if(pr.phase==='read'){
+   box.hidden=false;
+   $('#assetProgressText').textContent='正在导入 '+(pr.file||'素材')+(pr.count>1?'（'+(pr.index+1)+'/'+pr.count+'）':'')+' · '+pr.percent+'%';
+   $('#assetProgressBar').style.width=pr.percent+'%';
+  }
+  if(pr.phase==='error')$('#assetProgressText').textContent='导入失败：'+(pr.message||pr.file||'未知错误');
+  if(['complete','cancelled','error'].includes(pr.phase)){
+   $('#assetProgressCancel').disabled=true;
+   if(pr.phase==='cancelled'||pr.phase==='error')$('#assetProgressText').textContent=pr.phase==='cancelled'?'已取消导入':'导入失败';
+   else $('#assetProgressText').textContent='素材已就绪 · 保存工程后写入目录';
+   setTimeout(()=>{if(stageToken===pr.token)box.hidden=true},1200);
+  }
+ });
+ const cancel=$('#assetProgressCancel');if(cancel)cancel.onclick=()=>{try{H.cancelStage(stageToken)}catch(e){toast(e.message||'取消失败')}};
+}
+/* 旧版 data URI 素材补内容哈希：这样「磁盘素材 + 旧工程素材 + 新导入素材」能互相比对。 */
+async function ensureContentHashes(x){
+ const list=[...(x.assets||[]),...(x.audioAssets||[])];
+ if(!globalThis.crypto||!crypto.subtle||!list.some(a=>!a.sha256&&/^data:/i.test(String(a.data||''))))return;
+ for(const a of list){
+  if(a.sha256)continue;
+  const m=/^data:[^;]+;base64,([\s\S]+)$/.exec(String(a.data||''));if(!m)continue;
+  try{
+   const raw=atob(m[2]),u=new Uint8Array(raw.length);
+   for(let i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);
+   const h=await crypto.subtle.digest('SHA-256',u);
+   a.sha256=[...new Uint8Array(h)].map(n=>n.toString(16).padStart(2,'0')).join('');
+  }catch{/* 解码失败留给原有校验报错 */}
+ }
+}
 function indexLabel(id){const i=p.nodes.findIndex(n=>n.id===id);if(i<0)return '目标已删除';const n=p.nodes[i];return String(i+1).padStart(2,'0')+' · '+(n.type==='end'?'结局':n.type==='choice'?'选择':n.name||'旁白')+' / '+(n.text||'空文本').slice(0,16)}
 function targets(value='',auto=true){let out='<option value="">'+(auto?'按顺序继续':'请选择对话 / 主线 / 结局')+'</option>';if(value&&!p.nodes.some(n=>n.id===value))out+='<option selected value="'+esc(value)+'">目标已删除，请重新设置</option>';return out+p.nodes.map(n=>'<option value="'+esc(n.id)+'" '+(n.id===value?'selected':'')+'>'+esc(indexLabel(n.id))+'</option>').join('')}
 /* ---------- 章节 / 段落树 ---------- */
@@ -389,7 +435,7 @@ $('#inherit').onchange=e=>{const inherit=e.target.checked;if(inherit&&node().sce
 function defaultLayer(a){return C.defaultLayer(a)}
 function addAssetLayer(a,bind){makeOwn();const l=C.appendAssetLayer(node(),a,bind);selectedLayer=l.id}
 function pick(accept,callback,assetKind){if(H){const task=accept==='audio'?H.pickAudio():String(accept).includes('image')?H.pickImage(assetKind||'bg'):H.pickText();task.then(async f=>{if(!f)return;try{await callback(f)}catch(e){toast(e.message||'读取失败')}}).catch(e=>toast(e.message||'读取失败'));return}const f=$('#file');f.value='';f.accept=accept==='audio'?'audio/*,.wav,.wave,.mp3,.ogg,.oga,.m4a,.aac,.flac,.webm':accept;f.onchange=async()=>{if(f.files[0])try{await callback(f.files[0])}catch(e){toast(e.message||'读取失败')}};f.click()}
-function upload(kind){if(!node())return toast('请先添加剧情');const target=selected;pick('image/png,image/jpeg,image/webp',async f=>{if(f.size>12*1024*1024)throw Error('请使用小于 12MB 的图片');if(!['image/png','image/jpeg','image/webp'].includes(f.type))throw Error('仅支持 PNG、JPEG、WebP');const data=H?f.dataUrl:await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('图片读取失败'));r.readAsDataURL(f)});if(!data)throw Error('图片读取失败');const picked=C.assetForImport(p,{id:H&&f.id?f.id:C.id(),name:f.name,kind,data});const a=picked.asset;await decodeAsset(a);if(selected!==target||playing)throw Error('当前节点已变化，请重新导入图片');edit(()=>{if(!picked.reused)p.assets.push(a);const nn=node();let bind=null;if(kind==='char'&&nn&&nn.speakerId){const c=C.characterIn(p,nn.speakerId);if(c)bind={characterId:c.id,expressionId:nn.expressionId||((c.expressions||[]).find(e=>e.assetId===a.id)||{}).id||''}}addAssetLayer(a,bind)});toast('已添加图层：拖动画面调整位置，右下角缩放。'+(picked.reused?'（复用已有素材）':''))},kind)}$('#uploadBg').onclick=()=>upload('bg');$('#uploadChar').onclick=()=>upload('char');$('#reuse').onclick=()=>{const a=asset($('#assetReuse').value);if(!a)return toast('请先选择已导入素材');edit(()=>addAssetLayer(a))};
+function upload(kind){if(!node())return toast('请先添加剧情');const target=selected;pick('image/png,image/jpeg,image/webp',async f=>{if(!['image/png','image/jpeg','image/webp'].includes(f.type))throw Error('仅支持 PNG、JPEG、WebP');const data=H?f.dataUrl:await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('图片读取失败'));r.readAsDataURL(f)});if(!data)throw Error('图片读取失败');const picked=C.assetForImport(p,{id:H&&f.id?f.id:C.id(),name:f.name,kind,data,sha256:f.sha256,width:f.width,height:f.height});const a=picked.asset;await decodeAsset(a);if(selected!==target||playing)throw Error('当前节点已变化，请重新导入图片');edit(()=>{if(!picked.reused)p.assets.push(a);const nn=node();let bind=null;if(kind==='char'&&nn&&nn.speakerId){const c=C.characterIn(p,nn.speakerId);if(c)bind={characterId:c.id,expressionId:nn.expressionId||((c.expressions||[]).find(e=>e.assetId===a.id)||{}).id||''}}addAssetLayer(a,bind)});toast('已添加图层：拖动画面调整位置，右下角缩放。'+(picked.reused?'（复用已有素材）':''))},kind)}$('#uploadBg').onclick=()=>upload('bg');$('#uploadChar').onclick=()=>upload('char');$('#reuse').onclick=()=>{const a=asset($('#assetReuse').value);if(!a)return toast('请先选择已导入素材');edit(()=>addAssetLayer(a))};
 for(const [id,key]of [['layerName','name'],['lx','x'],['ly','y'],['lw','w'],['lh','h'],['opacity','opacity'],['motion','motion']]){const e=$('#'+id);e.addEventListener(id==='motion'?'change':'input',()=>{const l=layer();if(!l||l.locked||playing)return;let v=key==='name'||key==='motion'?e.value:+e.value;if(typeof v==='number'){if(e.value===''||!Number.isFinite(v))return;const min=key==='x'||key==='y'?-500:key==='opacity'?0:1,max=key==='x'||key==='y'?500:key==='opacity'?100:1000;if(v<min||v>max)return}checkpoint('layer-'+l.id+'-'+key);const own=ownLayer();if($('#ratio').checked&&(key==='w'||key==='h')){const other=key==='w'?'h':'w',newOther=own[other]*v/own[key];if(newOther<1||newOther>1000)return;own[other]=newOther}own[key]=v;revision++;queueSave();renderLayerUI();renderCanvas();updateHistory()})}
 function layerEdit(fn){if(!layer()||layer().locked)return;edit(()=>fn(ownLayer()))}
 function fitLayer(l,cover){const a=asset(l.asset),ratio=(a?.width||1280)/(a?.height||720);let w=100,h=100*16/9/ratio;if((cover&&h<100)||(!cover&&h>100)){h=100;w=100*ratio*9/16}Object.assign(l,{x:(100-w)/2,y:(100-h)/2,w,h,fit:'contain'})}
@@ -442,16 +488,16 @@ function previewImport(){
 }
 $('#parse').onclick=()=>previewImport();
 async function download(data,name,type){const ext=String(name).toLowerCase(),kind=ext.endsWith('.png')?'png':ext.endsWith('.json')?'json':'html';if(H){try{let payload={kind,name};if(data instanceof Blob){const bytes=new Uint8Array(await data.arrayBuffer());let s='';for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));payload.base64=btoa(s)}else payload.text=String(data);const r=await H.saveFile(payload);if(r&&!r.cancelled)toast('已保存到：'+r.path)}catch(e){toast('导出失败：'+(e.message||e))}return}const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}const filename=()=>(p.title||'我的故事').replace(/[\\/:*?"<>|]/g,'_');async function applyOpened(r){if(!r||r.cancelled)return;const out=await loadProject(r.project);batch={on:false,ids:new Set(),anchor:null,scene:null,effects:null};audioStopAll();edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});H.applyState(r);$('#saved').textContent='已打开 · '+(r.label||'工程');if(r.imported)toast('旧工程已导入到新目录，原文件未改动');if(r.notice)toast(r.notice);if(C.hasAnyAudio(p))toast('这是含音频的工程：请勿用 0.4.3 及更早版本保存，旧版会丢失音频素材；请保留备份。')}
-$('#save').onclick=()=>{if(H){H.save(p).then(r=>{if(r.cancelled)return;H.applyState(r);$('#saved').textContent='已保存';toast('工程已保存到目录，素材与备份完整')}).catch(e=>{$('#saved').textContent='保存失败';toast('保存失败：'+e.message)});return}download(JSON.stringify(p,null,2),filename()+'.paper.json','application/json');toast('已下载完整 V0.3 工程，包含全部图层与图片')};
+$('#save').onclick=()=>{if(H){H.save(savePayload()).then(r=>{if(r.cancelled)return;H.applyState(r);$('#saved').textContent='已保存';toast('工程已保存到目录，素材与备份完整')}).catch(e=>{$('#saved').textContent='保存失败';toast('保存失败：'+e.message)});return}download(JSON.stringify(p,null,2),filename()+'.paper.json','application/json');toast('已下载完整 V0.3 工程，包含全部图层与图片')};
 $('#open').onclick=()=>{if(H){H.open().then(applyOpened).catch(e=>toast('打开失败：'+e.message));return}pick('.json,application/json',async f=>{if(f.size>80*1024*1024)throw Error('工程请小于 80MB');const out=await loadProject(JSON.parse(await f.text()));if(!confirm('替换当前工程？可撤销，建议先下载当前工程。'))return;audioStopAll();edit(()=>{p=out;selected=p.nodes[0]?.id;selectedLayer=null});toast('工程已打开，旧版工程已自动兼容转换')})};
 $('#new').onclick=()=>{if(H){H.newProject().then(r=>{if(r.cancelled)return;audioStopAll();edit(()=>{p=r.project;selected=p.nodes[0]?.id??null;selectedLayer=null});H.applyState(r);$('#saved').textContent='新建工程';toast('已新建工程目录')}).catch(e=>toast('新建失败：'+e.message));return}if(!confirm('新建空白工程？可撤销，建议先下载当前工程。'))return;edit(()=>{p=C.blank();selected=null;selectedLayer=null})};
 if(H){
- $('#saveAs').onclick=()=>H.saveAs(p).then(r=>{if(r.cancelled)return;H.applyState(r);$('#saved').textContent='已另存为';toast('已复制到新工程目录，旧工程未改动')}).catch(e=>toast('另存为失败：'+e.message));
+ $('#saveAs').onclick=()=>H.saveAs(savePayload()).then(r=>{if(r.cancelled)return;H.applyState(r);$('#saved').textContent='已另存为';toast('已复制到新工程目录，旧工程未改动')}).catch(e=>toast('另存为失败：'+e.message));
  $('#exportJson').onclick=()=>H.saveFile({kind:'json',name:filename()+'.paper.json',text:JSON.stringify(p,null,2)}).then(r=>{if(r&&!r.cancelled)toast('工程 JSON 备份已保存：'+r.path)}).catch(e=>toast('备份失败：'+e.message));
  $('#recentList').onchange=e=>{if(e.target.value==='')return;H.openRecent(+e.target.value).then(applyOpened).catch(err=>toast('打开最近工程失败：'+err.message))};
  const menuButtons={new:'#new',open:'#open',save:'#save',saveAs:'#saveAs',export:'#export',exportJson:'#exportJson',check:'#check',help:'#help'};
  H.onCommand(cmd=>{if(String(cmd).startsWith('recent:')){H.openRecent(+String(cmd).slice(7)).then(applyOpened).catch(err=>toast('打开最近工程失败：'+err.message));return}const b=menuButtons[cmd];if(b&&$(b))$(b).click()});
- H.onSaveBeforeClose(async token=>{try{const r=await H.save(p);H.finishSaveBeforeClose({token,ok:!r.cancelled,message:r.cancelled?'已取消保存':''})}catch(e){H.finishSaveBeforeClose({token,ok:false,message:e.message||'保存失败'})}});
+ H.onSaveBeforeClose(async token=>{try{const r=await H.save(savePayload());H.finishSaveBeforeClose({token,ok:!r.cancelled,message:r.cancelled?'已取消保存':''})}catch(e){H.finishSaveBeforeClose({token,ok:false,message:e.message||'保存失败'})}});
 }
 $('#check').onclick=()=>{
  const report=C.analyze(p),items=report.issues;
@@ -498,10 +544,12 @@ function projectAssetBytes(project){
 const SINGLE_HTML_ASSET_LIMIT=200*1024*1024;
 async function exportHTML(project){
  const src=project||p;
- const urls=(src.assets||[]).some(a=>isAssetUrl(a.data))||(src.audioAssets||[]).some(a=>isAssetUrl(a.data));
- if(!urls)return buildPlayerHTML(src);
+ /* V0.7.6-M3：200MB 上限对所有工程一视同仁。旧代码只在素材是受控 URL 时检查，
+    纯 data URI 的旧工程会绕过限制并可能拼出超大字符串（Invalid string length）。 */
  const total=projectAssetBytes(src);
  if(total>SINGLE_HTML_ASSET_LIMIT)throw Error('素材共 '+Math.round(total/1048576)+' MB，超出单文件 HTML 的稳妥范围（约 200 MB）。请改用「游戏发行 → 独立游戏目录」或 ZIP 发布包');
+ const urls=(src.assets||[]).some(a=>isAssetUrl(a.data))||(src.audioAssets||[]).some(a=>isAssetUrl(a.data));
+ if(!urls)return buildPlayerHTML(src);
  return buildPlayerHTML(await hydrateProject(src));
 }
 $('#export').onclick=()=>{
@@ -708,11 +756,10 @@ $('#addExpr').onclick=()=>{
  const c=castChar();if(!c)return toast('请先选择角色');
  const target=c.id;
  pick('image/png,image/jpeg,image/webp',async f=>{
-  if(f.size>12*1024*1024)throw Error('请使用小于 12MB 的图片');
   if(!['image/png','image/jpeg','image/webp'].includes(f.type))throw Error('仅支持 PNG、JPEG、WebP');
   const data=H?f.dataUrl:await readImageFile(f);
   if(!data)throw Error('图片读取失败');
-  const picked=C.assetForImport(p,{id:H&&f.id?f.id:C.id(),name:f.name,kind:'char',data});
+  const picked=C.assetForImport(p,{id:H&&f.id?f.id:C.id(),name:f.name,kind:'char',data,sha256:f.sha256,width:f.width,height:f.height});
   const a=picked.asset;
   await decodeAsset(a);
   edit(()=>{
@@ -1222,31 +1269,41 @@ async function audioIdFor(dataUrl){
   return 'au_'+[...new Uint8Array(h)].slice(0,8).map(x=>x.toString(16).padStart(2,'0')).join('');
  }catch{return 'au_'+C.id().slice(-12)}   /* 回退仍由内容查重复用，不会产生第二个素材 */
 }
-function importAudioAsset(category){
- const target=selected;
- pick('audio',async f=>{
-  const data=H?f.dataUrl:await readDataUrl(f);
-  if(!data)throw Error('音频读取失败');
-  let bytes;
-  try{bytes=A.pure.decodeDataUrl(data).bytes}catch(e){throw Error('「'+f.name+'」不是有效音频：'+e.message)}
-  const mime=f.type||'',ext=A.pure.extOf(f.name);
-  const total=(p.audioAssets||[]).reduce((s,a)=>s+(a.bytes||0),0);
-  const probe=()=>{try{return new Audio()}catch{return null}};
-  const can=m=>{const el=probe();return el&&el.canPlayType?el.canPlayType(m):''};
-  const check=A.pure.checkImport({name:f.name,mime,bytes,ext,totalBytes:total,elementFactory:probe,canPlayType:can});
-  if(!check.ok)throw Error(check.message);
-  const meta=await A.pure.readMeta(data,{elementFactory:probe});   /* 时长异步读取 */
-  if(meta.note)toast('「'+f.name+'」：'+meta.note);
-  const picked=C.assetForAudioImport(p,{id:(H&&f.id)?f.id:await audioIdFor(data),
-   name:String(f.name).replace(/\.[^.]+$/,'')||f.name,categories:[category],data,
-   mime:check.mime,ext:check.ext,bytes:bytes.length,duration:meta.duration,durationNote:meta.note});
-  if(selected!==target||playing)throw Error('当前节点已变化，请重新导入音频');
-  edit(()=>{
-   if(picked.reused)picked.asset.categories=picked.categories;
-   else p.audioAssets.push(picked.asset);
-  });
-  toast('已导入「'+picked.asset.name+'」'+(picked.reused?'（复用已有素材）':'')+' · '+A.pure.formatSeconds(meta.duration));
+async function addAudioAsset(f,category,total,target){
+ const data=f.dataUrl;
+ if(!data)throw Error('音频读取失败');
+ let bytesLength,mime=f.type||f.mime||'',ext=f.staged?f.ext:A.pure.extOf(f.name);
+ if(f.staged)bytesLength=Number(f.bytes)||0;                 /* 流式导入：渲染进程没有文件本体 */
+ else{try{bytesLength=A.pure.decodeDataUrl(data).bytes.length}catch(e){throw Error('「'+f.name+'」不是有效音频：'+e.message)}}
+ const probe=()=>{try{return new Audio()}catch{return null}};
+ const can=m=>{const el=probe();return el&&el.canPlayType?el.canPlayType(m):''};
+ const check=A.pure.checkImport({name:f.name,mime,bytes:{length:bytesLength},ext,totalBytes:total,
+  elementFactory:probe,canPlayType:can,headerChecked:!!f.staged});
+ if(!check.ok)throw Error(check.message);
+ const meta=await A.pure.readMeta(data,{elementFactory:probe,mime:check.mime,
+  headerDuration:Number.isFinite(f.duration)?f.duration:undefined});
+ if(meta.note)toast('「'+f.name+'」：'+meta.note);
+ const picked=C.assetForAudioImport(p,{id:(H&&f.id)?f.id:await audioIdFor(data),
+  name:String(f.name).replace(/\.[^.]+$/,'')||f.name,categories:[category],data,
+  mime:check.mime,ext:check.ext,bytes:bytesLength,duration:meta.duration,durationNote:meta.note,
+  sha256:f.sha256,meta:f.meta});
+ if(selected!==target||playing)throw Error('当前节点已变化，请重新导入音频');
+ edit(()=>{
+  if(picked.reused){picked.asset.categories=picked.categories;if(f.sha256&&!picked.asset.sha256)picked.asset.sha256=f.sha256}
+  else p.audioAssets.push(picked.asset);
  });
+ toast('已导入「'+picked.asset.name+'」'+(picked.reused?'（复用已有素材）':'')+' · '+A.pure.formatSeconds(meta.duration));
+}
+async function importAudioAsset(category){
+ const target=selected,total=(p.audioAssets||[]).reduce((s,a)=>s+(a.bytes||0),0);
+ if(H&&H.stageFiles){
+  const r=await H.stageFiles({kind:'audio',multiple:true,totalBytes:total});
+  if(r.cancelled){toast('已取消导入');return}
+  for(const e of r.errors)toast('导入失败：'+e.file+' · '+e.message);
+  for(const f of r.files){try{await addAudioAsset(f,category,total,target)}catch(e){toast('导入失败：'+(e.message||f.name))}}
+  return;
+ }
+ pick('audio',async f=>addAudioAsset(f,category,total,target));
 }
 function previewAudio(id,toggle){
  const rt=runtime(),a=C.audioAsset(p,id);if(!a)return;
@@ -1431,11 +1488,10 @@ $('#titleMusicClear').onclick=()=>{
 $('#audioMood').onchange=()=>renderAudioTab();
 $('#audioClearBgm').onclick=()=>bindSceneBgm(null);
 $('#titleBgImport').onclick=()=>pick('image/png,image/jpeg,image/webp',async f=>{
- if(f.size>12*1024*1024)throw Error('请使用小于 12MB 的图片');
  if(!['image/png','image/jpeg','image/webp'].includes(f.type))throw Error('仅支持 PNG、JPEG、WebP');
  const data=H?f.dataUrl:await readImageFile(f);
  if(!data)throw Error('图片读取失败');
- const picked=C.assetForImport(p,{id:H&&f.id?f.id:C.id(),name:f.name,kind:'bg',data});
+ const picked=C.assetForImport(p,{id:H&&f.id?f.id:C.id(),name:f.name,kind:'bg',data,sha256:f.sha256,width:f.width,height:f.height});
  const a=picked.asset;
  await decodeAsset(a);
  edit(()=>{if(!picked.reused)p.assets.push(a);p.titleBackground=a.id});
@@ -1733,4 +1789,29 @@ if(pubEl('pubMode'))pubEl('pubMode').onchange=()=>{const el=pubEl('pubMode');pub
 if(pubEl('publishDialog'))pubEl('publishDialog').addEventListener('click',e=>{if(e.target===pubEl('publishDialog'))pubClose()});
 if(H&&H.onExportProgress)H.onExportProgress(pubProgress);
 
-render();initialize();loadSampleInfo();
+initAssetProgress();render();initialize();loadSampleInfo();
+/* 桌面端真实窗口验收钩子：只暴露编辑器已有的内存状态与操作，不引入 Node/fs。
+   自动化用它注入合成工程与读取阶段指标；人工操作仍走原有按钮与快捷键。 */
+if(H)window.__pvnM3={
+ project:()=>C.clone(p),
+ setProject:q=>{audioStopAll();edit(()=>{p=q;selected=p.nodes[0]?.id??null;selectedLayer=null})},
+ payload:savePayload,refs:stagedRefs,
+ metrics:()=>({nodes:p.nodes.length,assets:p.assets.length,audio:(p.audioAssets||[]).length,
+  chapters:(p.chapters||[]).length,revision,past:past.length,future:future.length}),
+ /* 真实窗口验收取证：以下都是调用编辑器已有的函数，不绕过业务逻辑。 */
+ select:id=>{selected=id;selectedLayer=null;render()},
+ selected:()=>selected,
+ undo:()=>undo(),redo:()=>redo(),
+ editText:t=>edit(()=>{const n=node();if(n)n.text=String(t)},'accept-text'),
+ nodeText:()=>{const n=node();return n?n.text:''},
+ play:()=>{$('#play').click()},stop:()=>{$('#stop').click()},
+ unlockAudio:()=>{try{return runtime().unlock()}catch{return false}},
+ audioState:()=>{try{return runtime().status()}catch{return null}},
+ sceneInfo:()=>({node:selected,position:$('#position').textContent,
+  imgs:[...document.querySelectorAll('#layersCanvas img')].map(i=>({src:String(i.src).slice(0,72),
+    loaded:!!(i.complete&&i.naturalWidth>0),w:i.naturalWidth}))}),
+ save:()=>H.save(savePayload()),
+ autoSave:()=>H.autoSave(savePayload()),
+ saveAs:()=>H.saveAs(savePayload()),
+ render:()=>render()
+};

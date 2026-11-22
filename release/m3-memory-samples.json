@@ -1,0 +1,2645 @@
+{
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpuModel": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpus": 12,
+    "totalMem": 34187800576,
+    "freeMem": 18773004288,
+    "node": "v22.22.2",
+    "electron": "45.3.2"
+  },
+  "samples": [
+    {
+      "at": 1795375884720,
+      "stage": "openProject",
+      "source": "tasklist",
+      "totalBytes": 201646080,
+      "processes": 4
+    },
+    {
+      "at": 1795375884984,
+      "stage": "openProject",
+      "source": "cdp",
+      "mainBytes": 169275392,
+      "rendererBytes": 141434880,
+      "totalBytes": 453894144,
+      "peakWorkingSetBytes": 169275392,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375884989,
+      "stage": "openProject",
+      "source": "tasklist",
+      "totalBytes": 345837568,
+      "processes": 4
+    },
+    {
+      "at": 1795375885042,
+      "stage": "openProject",
+      "source": "cdp",
+      "mainBytes": 169308160,
+      "rendererBytes": 178163712,
+      "totalBytes": 495804416,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375885160,
+      "stage": "openProject",
+      "source": "cdp",
+      "mainBytes": 168775680,
+      "rendererBytes": 178171904,
+      "totalBytes": 503689216,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375885202,
+      "stage": "openProject",
+      "source": "cdp",
+      "mainBytes": 168820736,
+      "rendererBytes": 178176000,
+      "totalBytes": 508289024,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375885240,
+      "stage": "openProject",
+      "source": "tasklist",
+      "totalBytes": 501055488,
+      "processes": 4
+    },
+    {
+      "at": 1795375885362,
+      "stage": "openProject",
+      "source": "cdp",
+      "mainBytes": 168972288,
+      "rendererBytes": 178343936,
+      "totalBytes": 536276992,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375885458,
+      "stage": "openProject",
+      "source": "tasklist",
+      "totalBytes": 536272896,
+      "processes": 4
+    },
+    {
+      "at": 1795375885505,
+      "stage": "openProject",
+      "source": "tasklist",
+      "totalBytes": 536276992,
+      "processes": 4
+    },
+    {
+      "at": 1795375885511,
+      "stage": "openProject",
+      "source": "cdp",
+      "mainBytes": 168984576,
+      "rendererBytes": 179511296,
+      "totalBytes": 537456640,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375885670,
+      "stage": "import",
+      "source": "cdp",
+      "mainBytes": 171003904,
+      "rendererBytes": 181936128,
+      "totalBytes": 552005632,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375885670,
+      "stage": "import",
+      "source": "cdp",
+      "mainBytes": 170033152,
+      "rendererBytes": 181940224,
+      "totalBytes": 551038976,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375885678,
+      "stage": "import",
+      "source": "tasklist",
+      "totalBytes": 556113920,
+      "processes": 4
+    },
+    {
+      "at": 1795375885816,
+      "stage": "import",
+      "source": "cdp",
+      "mainBytes": 170033152,
+      "rendererBytes": 181948416,
+      "totalBytes": 551047168,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375885954,
+      "stage": "import",
+      "source": "tasklist",
+      "totalBytes": 551055360,
+      "processes": 4
+    },
+    {
+      "at": 1795375885974,
+      "stage": "import",
+      "source": "cdp",
+      "mainBytes": 170045440,
+      "rendererBytes": 181960704,
+      "totalBytes": 546197504,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886010,
+      "stage": "import",
+      "source": "tasklist",
+      "totalBytes": 551059456,
+      "processes": 4
+    },
+    {
+      "at": 1795375886049,
+      "stage": "import",
+      "source": "cdp",
+      "mainBytes": 177033216,
+      "rendererBytes": 182452224,
+      "totalBytes": 553848832,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886132,
+      "stage": "import",
+      "source": "cdp",
+      "mainBytes": 177045504,
+      "rendererBytes": 182927360,
+      "totalBytes": 555347968,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886213,
+      "stage": "import",
+      "source": "tasklist",
+      "totalBytes": 555126784,
+      "processes": 4
+    },
+    {
+      "at": 1795375886291,
+      "stage": "import",
+      "source": "cdp",
+      "mainBytes": 177045504,
+      "rendererBytes": 181596160,
+      "totalBytes": 554029056,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886372,
+      "stage": "import",
+      "source": "tasklist",
+      "totalBytes": 554029056,
+      "processes": 4
+    },
+    {
+      "at": 1795375886377,
+      "stage": "edit",
+      "source": "cdp",
+      "mainBytes": 177045504,
+      "rendererBytes": 181600256,
+      "totalBytes": 554033152,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886441,
+      "stage": "edit",
+      "source": "cdp",
+      "mainBytes": 177049600,
+      "rendererBytes": 181600256,
+      "totalBytes": 554037248,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886446,
+      "stage": "edit",
+      "source": "tasklist",
+      "totalBytes": 554033152,
+      "processes": 4
+    },
+    {
+      "at": 1795375886594,
+      "stage": "edit",
+      "source": "cdp",
+      "mainBytes": 177049600,
+      "rendererBytes": 181600256,
+      "totalBytes": 554037248,
+      "peakWorkingSetBytes": 194932736,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886718,
+      "stage": "edit",
+      "source": "tasklist",
+      "totalBytes": 554041344,
+      "processes": 4
+    },
+    {
+      "at": 1795375886730,
+      "stage": "edit",
+      "source": "tasklist",
+      "totalBytes": 554041344,
+      "processes": 4
+    },
+    {
+      "at": 1795375886813,
+      "stage": "edit",
+      "source": "cdp",
+      "mainBytes": 177053696,
+      "rendererBytes": 213393408,
+      "totalBytes": 585838592,
+      "peakWorkingSetBytes": 213393408,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886813,
+      "stage": "edit",
+      "source": "cdp",
+      "mainBytes": 177053696,
+      "rendererBytes": 212979712,
+      "totalBytes": 585560064,
+      "peakWorkingSetBytes": 213954560,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886910,
+      "stage": "edit",
+      "source": "cdp",
+      "mainBytes": 177049600,
+      "rendererBytes": 211185664,
+      "totalBytes": 583831552,
+      "peakWorkingSetBytes": 213954560,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375886967,
+      "stage": "edit",
+      "source": "tasklist",
+      "totalBytes": 583852032,
+      "processes": 4
+    },
+    {
+      "at": 1795375887067,
+      "stage": "edit",
+      "source": "cdp",
+      "mainBytes": 177049600,
+      "rendererBytes": 198971392,
+      "totalBytes": 571617280,
+      "peakWorkingSetBytes": 222023680,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375887134,
+      "stage": "edit",
+      "source": "tasklist",
+      "totalBytes": 571617280,
+      "processes": 4
+    },
+    {
+      "at": 1795375887145,
+      "stage": "undoRedo",
+      "source": "cdp",
+      "mainBytes": 136499200,
+      "rendererBytes": 199716864,
+      "totalBytes": 531816448,
+      "peakWorkingSetBytes": 222023680,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375887215,
+      "stage": "undoRedo",
+      "source": "tasklist",
+      "totalBytes": 571617280,
+      "processes": 4
+    },
+    {
+      "at": 1795375887217,
+      "stage": "undoRedo",
+      "source": "cdp",
+      "mainBytes": 136499200,
+      "rendererBytes": 199057408,
+      "totalBytes": 531161088,
+      "peakWorkingSetBytes": 222023680,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375887368,
+      "stage": "undoRedo",
+      "source": "cdp",
+      "mainBytes": 136499200,
+      "rendererBytes": 199090176,
+      "totalBytes": 531193856,
+      "peakWorkingSetBytes": 222023680,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375887477,
+      "stage": "undoRedo",
+      "source": "tasklist",
+      "totalBytes": 531193856,
+      "processes": 4
+    },
+    {
+      "at": 1795375887487,
+      "stage": "undoRedo",
+      "source": "tasklist",
+      "totalBytes": 531193856,
+      "processes": 4
+    },
+    {
+      "at": 1795375887557,
+      "stage": "undoRedo",
+      "source": "cdp",
+      "mainBytes": 136499200,
+      "rendererBytes": 213544960,
+      "totalBytes": 545652736,
+      "peakWorkingSetBytes": 222023680,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375887628,
+      "stage": "undoRedo",
+      "source": "cdp",
+      "mainBytes": 136499200,
+      "rendererBytes": 230285312,
+      "totalBytes": 562417664,
+      "peakWorkingSetBytes": 230285312,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375887681,
+      "stage": "undoRedo",
+      "source": "cdp",
+      "mainBytes": 136499200,
+      "rendererBytes": 230289408,
+      "totalBytes": 562724864,
+      "peakWorkingSetBytes": 230289408,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375887706,
+      "stage": "undoRedo",
+      "source": "tasklist",
+      "totalBytes": 553242624,
+      "processes": 4
+    },
+    {
+      "at": 1795375887838,
+      "stage": "undoRedo",
+      "source": "cdp",
+      "mainBytes": 136613888,
+      "rendererBytes": 230354944,
+      "totalBytes": 562905088,
+      "peakWorkingSetBytes": 230354944,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375887974,
+      "stage": "undoRedo",
+      "source": "tasklist",
+      "totalBytes": 562905088,
+      "processes": 4
+    },
+    {
+      "at": 1795375887987,
+      "stage": "scenes",
+      "source": "tasklist",
+      "totalBytes": 562905088,
+      "processes": 4
+    },
+    {
+      "at": 1795375888161,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 142708736,
+      "rendererBytes": 230498304,
+      "totalBytes": 569143296,
+      "peakWorkingSetBytes": 231018496,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375888161,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 142708736,
+      "rendererBytes": 230723584,
+      "totalBytes": 569368576,
+      "peakWorkingSetBytes": 231018496,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375888265,
+      "stage": "scenes",
+      "source": "tasklist",
+      "totalBytes": 569626624,
+      "processes": 4
+    },
+    {
+      "at": 1795375888306,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 142708736,
+      "rendererBytes": 230748160,
+      "totalBytes": 569393152,
+      "peakWorkingSetBytes": 231018496,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375888332,
+      "stage": "scenes",
+      "source": "tasklist",
+      "totalBytes": 569393152,
+      "processes": 4
+    },
+    {
+      "at": 1795375888482,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 186109952,
+      "rendererBytes": 276434944,
+      "totalBytes": 658485248,
+      "peakWorkingSetBytes": 276434944,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375888486,
+      "stage": "scenes",
+      "source": "tasklist",
+      "totalBytes": 577376256,
+      "processes": 4
+    },
+    {
+      "at": 1795375888618,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 145719296,
+      "rendererBytes": 285343744,
+      "totalBytes": 628572160,
+      "peakWorkingSetBytes": 305180672,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375888739,
+      "stage": "scenes",
+      "source": "tasklist",
+      "totalBytes": 628572160,
+      "processes": 4
+    },
+    {
+      "at": 1795375888781,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 189288448,
+      "rendererBytes": 305184768,
+      "totalBytes": 692031488,
+      "peakWorkingSetBytes": 311902208,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375888931,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 189157376,
+      "rendererBytes": 298926080,
+      "totalBytes": 685645824,
+      "peakWorkingSetBytes": 321933312,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375888982,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 189157376,
+      "rendererBytes": 298926080,
+      "totalBytes": 685645824,
+      "peakWorkingSetBytes": 321933312,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375889015,
+      "stage": "scenes",
+      "source": "tasklist",
+      "totalBytes": 685645824,
+      "processes": 4
+    },
+    {
+      "at": 1795375889090,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 189157376,
+      "rendererBytes": 298926080,
+      "totalBytes": 685645824,
+      "peakWorkingSetBytes": 321933312,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375889241,
+      "stage": "scenes",
+      "source": "cdp",
+      "mainBytes": 189157376,
+      "rendererBytes": 298926080,
+      "totalBytes": 685645824,
+      "peakWorkingSetBytes": 321933312,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375889247,
+      "stage": "scenes",
+      "source": "tasklist",
+      "totalBytes": 685645824,
+      "processes": 4
+    },
+    {
+      "at": 1795375889315,
+      "stage": "scenes",
+      "source": "tasklist",
+      "totalBytes": 685645824,
+      "processes": 4
+    },
+    {
+      "at": 1795375889320,
+      "stage": "audio",
+      "source": "cdp",
+      "mainBytes": 189157376,
+      "rendererBytes": 298926080,
+      "totalBytes": 685645824,
+      "peakWorkingSetBytes": 321933312,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375889404,
+      "stage": "audio",
+      "source": "cdp",
+      "mainBytes": 189231104,
+      "rendererBytes": 298958848,
+      "totalBytes": 685752320,
+      "peakWorkingSetBytes": 321933312,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375889500,
+      "stage": "audio",
+      "source": "tasklist",
+      "totalBytes": 685752320,
+      "processes": 4
+    },
+    {
+      "at": 1795375889561,
+      "stage": "audio",
+      "source": "cdp",
+      "mainBytes": 189231104,
+      "rendererBytes": 298958848,
+      "totalBytes": 685752320,
+      "peakWorkingSetBytes": 321933312,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375889645,
+      "stage": "audio",
+      "source": "tasklist",
+      "totalBytes": 685752320,
+      "processes": 4
+    },
+    {
+      "at": 1795375889720,
+      "stage": "audio",
+      "source": "cdp",
+      "mainBytes": 189902848,
+      "rendererBytes": 301072384,
+      "totalBytes": 791212032,
+      "peakWorkingSetBytes": 321933312,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375889762,
+      "stage": "audio",
+      "source": "tasklist",
+      "totalBytes": 685760512,
+      "processes": 4
+    },
+    {
+      "at": 1795375889951,
+      "stage": "audio",
+      "source": "cdp",
+      "mainBytes": 149147648,
+      "rendererBytes": 329818112,
+      "totalBytes": 782987264,
+      "peakWorkingSetBytes": 329818112,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375889994,
+      "stage": "audio",
+      "source": "cdp",
+      "mainBytes": 210755584,
+      "rendererBytes": 334942208,
+      "totalBytes": 852578304,
+      "peakWorkingSetBytes": 347172864,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375890037,
+      "stage": "audio",
+      "source": "cdp",
+      "mainBytes": 212131840,
+      "rendererBytes": 338923520,
+      "totalBytes": 864260096,
+      "peakWorkingSetBytes": 347172864,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375890081,
+      "stage": "audio",
+      "source": "tasklist",
+      "totalBytes": 782909440,
+      "processes": 5
+    },
+    {
+      "at": 1795375890192,
+      "stage": "audio",
+      "source": "cdp",
+      "mainBytes": 212160512,
+      "rendererBytes": 339001344,
+      "totalBytes": 860864512,
+      "peakWorkingSetBytes": 347172864,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375890329,
+      "stage": "audio",
+      "source": "tasklist",
+      "totalBytes": 860868608,
+      "processes": 5
+    },
+    {
+      "at": 1795375890342,
+      "stage": "audio",
+      "source": "tasklist",
+      "totalBytes": 860868608,
+      "processes": 5
+    },
+    {
+      "at": 1795375890343,
+      "stage": "audio",
+      "source": "cdp",
+      "mainBytes": 212164608,
+      "rendererBytes": 339009536,
+      "totalBytes": 860876800,
+      "peakWorkingSetBytes": 347172864,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375890413,
+      "stage": "singleHtmlGuard",
+      "source": "cdp",
+      "mainBytes": 212324352,
+      "rendererBytes": 340246528,
+      "totalBytes": 862273536,
+      "peakWorkingSetBytes": 347172864,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375890502,
+      "stage": "singleHtmlGuard",
+      "source": "cdp",
+      "mainBytes": 212324352,
+      "rendererBytes": 338272256,
+      "totalBytes": 860401664,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375890520,
+      "stage": "singleHtmlGuard",
+      "source": "tasklist",
+      "totalBytes": 862015488,
+      "processes": 5
+    },
+    {
+      "at": 1795375890659,
+      "stage": "singleHtmlGuard",
+      "source": "cdp",
+      "mainBytes": 212361216,
+      "rendererBytes": 309796864,
+      "totalBytes": 831963136,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375890733,
+      "stage": "singleHtmlGuard",
+      "source": "tasklist",
+      "totalBytes": 831856640,
+      "processes": 5
+    },
+    {
+      "at": 1795375890775,
+      "stage": "singleHtmlGuard",
+      "source": "tasklist",
+      "totalBytes": 831963136,
+      "processes": 5
+    },
+    {
+      "at": 1795375890816,
+      "stage": "singleHtmlGuard",
+      "source": "cdp",
+      "mainBytes": 212422656,
+      "rendererBytes": 310222848,
+      "totalBytes": 832532480,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375890897,
+      "stage": "singleHtmlGuard",
+      "source": "cdp",
+      "mainBytes": 212422656,
+      "rendererBytes": 310222848,
+      "totalBytes": 832532480,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375890973,
+      "stage": "singleHtmlGuard",
+      "source": "cdp",
+      "mainBytes": 212467712,
+      "rendererBytes": 310235136,
+      "totalBytes": 832589824,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375891012,
+      "stage": "singleHtmlGuard",
+      "source": "tasklist",
+      "totalBytes": 832532480,
+      "processes": 5
+    },
+    {
+      "at": 1795375891131,
+      "stage": "singleHtmlGuard",
+      "source": "cdp",
+      "mainBytes": 212512768,
+      "rendererBytes": 310243328,
+      "totalBytes": 832667648,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375891224,
+      "stage": "singleHtmlGuard",
+      "source": "tasklist",
+      "totalBytes": 832667648,
+      "processes": 5
+    },
+    {
+      "at": 1795375891229,
+      "stage": "save",
+      "source": "cdp",
+      "mainBytes": 212512768,
+      "rendererBytes": 310243328,
+      "totalBytes": 832667648,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375891278,
+      "stage": "save",
+      "source": "tasklist",
+      "totalBytes": 832667648,
+      "processes": 5
+    },
+    {
+      "at": 1795375891280,
+      "stage": "save",
+      "source": "cdp",
+      "mainBytes": 212512768,
+      "rendererBytes": 310243328,
+      "totalBytes": 832667648,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375891440,
+      "stage": "save",
+      "source": "cdp",
+      "mainBytes": 212512768,
+      "rendererBytes": 310243328,
+      "totalBytes": 832602112,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375891516,
+      "stage": "save",
+      "source": "tasklist",
+      "totalBytes": 832602112,
+      "processes": 5
+    },
+    {
+      "at": 1795375891551,
+      "stage": "save",
+      "source": "tasklist",
+      "totalBytes": 832602112,
+      "processes": 5
+    },
+    {
+      "at": 1795375891795,
+      "stage": "save",
+      "source": "tasklist",
+      "totalBytes": 840355840,
+      "processes": 5
+    },
+    {
+      "at": 1795375891985,
+      "stage": "save",
+      "source": "cdp",
+      "mainBytes": 219426816,
+      "rendererBytes": 310378496,
+      "totalBytes": 839450624,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375891986,
+      "stage": "save",
+      "source": "cdp",
+      "mainBytes": 219455488,
+      "rendererBytes": 310378496,
+      "totalBytes": 839483392,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375892060,
+      "stage": "save",
+      "source": "cdp",
+      "mainBytes": 219455488,
+      "rendererBytes": 296984576,
+      "totalBytes": 812601344,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375892091,
+      "stage": "save",
+      "source": "tasklist",
+      "totalBytes": 840671232,
+      "processes": 5
+    },
+    {
+      "at": 1795375892212,
+      "stage": "save",
+      "source": "cdp",
+      "mainBytes": 219455488,
+      "rendererBytes": 296984576,
+      "totalBytes": 812593152,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375892332,
+      "stage": "save",
+      "source": "tasklist",
+      "totalBytes": 812601344,
+      "processes": 5
+    },
+    {
+      "at": 1795375892344,
+      "stage": "save",
+      "source": "tasklist",
+      "totalBytes": 812597248,
+      "processes": 5
+    },
+    {
+      "at": 1795375892348,
+      "stage": "reopen",
+      "source": "cdp",
+      "mainBytes": 219455488,
+      "rendererBytes": 296988672,
+      "totalBytes": 812597248,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375892368,
+      "stage": "reopen",
+      "source": "cdp",
+      "mainBytes": 219455488,
+      "rendererBytes": 296988672,
+      "totalBytes": 812597248,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375892523,
+      "stage": "reopen",
+      "source": "cdp",
+      "mainBytes": 219459584,
+      "rendererBytes": 296988672,
+      "totalBytes": 812601344,
+      "peakWorkingSetBytes": 368394240,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375892552,
+      "stage": "reopen",
+      "source": "tasklist",
+      "totalBytes": 812597248,
+      "processes": 5
+    },
+    {
+      "at": 1795375892674,
+      "stage": "reopen",
+      "source": "tasklist",
+      "totalBytes": 812601344,
+      "processes": 5
+    },
+    {
+      "at": 1795375893086,
+      "stage": "reopen",
+      "source": "tasklist",
+      "totalBytes": 812961792,
+      "processes": 5
+    },
+    {
+      "at": 1795375894703,
+      "stage": "reopen",
+      "source": "tasklist",
+      "totalBytes": 283889664,
+      "processes": 4
+    },
+    {
+      "at": 1795375894832,
+      "stage": "reopen",
+      "source": "cdp",
+      "mainBytes": 121929728,
+      "rendererBytes": 88264704,
+      "totalBytes": 258695168,
+      "peakWorkingSetBytes": 122589184,
+      "processes": 3,
+      "types": [
+        "browser",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375894959,
+      "stage": "reopen",
+      "source": "tasklist",
+      "totalBytes": 406904832,
+      "processes": 4
+    },
+    {
+      "at": 1795375894972,
+      "stage": "reopen",
+      "source": "cdp",
+      "mainBytes": 168259584,
+      "rendererBytes": 177606656,
+      "totalBytes": 529485824,
+      "peakWorkingSetBytes": 194723840,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375895054,
+      "stage": "reopen",
+      "source": "cdp",
+      "mainBytes": 168271872,
+      "rendererBytes": 177627136,
+      "totalBytes": 529518592,
+      "peakWorkingSetBytes": 194723840,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375895129,
+      "stage": "reopen",
+      "source": "cdp",
+      "mainBytes": 168271872,
+      "rendererBytes": 177631232,
+      "totalBytes": 529522688,
+      "peakWorkingSetBytes": 194723840,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375895180,
+      "stage": "reopen",
+      "source": "tasklist",
+      "totalBytes": 529522688,
+      "processes": 4
+    },
+    {
+      "at": 1795375895288,
+      "stage": "reopen",
+      "source": "cdp",
+      "mainBytes": 168275968,
+      "rendererBytes": 177631232,
+      "totalBytes": 529526784,
+      "peakWorkingSetBytes": 194723840,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375895377,
+      "stage": "reopen",
+      "source": "tasklist",
+      "totalBytes": 529522688,
+      "processes": 4
+    },
+    {
+      "at": 1795375895382,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 168288256,
+      "rendererBytes": 177643520,
+      "totalBytes": 529551360,
+      "peakWorkingSetBytes": 194723840,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375895432,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 529530880,
+      "processes": 4
+    },
+    {
+      "at": 1795375895445,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 168288256,
+      "rendererBytes": 177713152,
+      "totalBytes": 529620992,
+      "peakWorkingSetBytes": 194723840,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375895606,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 168341504,
+      "rendererBytes": 177856512,
+      "totalBytes": 529817600,
+      "peakWorkingSetBytes": 194723840,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375895675,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 529817600,
+      "processes": 4
+    },
+    {
+      "at": 1795375895703,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 529817600,
+      "processes": 4
+    },
+    {
+      "at": 1795375895944,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 540569600,
+      "processes": 4
+    },
+    {
+      "at": 1795375896264,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 588718080,
+      "processes": 4
+    },
+    {
+      "at": 1795375896508,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 727261184,
+      "processes": 4
+    },
+    {
+      "at": 1795375896747,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 613634048,
+      "processes": 4
+    },
+    {
+      "at": 1795375896972,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 724676608,
+      "processes": 4
+    },
+    {
+      "at": 1795375897226,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 883499008,
+      "processes": 4
+    },
+    {
+      "at": 1795375897472,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 1052942336,
+      "processes": 4
+    },
+    {
+      "at": 1795375897746,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 822767616,
+      "processes": 4
+    },
+    {
+      "at": 1795375898027,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 992178176,
+      "processes": 4
+    },
+    {
+      "at": 1795375898357,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 1172299776,
+      "processes": 4
+    },
+    {
+      "at": 1795375898363,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 539791360,
+      "rendererBytes": 153362432,
+      "totalBytes": 864747520,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 4,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375898478,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 287334400,
+      "rendererBytes": 281071616,
+      "totalBytes": 741629952,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375898608,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 289447936,
+      "rendererBytes": 285102080,
+      "totalBytes": 865927168,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 6,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375898643,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 845398016,
+      "processes": 6
+    },
+    {
+      "at": 1795375898789,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 248995840,
+      "rendererBytes": 318881792,
+      "totalBytes": 865329152,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 6,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375898816,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 872534016,
+      "processes": 6
+    },
+    {
+      "at": 1795375898919,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 249020416,
+      "rendererBytes": 311123968,
+      "totalBytes": 863002624,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 6,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375899004,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 864276480,
+      "processes": 6
+    },
+    {
+      "at": 1795375899010,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 249020416,
+      "rendererBytes": 311169024,
+      "totalBytes": 862806016,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 6,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375899073,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 249020416,
+      "rendererBytes": 311324672,
+      "totalBytes": 862961664,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 6,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375899210,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 862961664,
+      "processes": 6
+    },
+    {
+      "at": 1795375899227,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 249020416,
+      "rendererBytes": 311328768,
+      "totalBytes": 862965760,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 6,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375899336,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 862965760,
+      "processes": 6
+    },
+    {
+      "at": 1795375899476,
+      "stage": "preview",
+      "source": "tasklist",
+      "totalBytes": 869416960,
+      "processes": 6
+    },
+    {
+      "at": 1795375899510,
+      "stage": "preview",
+      "source": "cdp",
+      "mainBytes": 252788736,
+      "rendererBytes": 311431168,
+      "totalBytes": 874606592,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 6,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375899539,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 252260352,
+      "rendererBytes": 311619584,
+      "totalBytes": 874274816,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 6,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375899550,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 249720832,
+      "rendererBytes": 152760320,
+      "totalBytes": 697765888,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375899777,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 698376192,
+      "processes": 5
+    },
+    {
+      "at": 1795375899813,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 250888192,
+      "rendererBytes": 152764416,
+      "totalBytes": 698990592,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375899840,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 250888192,
+      "rendererBytes": 152768512,
+      "totalBytes": 698994688,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375899925,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 698994688,
+      "processes": 5
+    },
+    {
+      "at": 1795375900045,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 699011072,
+      "processes": 5
+    },
+    {
+      "at": 1795375900295,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 694030336,
+      "processes": 5
+    },
+    {
+      "at": 1795375900565,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 852099072,
+      "processes": 5
+    },
+    {
+      "at": 1795375900846,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 817602560,
+      "processes": 5
+    },
+    {
+      "at": 1795375901089,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 980783104,
+      "processes": 5
+    },
+    {
+      "at": 1795375901382,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 833929216,
+      "processes": 5
+    },
+    {
+      "at": 1795375901410,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 457502720,
+      "rendererBytes": 154796032,
+      "totalBytes": 906887168,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375901546,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140099584,
+      "rendererBytes": 154816512,
+      "totalBytes": 589484032,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375901682,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 689410048,
+      "processes": 6
+    },
+    {
+      "at": 1795375901700,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140115968,
+      "rendererBytes": 154816512,
+      "totalBytes": 589438976,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375901856,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140115968,
+      "rendererBytes": 154820608,
+      "totalBytes": 589443072,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375901975,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 690102272,
+      "processes": 6
+    },
+    {
+      "at": 1795375902015,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140115968,
+      "rendererBytes": 154824704,
+      "totalBytes": 588877824,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375902166,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140115968,
+      "rendererBytes": 154832896,
+      "totalBytes": 588886016,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375902282,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 689586176,
+      "processes": 6
+    },
+    {
+      "at": 1795375902321,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140115968,
+      "rendererBytes": 154832896,
+      "totalBytes": 588886016,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375902472,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140120064,
+      "rendererBytes": 154873856,
+      "totalBytes": 588914688,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375902499,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 689995776,
+      "processes": 6
+    },
+    {
+      "at": 1795375902625,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140120064,
+      "rendererBytes": 154877952,
+      "totalBytes": 588918784,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375902678,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 690020352,
+      "processes": 6
+    },
+    {
+      "at": 1795375902779,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140120064,
+      "rendererBytes": 154877952,
+      "totalBytes": 588918784,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375902925,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 690028544,
+      "processes": 6
+    },
+    {
+      "at": 1795375902936,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140120064,
+      "rendererBytes": 154882048,
+      "totalBytes": 588922880,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375903091,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140263424,
+      "rendererBytes": 154882048,
+      "totalBytes": 589066240,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375903103,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140357632,
+      "rendererBytes": 154894336,
+      "totalBytes": 589172736,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375903162,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 690028544,
+      "processes": 6
+    },
+    {
+      "at": 1795375903245,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140881920,
+      "rendererBytes": 154898432,
+      "totalBytes": 589701120,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375903400,
+      "stage": "folderExport",
+      "source": "cdp",
+      "mainBytes": 140881920,
+      "rendererBytes": 154898432,
+      "totalBytes": 589701120,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375903438,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 589701120,
+      "processes": 5
+    },
+    {
+      "at": 1795375903491,
+      "stage": "folderExport",
+      "source": "tasklist",
+      "totalBytes": 589701120,
+      "processes": 5
+    },
+    {
+      "at": 1795375903497,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140881920,
+      "rendererBytes": 154898432,
+      "totalBytes": 589701120,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375903560,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140881920,
+      "rendererBytes": 154898432,
+      "totalBytes": 589701120,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375903672,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 589701120,
+      "processes": 5
+    },
+    {
+      "at": 1795375903710,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140886016,
+      "rendererBytes": 154898432,
+      "totalBytes": 589705216,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375903851,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 589705216,
+      "processes": 5
+    },
+    {
+      "at": 1795375904326,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 589705216,
+      "processes": 5
+    },
+    {
+      "at": 1795375904326,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 589705216,
+      "processes": 5
+    },
+    {
+      "at": 1795375904326,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140886016,
+      "rendererBytes": 154902528,
+      "totalBytes": 589709312,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375904484,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140894208,
+      "rendererBytes": 154902528,
+      "totalBytes": 589717504,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375904643,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140034048,
+      "rendererBytes": 150626304,
+      "totalBytes": 584630272,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375904733,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 584630272,
+      "processes": 5
+    },
+    {
+      "at": 1795375904793,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140034048,
+      "rendererBytes": 150626304,
+      "totalBytes": 584454144,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375904951,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140034048,
+      "rendererBytes": 150630400,
+      "totalBytes": 584458240,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375904958,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 584454144,
+      "processes": 5
+    },
+    {
+      "at": 1795375905109,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140038144,
+      "rendererBytes": 150630400,
+      "totalBytes": 580947968,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375905198,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 580943872,
+      "processes": 5
+    },
+    {
+      "at": 1795375905266,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140046336,
+      "rendererBytes": 150630400,
+      "totalBytes": 580956160,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375905425,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140046336,
+      "rendererBytes": 150626304,
+      "totalBytes": 580304896,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375905426,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140046336,
+      "rendererBytes": 150630400,
+      "totalBytes": 580308992,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375905550,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 580304896,
+      "processes": 5
+    },
+    {
+      "at": 1795375905578,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140029952,
+      "rendererBytes": 150630400,
+      "totalBytes": 580276224,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375905720,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 580276224,
+      "processes": 5
+    },
+    {
+      "at": 1795375905734,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140029952,
+      "rendererBytes": 150630400,
+      "totalBytes": 580276224,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375905781,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 580276224,
+      "processes": 5
+    },
+    {
+      "at": 1795375905891,
+      "stage": "exportedGame",
+      "source": "cdp",
+      "mainBytes": 140029952,
+      "rendererBytes": 150630400,
+      "totalBytes": 580276224,
+      "peakWorkingSetBytes": 892141568,
+      "processes": 5,
+      "types": [
+        "browser",
+        "gpu",
+        "utility",
+        "tab"
+      ]
+    },
+    {
+      "at": 1795375905930,
+      "stage": "exportedGame",
+      "source": "tasklist",
+      "totalBytes": 580276224,
+      "processes": 5
+    }
+  ],
+  "stages": {
+    "openProject": {
+      "startedAt": "2026-11-22T19:31:24.104Z",
+      "ok": true,
+      "ms": 1401,
+      "finishedAt": "2026-11-22T19:31:25.505Z"
+    },
+    "import": {
+      "startedAt": "2026-11-22T19:31:25.665Z",
+      "ok": true,
+      "ms": 707,
+      "finishedAt": "2026-11-22T19:31:26.372Z"
+    },
+    "edit": {
+      "startedAt": "2026-11-22T19:31:26.372Z",
+      "ok": true,
+      "ms": 762,
+      "finishedAt": "2026-11-22T19:31:27.134Z"
+    },
+    "undoRedo": {
+      "startedAt": "2026-11-22T19:31:27.134Z",
+      "ok": true,
+      "ms": 840,
+      "finishedAt": "2026-11-22T19:31:27.974Z"
+    },
+    "scenes": {
+      "startedAt": "2026-11-22T19:31:27.974Z",
+      "ok": true,
+      "ms": 1341,
+      "finishedAt": "2026-11-22T19:31:29.315Z"
+    },
+    "audio": {
+      "startedAt": "2026-11-22T19:31:29.316Z",
+      "ok": true,
+      "ms": 1026,
+      "finishedAt": "2026-11-22T19:31:30.342Z"
+    },
+    "singleHtmlGuard": {
+      "startedAt": "2026-11-22T19:31:30.395Z",
+      "ok": true,
+      "ms": 829,
+      "finishedAt": "2026-11-22T19:31:31.224Z"
+    },
+    "save": {
+      "startedAt": "2026-11-22T19:31:31.224Z",
+      "ok": true,
+      "ms": 1120,
+      "finishedAt": "2026-11-22T19:31:32.344Z"
+    },
+    "reopen": {
+      "startedAt": "2026-11-22T19:31:32.344Z",
+      "ok": true,
+      "ms": 3033,
+      "finishedAt": "2026-11-22T19:31:35.377Z"
+    },
+    "preview": {
+      "startedAt": "2026-11-22T19:31:35.377Z",
+      "ok": true,
+      "ms": 3959,
+      "finishedAt": "2026-11-22T19:31:39.336Z"
+    },
+    "folderExport": {
+      "startedAt": "2026-11-22T19:31:39.531Z",
+      "ok": true,
+      "ms": 3960,
+      "finishedAt": "2026-11-22T19:31:43.491Z"
+    },
+    "exportedGame": {
+      "startedAt": "2026-11-22T19:31:43.493Z",
+      "ok": true,
+      "ms": 2288,
+      "finishedAt": "2026-11-22T19:31:45.781Z"
+    }
+  },
+  "sizes": {
+    "actualAssetBytes": 1576200076,
+    "uniqueHashes": 204,
+    "images": 100,
+    "audio": 104,
+    "nodes": 576,
+    "chapters": 12,
+    "runtimeJsonBytes": 500685,
+    "diskJsonBytes": 888831,
+    "assetBytesOnDisk": 1576200076,
+    "runtimeProjectJsonBytes": 522941,
+    "gameHtmlBytes": 659507,
+    "gameImages": 100,
+    "gameAudio": 39
+  },
+  "assertions": {
+    "assetBytesMeetTarget": true,
+    "noLargeRuntimeBase64": true,
+    "duplicateImportDoesNotGrowDisk": true,
+    "backgroundAndSpriteDecoded": true,
+    "audioPlayback": {
+      "bgm": true,
+      "sfx": true,
+      "voice": true,
+      "unlocked": true
+    },
+    "singleHtmlGuardWorks": true,
+    "diskJsonHasNoBase64": true,
+    "folderExportMode": true,
+    "assetsIntact": true,
+    "noInvalidStringLength": true,
+    "noOomOrCrash": true
+  },
+  "incidents": []
+}

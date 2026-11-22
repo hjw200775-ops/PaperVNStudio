@@ -1,0 +1,211 @@
+{
+  "version": "0.7.6-M3",
+  "at": "2026-11-22T19:31:23.796Z",
+  "project": "F:\\pvn-1gib-m3-valid",
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpuModel": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpus": 12,
+    "totalMem": 34187800576,
+    "freeMem": 18773004288,
+    "node": "v22.22.2",
+    "electron": "45.3.2"
+  },
+  "ok": true,
+  "stages": {
+    "测试工程素材总量与去重统计": {
+      "ok": true,
+      "detail": {
+        "actualAssetBytes": 1576200076,
+        "uniqueHashes": 204,
+        "images": 100,
+        "audio": 104,
+        "nodes": 576,
+        "chapters": 12,
+        "runtimeJsonBytes": 500685,
+        "diskJsonBytes": 888831,
+        "assetBytesOnDisk": 1576200076,
+        "runtimeProjectJsonBytes": 522941,
+        "gameHtmlBytes": 659507,
+        "gameImages": 100,
+        "gameAudio": 39
+      }
+    },
+    "9a 真实窗口打开 1 GiB 工程": {
+      "ok": true,
+      "detail": {
+        "runtime": {
+          "nodes": 576,
+          "assets": 100,
+          "audio": 104,
+          "chapters": 12,
+          "revision": 0,
+          "past": 0,
+          "future": 0
+        },
+        "openMs": 1401
+      }
+    },
+    "1 真实窗口流式导入（无 Base64 / 哈希正确 / 重复不增磁盘）": {
+      "ok": true,
+      "detail": {
+        "imageSha": "08f8a4b5a53c",
+        "audioSha": "e76356629f36",
+        "stagingBytes": 16715,
+        "stagingFiles": 2
+      }
+    },
+    "2 真实窗口编辑剧本": {
+      "ok": true,
+      "detail": {
+        "length": 36
+      }
+    },
+    "3 真实窗口撤销与重做": {
+      "ok": true,
+      "detail": {
+        "restored": "M3 验收：晚风穿过二楼走廊 · 已编辑 · 1795375886731"
+      }
+    },
+    "4 切换章节/场景并显示背景与立绘（真实窗口解码）": {
+      "ok": true,
+      "detail": {
+        "scenes": 3,
+        "distinctImages": 3,
+        "sample": [
+          "paper://app/asset/assets/images/5b5a05e8eca335b9",
+          "paper://app/asset/assets/images/933ba4602bbb1e4a"
+        ]
+      }
+    },
+    "5 真实窗口播放 BGM / SFX / Voice": {
+      "ok": true,
+      "detail": {
+        "bgm": "au_0089b53247a02d31",
+        "bgmTime": 0,
+        "sfxChannels": 1,
+        "pendingSfx": 0,
+        "voice": "au_3096d89cdaec3c96"
+      }
+    },
+    "5b 单文件 HTML 200MB 上限引导目录版（无 Invalid string length）": {
+      "ok": true,
+      "detail": {
+        "guardMs": 829
+      }
+    },
+    "6 真实窗口保存 1 GiB 工程（JSON 与素材一致）": {
+      "ok": true,
+      "detail": {
+        "saveMs": 1120
+      }
+    },
+    "7 关闭并重开工程（含异常退出后重启路径）": {
+      "ok": true,
+      "detail": {
+        "reopenMs": 3033
+      }
+    },
+    "8 大型工程完整预览（pvres:// 按需加载）": {
+      "ok": true,
+      "detail": {
+        "previewStartMs": 3959,
+        "state": {
+          "title": "1 GiB 流式素材压力测试 · M3",
+          "imgs": [
+            "pvres://s-3779d28d436f/assets/774d51719cf95a95eee8c4",
+            "pvres://s-3779d28d436f/assets/5dd9ca26fb7b085026e53e"
+          ]
+        }
+      }
+    },
+    "9 目录版游戏导出（轻量页面 + 资源分离）": {
+      "ok": true,
+      "detail": {
+        "folderExportMs": 3960,
+        "htmlBytes": 659507,
+        "imgCount": 100,
+        "audCount": 39,
+        "exportMode": "folder"
+      }
+    },
+    "10 启动导出的游戏并实际验证资源加载": {
+      "ok": true,
+      "detail": {
+        "exportedGameMs": 2288
+      }
+    },
+    "全流程素材完整性与稳定性（含真实窗口异常事件判定）": {
+      "ok": true,
+      "detail": {
+        "before": 1576200076,
+        "after": 1576200076,
+        "cdpErrorCount": 0
+      }
+    }
+  },
+  "problems": [],
+  "screenshots": [
+    "docs\\screenshots\\v076-m3-1gib-editor.png",
+    "docs\\screenshots\\v076-m3-1gib-preview.png",
+    "docs\\screenshots\\v076-m3-1gib-exported-game.png"
+  ],
+  "assertions": {
+    "assetBytesMeetTarget": true,
+    "noLargeRuntimeBase64": true,
+    "duplicateImportDoesNotGrowDisk": true,
+    "backgroundAndSpriteDecoded": true,
+    "audioPlayback": {
+      "bgm": true,
+      "sfx": true,
+      "voice": true,
+      "unlocked": true
+    },
+    "singleHtmlGuardWorks": true,
+    "diskJsonHasNoBase64": true,
+    "folderExportMode": true,
+    "assetsIntact": true,
+    "noInvalidStringLength": true,
+    "noOomOrCrash": true
+  },
+  "sizes": {
+    "actualAssetBytes": 1576200076,
+    "uniqueHashes": 204,
+    "images": 100,
+    "audio": 104,
+    "nodes": 576,
+    "chapters": 12,
+    "runtimeJsonBytes": 500685,
+    "diskJsonBytes": 888831,
+    "assetBytesOnDisk": 1576200076,
+    "runtimeProjectJsonBytes": 522941,
+    "gameHtmlBytes": 659507,
+    "gameImages": 100,
+    "gameAudio": 39
+  },
+  "incidents": [],
+  "cdpErrors": [],
+  "timingsMs": {
+    "openProject": 1401,
+    "import": 707,
+    "edit": 762,
+    "undoRedo": 840,
+    "scenes": 1341,
+    "audio": 1026,
+    "singleHtmlGuard": 829,
+    "save": 1120,
+    "reopen": 3033,
+    "preview": 3959,
+    "folderExport": 3960,
+    "exportedGame": 2288
+  },
+  "memory": {
+    "sampleCount": 214,
+    "cdp": 114,
+    "tasklist": 100,
+    "mainPeakMB": 514.8,
+    "rendererPeakMB": 324.5,
+    "totalPeakMB": 1118
+  }
+}

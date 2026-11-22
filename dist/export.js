@@ -18,7 +18,7 @@ function buildGameHTML(p, deps) {
   if (p.format || p.formatVersion) throw new Error('导出失败：请先以运行时工程打开，磁盘相对路径不能直接导出');
   for (const a of p.assets) {
     const imageOk = a && typeof a.data === 'string' && (previewMode
-      ? /^((pvres|papergame):\/\/|paper:\/\/app\/asset\/|data:image\/(png|jpeg|webp);base64,)/.test(a.data)
+      ? /^((pvres|papergame):\/\/|paper:\/\/app\/(asset|staging)\/|data:image\/(png|jpeg|webp);base64,)/.test(a.data)
       : /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(a.data));
     if (!imageOk) {
       throw new Error('导出失败：素材「' + (a && a.name || '未命名') + '」不是内嵌图片，请重新打开工程后再导出');
@@ -47,7 +47,7 @@ function buildGameHTML(p, deps) {
   }
   for (const a of audioAssets) {
     const audioOk = a && typeof a.data === 'string' && (previewMode
-      ? /^((pvres|papergame):\/\/|paper:\/\/app\/asset\/|data:audio\/[a-z0-9.+-]+;base64,)/i.test(a.data)
+      ? /^((pvres|papergame):\/\/|paper:\/\/app\/(asset|staging)\/|data:audio\/[a-z0-9.+-]+;base64,)/i.test(a.data)
       : /^data:audio\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=\r\n]+$/i.test(a.data));
     if (!audioOk) {
       throw new Error('导出失败：音频素材「' + (a && a.name || '未命名') + '」不是内嵌音频，请重新打开工程后再导出');

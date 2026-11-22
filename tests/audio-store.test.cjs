@@ -94,14 +94,15 @@ assert.equal(opened.project.nodes[2].audio.bgm.action, 'stop');
 console.log('  ok  打开工程恢复音频数据、时长与逐句指令');
 
 /* 3. 重复内容复用：不产生第二个素材 ID / 第二个文件 */
+/* M3：新导入经 asset:stage 流式算出内容哈希；已保存素材是受控 URL。
+   两者表示不同但哈希相同，必须精确复用同一素材身份。 */
 const reused = C.assetForAudioImport(opened.project, {
   id: 'should_not_be_used', name: 'again.wav', categories: ['voice'], data: url(B1),
-  mime: 'audio/wav', ext: 'wav', bytes: B1.length, duration: 1
+  sha256: sha(B1), mime: 'audio/wav', ext: 'wav', bytes: B1.length, duration: 1
 });
-/* V0.7.6：已保存素材是受控 URL、新导入仍是 data URI。跨表示去重需要导入阶段先算哈希
-   （M3 导入落盘未完成），所以这里明确记录「当前不复用」；同表示复用另测于下。 */
-assert.equal(reused.reused, false, '跨表示去重待导入落盘接入哈希（已知缺口）');
-assert(reused.asset && typeof reused.asset.id === 'string' && reused.asset.id.length > 0, '新导入仍产生可用素材');
+assert.equal(reused.reused, true, '跨表示同内容精确复用');
+assert.equal(reused.asset.id, five.find(x => x.sha256 === sha(B1)).id, '复用已保存素材 ID，不产生第二条');
+assert.deepEqual(reused.categories, ['bgm', 'voice'], '用途分类合并');
 
 /* 同表示（两次都是内嵌音频）必须复用：这是 V0.7.5 就有的去重能力，不能退化。 */
 const blank = C.blank();

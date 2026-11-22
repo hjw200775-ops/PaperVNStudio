@@ -1,11 +1,21 @@
 # 依赖与构建产物
 node_modules/
 vendor/toolchain/
-release/
+# release 下的构建产物一律忽略，只放行 V0.7.6-M3 的文字验收报告（不含任何素材本体）。
+release/*
+!release/large-project-acceptance.json
+!release/memory-profile.json
+!release/m3-memory-samples.json
+!release/alpha-acceptance.json
+!release/large-project-m3-generation.json
+!release/m3-window-smoke.json
 release-*/
 out-*/
 out/
 coverage/
+# 1 GiB 验收工程在仓库外生成，防御性规则避免误提交素材本体
+pvn-1gib-*/
+pvn-1gib*/
 
 # 本地环境
 *.log

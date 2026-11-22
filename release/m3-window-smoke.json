@@ -1,0 +1,101 @@
+{
+  "at": "2026-11-22T19:29:33.296Z",
+  "ok": true,
+  "stages": {
+    "真实窗口启动并打开工程": {
+      "ok": true,
+      "detail": {
+        "nodes": 1,
+        "assets": 0,
+        "audio": 0,
+        "chapters": 1,
+        "revision": 0,
+        "past": 0,
+        "future": 0
+      }
+    },
+    "asset:stage 流式导入（无 Base64、哈希正确）": {
+      "ok": true,
+      "detail": {
+        "image": "565169d1a1a0",
+        "audio": "e76356629f36"
+      }
+    },
+    "paper://app/staging 在真实窗口解码显示": {
+      "ok": true,
+      "detail": {
+        "count": 1,
+        "loaded": 1,
+        "natural": [
+          640
+        ],
+        "fetched": {
+          "status": 200,
+          "type": "image/png",
+          "bytes": 1615
+        },
+        "probe": {
+          "url": {
+            "ok": true,
+            "w": 640
+          },
+          "data": {
+            "ok": true,
+            "w": 640
+          }
+        }
+      }
+    },
+    "保存后工程与素材一致（无 Base64 / 无暂存地址）": {
+      "ok": true,
+      "detail": {
+        "file": "assets/images/565169d1a1a00e706f1af0068d1ac2d5c7544860614362a8b778f68cdb53182e.png"
+      }
+    },
+    "完整预览窗口按需加载暂存素材": {
+      "ok": true,
+      "detail": {
+        "count": 1,
+        "loaded": 1,
+        "allPvres": true,
+        "urls": [
+          "pvres://s-0615ee2301b9/assets/565169d1a1a00e706f1af0068d"
+        ],
+        "audio": {
+          "unlocked": true,
+          "prefs": {
+            "master": 1,
+            "bgm": 0.8,
+            "sfx": 1,
+            "voice": 1,
+            "muted": false
+          },
+          "generation": 1,
+          "bgm": null,
+          "voice": {
+            "audioId": "au_m3",
+            "label": "第 1 句",
+            "playing": true,
+            "paused": false,
+            "time": 0.03968,
+            "duration": 1,
+            "loop": false,
+            "volume": 1,
+            "itemVolume": 1,
+            "done": false
+          },
+          "preview": null,
+          "sfx": [],
+          "pendingSfx": 0,
+          "pendingSwitch": false,
+          "retiring": 0,
+          "errors": [],
+          "disposed": false
+        }
+      }
+    }
+  },
+  "problems": [],
+  "screenshotEditor": "docs\\screenshots\\v076-m3-staged-import.png",
+  "screenshotPreview": "docs\\screenshots\\v076-m3-preview.png"
+}

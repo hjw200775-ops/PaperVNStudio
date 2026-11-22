@@ -8,6 +8,7 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, protocol, session, shell, nat
 const path = require('node:path');
 const fs = require('node:fs');
 const createProjectStore = require('./project-store.cjs');
+const createStagingManager = require('./asset-staging.cjs');
 const createGameBuilder = require('./game-builder.cjs');
 const createVNCore = require('../dist/core.js');
 const createPaperAudio = require('../dist/audio.js');
@@ -15,7 +16,8 @@ const { buildPlayerHTML } = require('../dist/game-html.js');
 
 const C = createVNCore();
 const AUDIO_PURE = createPaperAudio().pure;
-const store = createProjectStore();
+let store = createProjectStore();
+let staging = null;                       // 初始化于 app.whenReady（需要 userData 路径）
 const { MAIN_FILE, AUTOSAVE_REL, MAX_IMAGE_BYTES, MAX_AUDIO_BYTES } = store.constants;
 const AUDIO_EXT_MIME = { wav: 'audio/wav', wave: 'audio/wav', mp3: 'audio/mpeg', ogg: 'audio/ogg',
   oga: 'audio/ogg', m4a: 'audio/mp4', aac: 'audio/aac', flac: 'audio/flac', webm: 'audio/webm' };
@@ -68,12 +70,87 @@ const PREVIEW_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src '
 function previewProgress(payload) {
   if (win && !win.isDestroyed()) win.webContents.send('preview:progress', payload);
 }
+function assetProgress(payload) {
+  if (win && !win.isDestroyed()) win.webContents.send('asset:stageProgress', payload);
+}
+/* 渲染进程给出当前工程 + 撤销/重做栈里仍在用的暂存哈希；没有引用才允许清理。 */
+function stagedRefs(payload) {
+  const out = new Set();
+  const scan = value => {
+    if (!value || typeof value !== 'object') return;
+    if (typeof value.data === 'string') {
+      const h = staging && staging.hashFromUrl(value.data);
+      if (h) out.add(h);
+    }
+  };
+  const project = payload && payload.project ? payload.project : payload;
+  if (project) {
+    scan(project);
+    for (const a of project.assets || []) scan(a);
+    for (const a of project.audioAssets || []) scan(a);
+  }
+  for (const list of [payload && payload.protected, payload && payload.references]) {
+    if (Array.isArray(list)) for (const h of list) if (/^[a-f0-9]{64}$/i.test(String(h))) out.add(String(h).toLowerCase());
+  }
+  return out;
+}
+function collectStaging(payload) {
+  if (!staging) return { removed: [] };
+  return staging.collectGarbage({ protectedHashes: stagedRefs(payload) });
+}
+
+const stageCancellations = new Map();
+/* 共用实现：显式文件列表（自动化验收/CDP）与原生文件对话框走完全相同的校验与暂存逻辑。 */
+async function runAssetStage(payload) {
+  if (!staging) throw new Error('素材暂存目录尚未就绪');
+  const kind = payload && payload.kind === 'audio' ? 'audio' : 'image';
+  const multiple = !!(payload && payload.multiple);
+  let files = Array.isArray(payload && payload.files) ? payload.files.filter(x => typeof x === 'string') : null;
+  if (!files) {
+    const picked = await dialog.showOpenDialog(win, {
+      title: kind === 'image' ? '选择图片（流式导入，不经过浏览器内存）' : '选择音频（流式导入，不经过浏览器内存）',
+      properties: multiple ? ['openFile', 'multiSelections'] : ['openFile'],
+      filters: [kind === 'image'
+        ? { name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }
+        : { name: '音频', extensions: ['wav', 'wave', 'mp3', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'webm'] }]
+    });
+    if (picked.canceled || !picked.filePaths.length) return { cancelled: true, files: [], errors: [] };
+    files = picked.filePaths;
+  }
+  if (!files.length) return { cancelled: true, files: [], errors: [] };
+  const token = 'stage-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  assetProgress({ token, phase: 'start', kind, count: files.length, percent: 0, file: '' });
+  try {
+    const result = await staging.stageFiles(files, {
+      token, kind, assetKind: (payload && payload.assetKind) || 'bg',
+      totalBytes: Number(payload && payload.totalBytes) || 0,
+      maxBytes: kind === 'image' ? MAX_IMAGE_BYTES : MAX_AUDIO_BYTES,
+      maxTotalBytes: kind === 'audio' ? 1536 * 1024 * 1024 : Infinity,
+      isCancelled: () => !!(stageCancellations.get(token) || stageCancellations.get('*')),
+      onProgress: assetProgress
+    });
+    assetProgress({ token, phase: result.cancelled ? 'cancelled' : 'complete', kind,
+      count: files.length, percent: result.cancelled ? 0 : 100, file: '' });
+    return result;
+  } finally {
+    stageCancellations.delete(token);
+  }
+}
 
 /* data URI 落成会话目录下的内容寻址文件，返回 pvres:// 地址（同一内容只写一次）。 */
 function writePreviewAsset(dir, sessionId, data) {
   const raw = String(data || '');
   let buf, ext;
-  if (/^paper:\/\/app\/asset\//i.test(raw)) {
+  if (/^paper:\/\/app\/staging\//i.test(raw)) {
+    /* M3：尚未保存的导入素材在暂存目录，预览前直接按内容哈希读取。 */
+    if (!staging) throw new Error('素材暂存目录不可用');
+    const rel = raw.replace(/^paper:\/\/app\/staging\//i, '');
+    const m = /^([a-f0-9]{64})\.([a-z0-9]+)$/i.exec(rel);
+    if (!m) throw new Error('暂存素材地址无效：' + rel);
+    const abs = staging.absFor(m[1], m[2]);
+    buf = fs.readFileSync(abs);
+    ext = m[2].toLowerCase();
+  } else if (/^paper:\/\/app\/asset\//i.test(raw)) {
     /* 运行时素材已经是磁盘文件：直接读，避免再把整张图 base64 一次。 */
     const rel = raw.replace(/^paper:\/\/app\/asset\//i, '');
     if (!state.currentDir) throw new Error('当前工程目录不可用，无法读取素材');
@@ -345,34 +422,39 @@ function registerIPC() {
     return stateSnapshot({ project: null, recovered: null, notice: '' });
   });
 
-  handle('project:autoSave', p => {
+  handle('project:autoSave', payload => {
     const target = state.currentDir || draftDir;
-    const saved = store.autoSave(target, p);
+    const saved = store.autoSave(target, payload && payload.project ? payload.project : payload);
     state.dirty = true;
+    collectStaging(payload || {});
     return reply({ savedAt: saved.disk.savedAt });
   });
 
-  handle('project:save', async p => {
+  handle('project:save', async payload => {
+    const p = payload && payload.project ? payload.project : payload;
     let dir = state.currentDir;
     if (!dir) {
       dir = await chooseDirectory('为工程选择一个目录');
       if (!dir) return reply({ cancelled: true });
-      const result = store.saveAsProject(dir, p, state.currentDir);
+      const result = store.saveAsProject(dir, p, draftDir);
       track(result.root, result.project.title);
     } else {
       const result = store.saveProject(dir, p);
       track(result.root, result.project.title);
     }
     state.dirty = false;
+    collectStaging(payload || {});
     return stateSnapshot({ saved: true, cancelled: false });
   });
 
-  handle('project:saveAs', async p => {
+  handle('project:saveAs', async payload => {
+    const p = payload && payload.project ? payload.project : payload;
     const dir = await chooseDirectory('另存为：选择新的空白工程目录');
     if (!dir) return reply({ cancelled: true });
-    const result = store.saveAsProject(dir, p, state.currentDir);
+    const result = store.saveAsProject(dir, p, state.currentDir || draftDir);
     track(result.root, result.project.title);   // old project directory untouched
     state.dirty = false;
+    collectStaging(payload || {});
     return stateSnapshot({ saved: true, cancelled: false });
   });
 
@@ -387,6 +469,7 @@ function registerIPC() {
     const result = store.createProject(dir, blank);
     track(result.root, result.project.title);
     state.dirty = false;
+    collectStaging({ project: result.project });
     return stateSnapshot({ project: result.project, cancelled: false });
   });
 
@@ -417,11 +500,13 @@ function registerIPC() {
       imported = true;
       track(dir, result.project.title);
       state.dirty = false;
+      collectStaging({ project: result.project });
       return stateSnapshot({ project: result.project, imported, cancelled: false, notice: '旧工程已导入到新目录，原文件未改动。' });
     }
     const opened = store.openProject(dir);
     track(opened.root, opened.project.title);
     state.dirty = opened.recovered === 'autosave';
+    collectStaging({ project: opened.project });
     return stateSnapshot({
       project: opened.project, imported, recovered: opened.recovered, cancelled: false,
       notice: opened.recovered === 'autosave' ? '此工程有比主文件更新的自动保存副本，已恢复未保存的修改。' : ''
@@ -436,54 +521,55 @@ function registerIPC() {
     const opened = store.openProject(item.path);
     track(opened.root, opened.project.title);
     state.dirty = opened.recovered === 'autosave';
+    collectStaging({ project: opened.project });
     return stateSnapshot({ project: opened.project, recovered: opened.recovered, cancelled: false });
   });
 
   handle('project:recent', () => reply({ items: store.readRecent(recentFile).items.map(x => ({ title: x.title, folder: path.basename(x.path) })) }));
 
-  handle('file:pickImage', async assetKind => {
-    if (!['bg', 'char'].includes(assetKind)) throw new Error('无效的素材类型');
-    const picked = await dialog.showOpenDialog(win, {
-      title: '选择图片（将复制到工程素材目录）', properties: ['openFile'],
-      filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
-    });
-    if (picked.canceled || !picked.filePaths[0]) return reply({ cancelled: true });
-    const file = picked.filePaths[0];
-    const buf = fs.readFileSync(file);
-    if (buf.length > MAX_IMAGE_BYTES) throw new Error('图片超过 12MB');
-    const ext = path.extname(file).toLowerCase();
-    const mime = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' }[ext];
-    if (!mime || !store.imageSize(buf, mime)) throw new Error('无法识别的 PNG / JPEG / WebP 图片');
-    const dataUrl = 'data:' + mime + ';base64,' + buf.toString('base64');
-    return reply({ cancelled: false, file: {
-      name: path.basename(file), size: buf.length, type: mime, dataUrl,
-      id: store.newAssetId(assetKind, dataUrl)
-    } });
+  /* V0.7.6-M3：素材导入统一走主进程流式暂存。渲染进程只拿到受控 URL 与元数据，
+     不会再收到任何整份 Base64；旧通道保留名字但转发到同一实现，避免遗漏旧入口。 */
+  handle('asset:stage', async payload => reply(await runAssetStage(payload)));
+
+  handle('asset:cancelStage', payload => {
+    const token = payload && payload.token ? String(payload.token) : '*';
+    stageCancellations.set(token, true);
+    if (staging) staging.cancel(token === '*' ? null : token);
+    return reply({ cancelled: true, token });
   });
 
-  /* V0.5：音频选文件与图片完全分离，主进程只做扩展名/容量/WAV 结构校验。
-     非 WAV 能否解码由渲染进程用真实 Audio 元素判断，不在这里承诺。 */
-  handle('file:pickAudio', async () => {
-    const picked = await dialog.showOpenDialog(win, {
-      title: '选择音频（将复制到工程音频目录）', properties: ['openFile'],
-      filters: [{ name: '音频', extensions: ['wav', 'wave', 'mp3', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'webm'] }]
+  handle('asset:gc', payload => reply({ gc: collectStaging(payload || {}), stats: staging ? staging.stats() : null }));
+
+  handle('asset:stagingStats', () => reply({ stats: staging ? staging.stats() : null }));
+
+  /* V0.7.6-M3 验收取证：只暴露数值指标，不暴露 fs/path/进程句柄，且沿用固定通道
+     的发送者校验。采样脚本按阶段连续调用，用于计算主进程、渲染进程与全进程峰值。 */
+  handle('app:metrics', () => {
+    const metrics = app.getAppMetrics().map(m => ({
+      pid: m.pid, type: String(m.type || '').toLowerCase(),
+      workingSetSize: m.memory && m.memory.workingSetSize || 0,
+      peakWorkingSetSize: m.memory && m.memory.peakWorkingSetSize || 0,
+      privateBytes: m.memory && m.memory.privateBytes || 0,
+      cpuPercent: m.cpu && m.cpu.percentCPUUsage || 0
+    }));
+    return reply({
+      at: Date.now(), metrics,
+      process: process.memoryUsage(),
+      rendererPid: win && !win.isDestroyed() ? win.webContents.getOSProcessId() : null,
+      currentDir: state.currentDir
     });
-    if (picked.canceled || !picked.filePaths[0]) return reply({ cancelled: true });
-    const file = picked.filePaths[0];
-    const buf = fs.readFileSync(file);
-    const ext = path.extname(file).toLowerCase().replace(/^\./, '');
-    const mime = AUDIO_EXT_MIME[ext];
-    if (!mime) throw new Error('不支持的音频格式；本版可靠支持 PCM WAV');
-    if (!buf.length || buf.length > MAX_AUDIO_BYTES) throw new Error('音频为空或超过 16MB');
-    const dataUrl = 'data:' + mime + ';base64,' + buf.toString('base64');
-    const check = AUDIO_PURE.checkImport({ name: path.basename(file), mime,
-      bytes: new Uint8Array(buf), ext, totalBytes: 0, canPlayType: () => 'probably' });
-    if (!check.ok) throw new Error(check.message);
-    store.parseAudioDataUrl(dataUrl);              /* 与落盘共用同一道 WAV 头校验 */
-    return reply({ cancelled: false, file: {
-      name: path.basename(file), size: buf.length, type: mime, dataUrl,
-      id: store.newAudioAssetId(dataUrl)
-    } });
+  });
+
+  handle('file:pickImage', async assetKind => {
+    if (!['bg', 'char'].includes(assetKind)) throw new Error('无效的素材类型');
+    const result = await runAssetStage({ kind: 'image', assetKind, multiple: false });
+    return result.cancelled ? reply({ cancelled: true }) : reply({ cancelled: false, file: result.files[0] });
+  });
+
+  /* V0.5 音频选文件与图片完全分离；V0.7.6 起两者都走同一个流式暂存器。 */
+  handle('file:pickAudio', async () => {
+    const result = await runAssetStage({ kind: 'audio', multiple: false });
+    return result.cancelled ? reply({ cancelled: true }) : reply({ cancelled: false, file: result.files[0] });
   });
 
   handle('file:pickText', async () => {
@@ -673,7 +759,9 @@ function registerIPC() {
   handle('game:export', async payload => {
     if (exportJob) return { ok: false, message: '已有导出任务在进行，请等待完成或先取消' };
     const project = payload && payload.project;
-    const type = payload && payload.type === 'portable' ? 'portable' : 'zip';
+    /* V0.7.6-M3 回归修复：界面提供 folder / zip / portable 三种，旧代码只认
+       portable，把「目录版」静默降级成 ZIP 包。白名单要与 game-builder 一致。 */
+    const type = ['folder', 'portable', 'zip'].includes(payload && payload.type) ? payload.type : 'zip';
     const token = 'export-' + Date.now() + '-' + Math.random().toString(36).slice(2);
     let cancelled = false;
     let cancelSignal = null;
@@ -696,7 +784,9 @@ function registerIPC() {
         throw new Error('导出位置不可用：所选路径是一个文件，请选择文件夹');
       }
       const settings = gameBuilder.resolveSettings(project);
-      const fileName = settings.fileBase + (type === 'zip' ? '-独立试玩包.zip' : '-单文件便携版.exe');
+      const suffix = type === 'zip' ? '-独立试玩包.zip'
+        : type === 'portable' ? '-单文件便携版.exe' : '-独立游戏';
+      const fileName = settings.fileBase + suffix;
       let target = path.join(outDir, fileName);
       let overwrite = false;
       while (fs.existsSync(target)) {
@@ -867,6 +957,10 @@ app.whenReady().then(() => {
   recentFile = path.join(app.getPath('userData'), 'recent-projects.json');
   draftDir = path.join(app.getPath('userData'), 'drafts');
   fs.mkdirSync(draftDir, { recursive: true });
+  /* M3：暂存目录独立于工程目录；异常退出后重启时没有渲染进程引用，可以整体清理。 */
+  staging = createStagingManager({ root: path.join(app.getPath('userData'), 'asset-staging') });
+  staging.reset();
+  store = createProjectStore({ stagingRoot: staging.root });
 
   protocol.handle('paper', request => {
     try {
@@ -893,6 +987,24 @@ app.whenReady().then(() => {
         return new Response(new Uint8Array(fs.readFileSync(abs)), {
           status: 200,
           headers: { 'content-type': mime, 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' }
+        });
+      }
+
+      /* M3 暂存素材：只读 userData/asset-staging 下内容寻址文件，文件名即哈希。 */
+      if (url.pathname.startsWith('/staging/')) {
+        if (!staging) return new Response('Not found', { status: 404 });
+        const rel = decodeURIComponent(url.pathname.slice(9));
+        const m = /^([a-f0-9]{64})\.([a-z0-9]+)$/i.exec(rel);
+        if (!m) return new Response('Not found', { status: 404 });
+        const abs = staging.absFor(m[1], m[2]);
+        if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return new Response('Not found', { status: 404 });
+        const type = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
+          '.ogg': 'audio/ogg', '.oga': 'audio/ogg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
+          '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.flac': 'audio/flac', '.webm': 'audio/webm'
+        }[path.extname(abs).toLowerCase()] || 'application/octet-stream';
+        return new Response(new Uint8Array(fs.readFileSync(abs)), {
+          status: 200,
+          headers: { 'content-type': type, 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' }
         });
       }
 
@@ -974,3 +1086,5 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+/* 正常退出时没有渲染进程引用暂存文件：下一次启动会从工程目录读取正式素材。 */
+app.on('before-quit', () => { if (staging) { try { staging.reset(); } catch { /* best effort */ } } });

@@ -124,7 +124,7 @@ function createPaperAudio(){
   return {kind,code:base.code,title:base.title,hint:base.hint,audioId:audioId||'',detail:String(detail||'')};
  }
  /* 导入校验：单文件与总量上限、扩展名/MIME、WAV 头，以及「当前环境确实能解码」。 */
- function checkImport({name,size,mime,bytes,ext,totalBytes,elementFactory,canPlayType}){
+ function checkImport({name,size,mime,bytes,ext,totalBytes,elementFactory,canPlayType,headerChecked}){
   if(!bytes||!bytes.length)return {ok:false,message:'「'+name+'」是空文件，无法导入。'};
   if(bytes.length>LIMITS.maxSingle)return {ok:false,message:'「'+name+'」超过单文件 '+formatBytes(LIMITS.maxSingle)+' 限制，已拒绝。'};
   if(num(totalBytes,0)+bytes.length>LIMITS.maxTotal)return {ok:false,message:'音频总量将超过 '+formatBytes(LIMITS.maxTotal)+'，已拒绝；请先移除不用的素材。'};
@@ -132,7 +132,7 @@ function createPaperAudio(){
   if(!EXT_MIME[e])return {ok:false,message:'「'+name+'」的格式不受支持；本版可靠支持 PCM WAV，其他格式需当前环境能解码。'};
   const expected=EXT_MIME[e];
   if(mime&&mime!==expected&&!(e==='wav'&&/wav|x-wav|vnd\.wave/i.test(mime)))return {ok:false,message:'「'+name+'」扩展名与文件类型不一致，已拒绝。'};
-  if(e==='wav'||e==='wave'){try{wavInfo(bytes)}catch(err){return {ok:false,message:'「'+name+'」：'+err.message+'。'}}}
+  if((e==='wav'||e==='wave')&&!headerChecked){try{wavInfo(bytes)}catch(err){return {ok:false,message:'「'+name+'」：'+err.message+'。'}}}
   else{
    const probe=elementFactory?elementFactory():null;
    const can=canPlayType?canPlayType(expected):(probe&&probe.canPlayType?probe.canPlayType(expected):'');
@@ -144,9 +144,13 @@ function createPaperAudio(){
  function readMeta(dataUrl,opts){
   const o=opts||{};
   return Promise.resolve().then(async()=>{
-   const {bytes,mime}=decodeDataUrl(dataUrl);
+   /* M3：暂存素材传进来的是受控 paper 协议地址，不能再走 decodeDataUrl。
+      WAV 时长已由主进程从文件头算出，这里只补浏览器元数据。 */
+   let bytes=null,mime=String(o.mime||'').toLowerCase();
+   if(/^data:/i.test(dataUrl)){const parsed=decodeDataUrl(dataUrl);bytes=parsed.bytes;mime=parsed.mime}
    let header=null;
-   if(/\bwav\b/i.test(mime))header=wavInfo(bytes);
+   if(bytes&&/\bwav\b/i.test(mime))header=wavInfo(bytes);
+   else if(Number.isFinite(o.headerDuration))header={duration:o.headerDuration};
    const el=o.elementFactory?o.elementFactory():null;
    if(!el||!el.addEventListener)return {duration:header?header.duration:0,source:header?'header':'unknown',note:header?'已按 WAV 文件头读取时长；当前环境未提供解码元数据。':'当前环境无法读取时长，已按未知时长导入。'};
    return await new Promise(resolve=>{

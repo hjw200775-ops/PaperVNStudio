@@ -1,5 +1,7 @@
 # 纸间 PaperVNStudio
 
+> 当前版本 **V0.7.6-M3**（`package.json` 版本 `0.7.6`）。V0.7.6 已完成 1 GiB 级工程验收；更新日志见 [CHANGELOG.md](CHANGELOG.md)，验收报告见 [docs/V0.7.6_ACCEPTANCE_REPORT.md](docs/V0.7.6_ACCEPTANCE_REPORT.md)。
+
 一个跑在本地的视觉小说（Galgame / 文字冒险）创作工具：左边排剧情，右边摆图层，逐句加演出，最后导出一个自包含的 HTML 游戏。
 
 项目基于 V0.3 网页版源码，在同一套 `core.js` / `effects.js` 运行时上增加了 Windows 桌面预览版 —— 独立窗口、本地工程目录、内容寻址素材、原子保存与备份，以及完全离线的导出。没有重写编辑器，也没有把网页版推倒重来。
@@ -151,25 +153,35 @@ npm run net:check
 | 可见渲染 | 真实 Electron 窗口里驱动界面并断言 DOM 与落盘 | `npm run desktop:smoke`、`desktop:smoke:project`、`desktop:smoke:packaged`、`sample:acceptance` |
 | 游戏包成品 | 解压 ZIP、启动真实 EXE、通关 / 存档 / 移动目录 / 存储隔离 / ZIP 清单 | `npm run game:acceptance` |
 | 播放器交互 | 双击 / 拖选 / 拖立绘 / 单击推进 / 选项 / 音量滑块 / 创作模式 | `npm run interaction:acceptance` |
+| 1 GiB 工程全链 | 真实窗口 12 步 + 目录版游戏启动 + 持续内存采样 | `npm run m3:acceptance`、`npm run m3:memory-profile` |
+| 真实作品兼容性 | 三个《晚风》Alpha 工程隔离副本 6 步验收 | `npm run m3:alpha` |
 | 人工点击 | 原生对话框、未保存关闭三选一、安装向导 | 人工，**尚未执行** |
 | 副机验收 | 另一台干净机器断网打开 EXE 与导出 HTML | 人工，**尚未执行** |
 
 `desktop:smoke` 用真实主进程和真实 IPC 跑完整链路：导入图片 → 图层 → 修改布局与效果 → 自动保存 → 显式保存 → 重新打开 → 导出 HTML。烟测工程一律建在系统临时目录，源码树不接收任何工程产物。
 
-## 工程资源架构（V0.7.6）
+## 工程资源架构（V0.7.6-M3，已完成）
 
-编辑器的运行时工程不再持有 Base64：素材地址是 `paper://app/asset/assets/images/<sha256>.png`，舞台按需读取，撤销/保存/预览/导出都只处理元数据。
+编辑器**全程不持有素材字节**：导入时主进程流式读取 + 分块 SHA-256，落到 `userData/asset-staging/<sha256>.<ext>`，渲染进程只拿到受控 URL 与元数据；保存时按哈希把素材流式复制进工程目录，运行时地址变成 `paper://app/asset/assets/images/<sha256>.png`，舞台按需读取。撤销/保存/预览/导出都只处理元数据。
 
 ```bash
-npm run check                 # 含新增的素材往返断言
-npm run assets:probe 9335     # 连已运行的编辑器，检查图片是否走资源协议并截图
+npm run check                              # 含素材去重 / 生命周期 / 兼容性回归
+node scripts/make-large-project-m3.cjs --out F:/pvn-1gib-m3   # 生成 1 GiB 级测试工程
+node scripts/m3-acceptance.cjs             # 真实 Electron 窗口 12 步验收 + 内存采样
+node scripts/memory-profile.cjs            # 汇总 release/memory-profile.json
+node scripts/alpha-acceptance.cjs          # 三个《晚风》Alpha 工程隔离副本验收
+npm run assets:probe 9335                  # 连已运行的编辑器，检查图片是否走资源协议并截图
 ```
 
-- 《晚风》示例：运行时工程 JSON 从约 21 MB 降到 **34 KB**。
-- 保存后磁盘工程不含 `data:image`；另存为新增 `sourceRoot`，不会丢素材。
-- 单文件 HTML 导出时才把资源读回 data URI，超过 200 MB 会提示改用独立游戏目录。
+- 素材入口全覆盖（背景、立绘、表情、标题背景、CG、BGM、SFX、Voice）：单文件与批量导入都有进度、取消与错误提示，不再把完整素材转成 Base64 传给渲染进程。
+- 内容寻址去重：同一文件重复导入、改名同内容、已保存素材与新导入都能精确复用；`audio-store` 的跨表示断言已恢复为 `reused === true`。
+- 暂存生命周期：当前工程 + 撤销栈 + 重做栈共同保护暂存文件，取消/失败/关闭不保存/异常退出/另存为都不会留下悬空资源地址。
+- 《晚风》示例：运行时工程 JSON 从约 21 MB 降到 **34 KB**；1 GiB 压力工程运行时 JSON 约 **523 KB**。
+- 单文件 HTML 导出时才把资源读回 data URI，超过 **200 MB** 会提示改用独立游戏目录 / ZIP；1 GiB 工程走目录版。
+- **1 GiB 级实测**：1,576,200,076 bytes 去重素材（100 图 + 104 曲 / 204 个不同哈希 / 12 章 576 节点），真实窗口完成导入→编辑→播放→撤销→保存→重开→预览→目录版导出→启动导出游戏，全程无 `Invalid string length`、无 OOM、无素材损坏。峰值：主进程 514.8 MB、渲染进程 324.5 MB、全部 Electron 进程 1,118 MB（214 个采样点）。
+- 三个《晚风》Alpha 工程已用隔离副本完成 3/3 兼容性验收，原始作品未被改动（更正此前「工程缺失」的误报）。
 
-未完成项（导入落盘、1 GiB 验收）见 `docs/V0.7.6_RESOURCE_ARCHITECTURE.md`。
+详见 [docs/V0.7.6_RESOURCE_ARCHITECTURE.md](docs/V0.7.6_RESOURCE_ARCHITECTURE.md) 与 [docs/V0.7.6_ACCEPTANCE_REPORT.md](docs/V0.7.6_ACCEPTANCE_REPORT.md)；遗留边界见 [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md)。
 
 ## 大型游戏发布（V0.7.5）
 

@@ -1,0 +1,288 @@
+{
+  "version": "0.7.6-M3",
+  "at": "2026-11-22T19:30:18.181Z",
+  "sourceBase": "C:\\Users\\Administrator\\WorkBuddy\\LAPTOP-O1JJ0J9M\\PaperVNStudio-v0.3-source-and-AI-guide\\wanfeng_alpha\\projects",
+  "isolatedCopies": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\pvn-alpha-accept-6r507e",
+  "ok": true,
+  "projects": {
+    "Wanfeng_Part1_Alpha": {
+      "source": "C:\\Users\\Administrator\\WorkBuddy\\LAPTOP-O1JJ0J9M\\PaperVNStudio-v0.3-source-and-AI-guide\\wanfeng_alpha\\projects\\Wanfeng_Part1_Alpha",
+      "copy": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\pvn-alpha-accept-6r507e\\Wanfeng_Part1_Alpha",
+      "before": {
+        "title": "晚风经过二楼走廊｜第一部 Alpha",
+        "nodes": 48,
+        "images": 42,
+        "audio": 6,
+        "chapters": 1,
+        "firstText": "九月。开学后的第二周。早晨六点四十。闹钟响起的时候，悠第一反应是把被子蒙到头上。三秒后。门外传来敲门声。咚咚。",
+        "jsonBytes": 60865
+      },
+      "steps": {
+        "open": {
+          "ok": true,
+          "ms": 703,
+          "detail": {
+            "nodes": 48,
+            "assets": 42,
+            "audio": 6,
+            "chapters": 1,
+            "revision": 0,
+            "past": 0,
+            "future": 0
+          }
+        },
+        "edit": {
+          "ok": true,
+          "ms": 18,
+          "detail": {
+            "textLength": 69
+          }
+        },
+        "save": {
+          "ok": true,
+          "ms": 34,
+          "detail": {
+            "diskBytes": 60900
+          }
+        },
+        "reopen": {
+          "ok": true,
+          "ms": 1923,
+          "detail": {
+            "runtime": {
+              "nodes": 48,
+              "assets": 42,
+              "audio": 6,
+              "chapters": 1,
+              "revision": 0,
+              "past": 0,
+              "future": 0
+            }
+          }
+        },
+        "preview": {
+          "ok": true,
+          "ms": 1344,
+          "detail": {
+            "count": 1,
+            "loaded": 1,
+            "allPvres": true
+          }
+        },
+        "folderExport": {
+          "ok": true,
+          "ms": 1039,
+          "detail": {
+            "artifact": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\pvn-alpha-accept-6r507e\\exports-Wanfeng_Part1_Alpha\\晚风经过二楼走廊 第一部 Alpha-0.1.0-alpha-win-x64-独立游戏",
+            "htmlBytes": 166195,
+            "images": 36,
+            "audio": 3
+          }
+        }
+      },
+      "ok": true,
+      "reopenPid": 47924,
+      "screenshot": "docs\\screenshots\\v076-m3-alpha-Wanfeng_Part1_Alpha.png",
+      "sourceUnchanged": true,
+      "copyAfter": {
+        "title": "晚风经过二楼走廊｜第一部 Alpha",
+        "nodes": 48,
+        "images": 42,
+        "audio": 6,
+        "chapters": 1,
+        "firstText": "【M3 兼容性验收·仅副本】九月。开学后的第二周。早晨六点四十。闹钟响起的时候，悠第一反应是把被子蒙到头上。三秒后。门外传来敲门声。咚咚。",
+        "jsonBytes": 60900
+      }
+    },
+    "Wanfeng_Part1_Rehearsal": {
+      "source": "C:\\Users\\Administrator\\WorkBuddy\\LAPTOP-O1JJ0J9M\\PaperVNStudio-v0.3-source-and-AI-guide\\wanfeng_alpha\\projects\\Wanfeng_Part1_Rehearsal",
+      "copy": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\pvn-alpha-accept-6r507e\\Wanfeng_Part1_Rehearsal",
+      "before": {
+        "title": "晚风经过二楼走廊｜第2–14章 排演副本（候选·待核准）",
+        "nodes": 216,
+        "images": 44,
+        "audio": 6,
+        "chapters": 13,
+        "firstText": "那天晚上，二楼走廊的灯亮了很久。林悠拿着折成四方的一张试卷，在林澈门外来回走了两趟。终于敲了门。",
+        "jsonBytes": 210078
+      },
+      "steps": {
+        "open": {
+          "ok": true,
+          "ms": 751,
+          "detail": {
+            "nodes": 216,
+            "assets": 44,
+            "audio": 6,
+            "chapters": 13,
+            "revision": 0,
+            "past": 0,
+            "future": 0
+          }
+        },
+        "edit": {
+          "ok": true,
+          "ms": 23,
+          "detail": {
+            "textLength": 62
+          }
+        },
+        "save": {
+          "ok": true,
+          "ms": 38,
+          "detail": {
+            "diskBytes": 210113
+          }
+        },
+        "reopen": {
+          "ok": true,
+          "ms": 1983,
+          "detail": {
+            "runtime": {
+              "nodes": 216,
+              "assets": 44,
+              "audio": 6,
+              "chapters": 13,
+              "revision": 0,
+              "past": 0,
+              "future": 0
+            }
+          }
+        },
+        "preview": {
+          "ok": true,
+          "ms": 1323,
+          "detail": {
+            "count": 3,
+            "loaded": 3,
+            "allPvres": true
+          }
+        },
+        "folderExport": {
+          "ok": true,
+          "ms": 1163,
+          "detail": {
+            "artifact": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\pvn-alpha-accept-6r507e\\exports-Wanfeng_Part1_Rehearsal\\晚风 第一部 排演副本-0.1.0-draft-win-x64-独立游戏",
+            "htmlBytes": 264288,
+            "images": 44,
+            "audio": 6
+          }
+        }
+      },
+      "ok": true,
+      "reopenPid": 22776,
+      "screenshot": "docs\\screenshots\\v076-m3-alpha-Wanfeng_Part1_Rehearsal.png",
+      "sourceUnchanged": true,
+      "copyAfter": {
+        "title": "晚风经过二楼走廊｜第2–14章 排演副本（候选·待核准）",
+        "nodes": 216,
+        "images": 44,
+        "audio": 6,
+        "chapters": 13,
+        "firstText": "【M3 兼容性验收·仅副本】那天晚上，二楼走廊的灯亮了很久。林悠拿着折成四方的一张试卷，在林澈门外来回走了两趟。终于敲了门。",
+        "jsonBytes": 210113
+      }
+    },
+    "Wanfeng_Asset_Check": {
+      "source": "C:\\Users\\Administrator\\WorkBuddy\\LAPTOP-O1JJ0J9M\\PaperVNStudio-v0.3-source-and-AI-guide\\wanfeng_alpha\\projects\\Wanfeng_Asset_Check",
+      "copy": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\pvn-alpha-accept-6r507e\\Wanfeng_Asset_Check",
+      "before": {
+        "title": "晚风｜素材校对台（非剧情）",
+        "nodes": 32,
+        "images": 36,
+        "audio": 0,
+        "chapters": 1,
+        "firstText": "顾言｜冬令营便服·自然闭口｜gu_yan_winter_casual_base",
+        "jsonBytes": 49430
+      },
+      "steps": {
+        "open": {
+          "ok": true,
+          "ms": 740,
+          "detail": {
+            "nodes": 32,
+            "assets": 36,
+            "audio": 0,
+            "chapters": 1,
+            "revision": 0,
+            "past": 0,
+            "future": 0
+          }
+        },
+        "edit": {
+          "ok": true,
+          "ms": 10,
+          "detail": {
+            "textLength": 53
+          }
+        },
+        "save": {
+          "ok": true,
+          "ms": 42,
+          "detail": {
+            "diskBytes": 49465
+          }
+        },
+        "reopen": {
+          "ok": true,
+          "ms": 2027,
+          "detail": {
+            "runtime": {
+              "nodes": 32,
+              "assets": 36,
+              "audio": 0,
+              "chapters": 1,
+              "revision": 0,
+              "past": 0,
+              "future": 0
+            }
+          }
+        },
+        "preview": {
+          "ok": true,
+          "ms": 1167,
+          "detail": {
+            "count": 2,
+            "loaded": 2,
+            "allPvres": true
+          }
+        },
+        "folderExport": {
+          "ok": true,
+          "ms": 989,
+          "detail": {
+            "artifact": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\pvn-alpha-accept-6r507e\\exports-Wanfeng_Asset_Check\\晚风 素材校对-0.1.0-check-win-x64-独立游戏",
+            "htmlBytes": 161468,
+            "images": 36,
+            "audio": 0
+          }
+        }
+      },
+      "ok": true,
+      "reopenPid": 44576,
+      "screenshot": "docs\\screenshots\\v076-m3-alpha-Wanfeng_Asset_Check.png",
+      "sourceUnchanged": true,
+      "copyAfter": {
+        "title": "晚风｜素材校对台（非剧情）",
+        "nodes": 32,
+        "images": 36,
+        "audio": 0,
+        "chapters": 1,
+        "firstText": "【M3 兼容性验收·仅副本】顾言｜冬令营便服·自然闭口｜gu_yan_winter_casual_base",
+        "jsonBytes": 49465
+      }
+    }
+  },
+  "problems": [],
+  "screenshots": [
+    "docs\\screenshots\\v076-m3-alpha-Wanfeng_Part1_Alpha.png",
+    "docs\\screenshots\\v076-m3-alpha-Wanfeng_Part1_Rehearsal.png",
+    "docs\\screenshots\\v076-m3-alpha-Wanfeng_Asset_Check.png"
+  ],
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpus": 12,
+    "totalMem": 34187800576
+  }
+}

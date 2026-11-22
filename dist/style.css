@@ -225,3 +225,11 @@ body.playing #stage img{-webkit-user-drag:none;user-drag:none}
 /* V0.7.4 预览加载状态：只占一行小字，失败时转红。 */
 .preview-status{display:inline-block;margin-left:10px;font-size:11px;color:var(--accent)}
 .preview-status.error{color:var(--danger)}
+
+/* V0.7.6-M3 素材流式导入进度：不遮挡编辑区，可随时取消。 */
+.asset-progress{position:fixed;right:18px;bottom:18px;z-index:60;display:flex;align-items:center;gap:10px;max-width:430px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel,#fff);box-shadow:0 8px 28px rgba(20,40,30,.18);font-size:12px}
+.asset-progress[hidden]{display:none}
+.asset-progress span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asset-progress-bar{flex:1;min-width:90px;height:5px;border-radius:3px;background:var(--soft,#eef2e9);overflow:hidden}
+.asset-progress-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .12s linear}
+.asset-progress button{flex:0 0 auto;font-size:11px;padding:4px 8px}

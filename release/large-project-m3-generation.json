@@ -1,0 +1,24 @@
+{
+  "at": "2026-11-22T18:56:55.133Z",
+  "out": "F:\\pvn-1gib-m3-valid",
+  "targetBytes": 1073741824,
+  "actualAssetBytes": 1576200076,
+  "meetsTarget": true,
+  "images": 100,
+  "audio": 104,
+  "nodes": 576,
+  "chapters": 12,
+  "uniqueHashes": 204,
+  "sourceBytes": 1576200076,
+  "generateMs": 23960,
+  "schema": 5,
+  "runtimeJsonBytes": 522942,
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpus": 12,
+    "totalMem": 34187800576,
+    "freeMem": 15859212288,
+    "node": "v22.22.2"
+  }
+}

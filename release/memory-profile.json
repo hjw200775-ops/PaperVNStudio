@@ -1,0 +1,332 @@
+{
+  "schema": 1,
+  "version": "0.7.6-M3",
+  "generatedAt": "2026-11-22T19:31:46.938Z",
+  "source": "release\\m3-memory-samples.json",
+  "method": {
+    "sampling": "CDP 定时器每 400ms 调用 app.getAppMetrics()；另用 tasklist 每 600ms 独立采样所有 electron.exe 进程工作集，避免主进程被同步 IO 阻塞时漏掉峰值",
+    "main": "app.getAppMetrics() 中 type=Browser 的 workingSetSize 实测（原始单位 KB，已 ×1024 换算为字节）",
+    "renderer": "app.getAppMetrics() 中 type=Tab 的 workingSetSize 实测；Electron 把渲染进程标为 Tab 而不是 Renderer",
+    "total": "app.getAppMetrics() 所有进程 workingSetSize 之和；tasklist 采样的字节数作为独立对照",
+    "continuous": true,
+    "sampleCount": 214,
+    "cdpSampleCount": 114,
+    "osSampleCount": 100
+  },
+  "machine": {
+    "measured": true,
+    "platform": "win32",
+    "arch": "x64",
+    "cpuModel": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cpus": 12,
+    "totalMemBytes": 34187800576,
+    "freeMemBytesAtStart": 18773004288,
+    "node": "v22.22.2",
+    "electron": "45.3.2",
+    "note": "来自验收进程启动时读取的 os 信息与 Electron 包版本"
+  },
+  "measured": {
+    "mainPeakBytes": 539791360,
+    "rendererPeakBytes": 340246528,
+    "allElectronProcessesPeakBytes": 1172299776,
+    "maxSingleProcessPeakWorkingSetBytes": 892141568,
+    "byStage": {
+      "openProject": {
+        "count": 11,
+        "cdpCount": 6,
+        "osCount": 5,
+        "mainPeak": 169308160,
+        "rendererPeak": 179511296,
+        "totalPeak": 537456640,
+        "mainMin": 168775680,
+        "rendererMin": 141434880,
+        "totalMin": 201646080,
+        "firstAt": 1795375884720,
+        "lastAt": 1795375885511
+      },
+      "import": {
+        "count": 12,
+        "cdpCount": 7,
+        "osCount": 5,
+        "mainPeak": 177045504,
+        "rendererPeak": 182927360,
+        "totalPeak": 556113920,
+        "mainMin": 170033152,
+        "rendererMin": 181596160,
+        "totalMin": 546197504,
+        "firstAt": 1795375885670,
+        "lastAt": 1795375886372
+      },
+      "edit": {
+        "count": 12,
+        "cdpCount": 7,
+        "osCount": 5,
+        "mainPeak": 177053696,
+        "rendererPeak": 213393408,
+        "totalPeak": 585838592,
+        "mainMin": 177045504,
+        "rendererMin": 181600256,
+        "totalMin": 554033152,
+        "firstAt": 1795375886377,
+        "lastAt": 1795375887134
+      },
+      "undoRedo": {
+        "count": 12,
+        "cdpCount": 7,
+        "osCount": 5,
+        "mainPeak": 136613888,
+        "rendererPeak": 230354944,
+        "totalPeak": 571617280,
+        "mainMin": 136499200,
+        "rendererMin": 199057408,
+        "totalMin": 531161088,
+        "firstAt": 1795375887145,
+        "lastAt": 1795375887974
+      },
+      "scenes": {
+        "count": 18,
+        "cdpCount": 10,
+        "osCount": 8,
+        "mainPeak": 189288448,
+        "rendererPeak": 305184768,
+        "totalPeak": 692031488,
+        "mainMin": 142708736,
+        "rendererMin": 230498304,
+        "totalMin": 562905088,
+        "firstAt": 1795375887987,
+        "lastAt": 1795375889315
+      },
+      "audio": {
+        "count": 15,
+        "cdpCount": 9,
+        "osCount": 6,
+        "mainPeak": 212164608,
+        "rendererPeak": 339009536,
+        "totalPeak": 864260096,
+        "mainMin": 149147648,
+        "rendererMin": 298926080,
+        "totalMin": 685645824,
+        "firstAt": 1795375889320,
+        "lastAt": 1795375890343
+      },
+      "singleHtmlGuard": {
+        "count": 12,
+        "cdpCount": 7,
+        "osCount": 5,
+        "mainPeak": 212512768,
+        "rendererPeak": 340246528,
+        "totalPeak": 862273536,
+        "mainMin": 212324352,
+        "rendererMin": 309796864,
+        "totalMin": 831856640,
+        "firstAt": 1795375890413,
+        "lastAt": 1795375891224
+      },
+      "save": {
+        "count": 14,
+        "cdpCount": 7,
+        "osCount": 7,
+        "mainPeak": 219455488,
+        "rendererPeak": 310378496,
+        "totalPeak": 840671232,
+        "mainMin": 212512768,
+        "rendererMin": 296984576,
+        "totalMin": 812593152,
+        "firstAt": 1795375891229,
+        "lastAt": 1795375892344
+      },
+      "reopen": {
+        "count": 15,
+        "cdpCount": 8,
+        "osCount": 7,
+        "mainPeak": 219459584,
+        "rendererPeak": 296988672,
+        "totalPeak": 812961792,
+        "mainMin": 121929728,
+        "rendererMin": 88264704,
+        "totalMin": 258695168,
+        "firstAt": 1795375892348,
+        "lastAt": 1795375895377
+      },
+      "preview": {
+        "count": 31,
+        "cdpCount": 12,
+        "osCount": 19,
+        "mainPeak": 539791360,
+        "rendererPeak": 318881792,
+        "totalPeak": 1172299776,
+        "mainMin": 168288256,
+        "rendererMin": 153362432,
+        "totalMin": 529530880,
+        "firstAt": 1795375895382,
+        "lastAt": 1795375899510
+      },
+      "folderExport": {
+        "count": 36,
+        "cdpCount": 19,
+        "osCount": 17,
+        "mainPeak": 457502720,
+        "rendererPeak": 311619584,
+        "totalPeak": 980783104,
+        "mainMin": 140099584,
+        "rendererMin": 152760320,
+        "totalMin": 588877824,
+        "firstAt": 1795375899539,
+        "lastAt": 1795375903491
+      },
+      "exportedGame": {
+        "count": 26,
+        "cdpCount": 15,
+        "osCount": 11,
+        "mainPeak": 140894208,
+        "rendererPeak": 154902528,
+        "totalPeak": 589717504,
+        "mainMin": 140029952,
+        "rendererMin": 150626304,
+        "totalMin": 580276224,
+        "firstAt": 1795375903497,
+        "lastAt": 1795375905930
+      }
+    },
+    "timingsMs": {
+      "openProject": {
+        "measured": true,
+        "ms": 1401,
+        "startedAt": "2026-11-22T19:31:24.104Z",
+        "finishedAt": "2026-11-22T19:31:25.505Z",
+        "ok": true
+      },
+      "import": {
+        "measured": true,
+        "ms": 707,
+        "startedAt": "2026-11-22T19:31:25.665Z",
+        "finishedAt": "2026-11-22T19:31:26.372Z",
+        "ok": true
+      },
+      "edit": {
+        "measured": true,
+        "ms": 762,
+        "startedAt": "2026-11-22T19:31:26.372Z",
+        "finishedAt": "2026-11-22T19:31:27.134Z",
+        "ok": true
+      },
+      "undoRedo": {
+        "measured": true,
+        "ms": 840,
+        "startedAt": "2026-11-22T19:31:27.134Z",
+        "finishedAt": "2026-11-22T19:31:27.974Z",
+        "ok": true
+      },
+      "scenes": {
+        "measured": true,
+        "ms": 1341,
+        "startedAt": "2026-11-22T19:31:27.974Z",
+        "finishedAt": "2026-11-22T19:31:29.315Z",
+        "ok": true
+      },
+      "audio": {
+        "measured": true,
+        "ms": 1026,
+        "startedAt": "2026-11-22T19:31:29.316Z",
+        "finishedAt": "2026-11-22T19:31:30.342Z",
+        "ok": true
+      },
+      "singleHtmlGuard": {
+        "measured": true,
+        "ms": 829,
+        "startedAt": "2026-11-22T19:31:30.395Z",
+        "finishedAt": "2026-11-22T19:31:31.224Z",
+        "ok": true
+      },
+      "save": {
+        "measured": true,
+        "ms": 1120,
+        "startedAt": "2026-11-22T19:31:31.224Z",
+        "finishedAt": "2026-11-22T19:31:32.344Z",
+        "ok": true
+      },
+      "reopen": {
+        "measured": true,
+        "ms": 3033,
+        "startedAt": "2026-11-22T19:31:32.344Z",
+        "finishedAt": "2026-11-22T19:31:35.377Z",
+        "ok": true
+      },
+      "preview": {
+        "measured": true,
+        "ms": 3959,
+        "startedAt": "2026-11-22T19:31:35.377Z",
+        "finishedAt": "2026-11-22T19:31:39.336Z",
+        "ok": true
+      },
+      "folderExport": {
+        "measured": true,
+        "ms": 3960,
+        "startedAt": "2026-11-22T19:31:39.531Z",
+        "finishedAt": "2026-11-22T19:31:43.491Z",
+        "ok": true
+      },
+      "exportedGame": {
+        "measured": true,
+        "ms": 2288,
+        "startedAt": "2026-11-22T19:31:43.493Z",
+        "finishedAt": "2026-11-22T19:31:45.781Z",
+        "ok": true
+      }
+    }
+  },
+  "timingsMs": {
+    "importMs": 707,
+    "openProjectMs": 1401,
+    "saveMs": 1120,
+    "reopenMs": 3033,
+    "previewStartMs": 3959,
+    "folderExportMs": 3960
+  },
+  "sizes": {
+    "actualAssetBytes": 1576200076,
+    "uniqueHashes": 204,
+    "images": 100,
+    "audio": 104,
+    "nodes": 576,
+    "chapters": 12,
+    "runtimeJsonBytes": 500685,
+    "diskJsonBytes": 888831,
+    "assetBytesOnDisk": 1576200076,
+    "runtimeProjectJsonBytes": 522941,
+    "gameHtmlBytes": 659507,
+    "gameImages": 100,
+    "gameAudio": 39
+  },
+  "assertions": {
+    "assetBytesMeetTarget": true,
+    "noLargeRuntimeBase64": true,
+    "duplicateImportDoesNotGrowDisk": true,
+    "backgroundAndSpriteDecoded": true,
+    "audioPlayback": {
+      "bgm": true,
+      "sfx": true,
+      "voice": true,
+      "unlocked": true
+    },
+    "singleHtmlGuardWorks": true,
+    "diskJsonHasNoBase64": true,
+    "folderExportMode": true,
+    "assetsIntact": true,
+    "noInvalidStringLength": true,
+    "noOomOrCrash": true
+  },
+  "incidents": [],
+  "unmeasured": [
+    "单文件 HTML 导出的渲染进程堆峰值（1 GiB 工程按设计走目录版，未执行该导出）",
+    "第二台机器 / 不同 GPU 上的内存基线（本机单台实测）",
+    "GPU 进程显存占用（app.getAppMetrics 只报告工作集，不含显存）"
+  ],
+  "notMeasured": [
+    "单文件 HTML 导出的渲染进程堆峰值（1 GiB 工程按设计走目录版，未执行该导出）",
+    "第二台机器 / 不同 GPU 上的内存基线（本机单台实测）",
+    "GPU 进程显存占用（app.getAppMetrics 只报告工作集，不含显存）"
+  ],
+  "estimated": [],
+  "note": "所有数值均来自实际采样；没有根据素材体积推算内存。若某阶段采样点不足，byStage 中该阶段 count 会如实反映。"
+}
