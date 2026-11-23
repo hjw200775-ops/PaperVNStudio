@@ -1,12 +1,69 @@
 # 纸间 PaperVNStudio
 
-> 当前版本 **V0.7.6-M3**（`package.json` 版本 `0.7.6`）。V0.7.6 已完成 1 GiB 级工程验收；更新日志见 [CHANGELOG.md](CHANGELOG.md)，验收报告见 [docs/V0.7.6_ACCEPTANCE_REPORT.md](docs/V0.7.6_ACCEPTANCE_REPORT.md)。
+<p>
+  <img alt="version" src="https://img.shields.io/badge/version-0.7.6-2F6F5E?style=flat-square">
+  <img alt="electron" src="https://img.shields.io/badge/Electron-45-47848F?style=flat-square&logo=electron&logoColor=white">
+  <img alt="license" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
+  <img alt="platform" src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D4?style=flat-square">
+</p>
 
-一个跑在本地的视觉小说（Galgame / 文字冒险）创作工具：左边排剧情，右边摆图层，逐句加演出，最后导出一个自包含的 HTML 游戏。
+**一个跑在本地的视觉小说（Galgame / 文字冒险）创作工具。** 左边排剧情，右边摆图层，逐句加演出，最后导出成一个双击就能玩、断网也能玩的作品——不需要服务器，不需要账号，工程就是你自己的一个目录。
 
-项目基于 V0.3 网页版源码，在同一套 `core.js` / `effects.js` 运行时上增加了 Windows 桌面预览版 —— 独立窗口、本地工程目录、内容寻址素材、原子保存与备份，以及完全离线的导出。没有重写编辑器，也没有把网页版推倒重来。
+<img src="docs/screenshots/v076-editor-assets.png" alt="编辑器：左侧剧情脚本、中间舞台、右侧剧情与画面">
 
-## V0.6.2 新增：内置示例与标题背景
+> **V0.7.6 已发布。** 素材不再以 Base64 进入渲染进程：导入即落盘、内容寻址去重，1 GiB 级工程在真实窗口跑通「导入 → 编辑 → 播放 → 撤销 → 保存 → 重开 → 预览 → 导出 → 启动」全链路。
+> [下载最新版](https://github.com/hjw200775-ops/PaperVNStudio/releases/latest) · [更新日志](CHANGELOG.md) · [验收报告](docs/V0.7.6_ACCEPTANCE_REPORT.md) · [已知限制](docs/KNOWN_LIMITATIONS.md)
+
+## 下载
+
+| 版本 | 你能拿到什么 | 入口 |
+| --- | --- | --- |
+| **V0.7.6（最新）** | 源码、新增测试、1 GiB 生成脚本与验收数据 | [Releases › v0.7.6](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.6) |
+| V0.7.5 | 《晚风》第一章节选单文件试玩 HTML（23.6 MB） | [Releases › v0.7.5](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.5) |
+| V0.7.3 | 纸间便携版 EXE（126 MB）+ 试玩 HTML | [Releases › v0.7.3](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.3) |
+| V0.7.1 / V0.7.0 | 《晚风》独立游戏包：目录版 ZIP、单文件便携 EXE | [Releases › v0.7.1](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.1) |
+| V0.6.2 及更早 | 便携版 ZIP + 示例 HTML | [全部版本](https://github.com/hjw200775-ops/PaperVNStudio/releases) |
+
+产物面向 Windows 10/11 x64；**未代码签名**，首次运行若出现 SmartScreen 提示，选「更多信息 → 仍要运行」。不想下载二进制就从源码跑：`npm install && npm run desktop`。
+
+## V0.7.6 新增：素材流式导入与 1 GiB 工程
+
+旧链路的瓶口很具体：图片与音频被读成 Base64 塞进工程对象，素材越多字符串越长，91 MB 就顶到 V8 的单字符串上限。这一版把它拆成两半。
+
+- **运行时只持有地址**：打开工程改用 `paper://app/asset/…` 受控 URL，《晚风》示例的运行时 JSON 从约 21 MB 降到 **34 KB**。
+- **导入即落盘**：主进程流式读取 + 分块 SHA-256，落到 `userData/asset-staging/<sha256>.<ext>`；渲染进程只拿到 URL、哈希、大小、MIME 与尺寸 / 时长。背景、立绘与表情、标题背景、CG、BGM、SFX、Voice 八类入口全部改造，支持批量、进度、取消与逐条错误。
+- **跨表示精确去重**：已落盘素材、暂存素材、旧工程 data URI 统一按 SHA-256 比对；改名同内容、同名不同内容都能正确判断，复用断言恢复为 `reused === true` 的成功语义。
+- **暂存生命周期**：当前工程 + 撤销栈 + 重做栈共同保护，`asset:gc` 只清理无引用且过期的文件；取消、失败中断、关窗不保存、异常退出、另存为都不留悬空地址。
+
+| 1 GiB 真实验收（1,576,200,076 bytes / 204 个哈希 / 12 章 576 节点） | 实测 |
+| --- | --- |
+| 14 阶段：导入 → 编辑 → 切章切场景 → 立绘背景 → BGM/SFX/Voice → 撤销重做 → 保存 → 重开 → 预览 → 目录版导出 → 启动导出游戏 | 全通过，0 问题，0 条 CDP 运行时异常 |
+| 峰值内存（214 个采样点覆盖全部阶段） | 主进程 514.8 MB / 渲染 324.5 MB / 全部 Electron 进程 1,118 MB |
+| 工程 JSON 运行时大小 | 约 523 KB（不含 Base64） |
+| 打开 / 保存 / 重开 | 1.4 s / 1.1 s / 3.0 s |
+| 完整预览 / 目录版导出 / 导出游戏启动 | 4.0 s / 4.0 s / 2.3 s |
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/v076-m3-staged-import.png" alt="导入时右下角显示暂存进度"></td>
+    <td><img src="docs/screenshots/v074-wanfeng-preview.png" alt="导出、预览与独立游戏共用的播放器"></td>
+  </tr>
+  <tr>
+    <td align="center">导入即落盘：素材就绪后再写工程</td>
+    <td align="center">同一套播放器：预览 / HTML / 独立游戏</td>
+  </tr>
+</table>
+
+架构与取舍见 [docs/V0.7.6_RESOURCE_ARCHITECTURE.md](docs/V0.7.6_RESOURCE_ARCHITECTURE.md)，验收证据见 [docs/V0.7.6_ACCEPTANCE_REPORT.md](docs/V0.7.6_ACCEPTANCE_REPORT.md)。项目基于 V0.3 网页版源码演进，没有重写编辑器，也没有把网页版推倒重来。
+
+## 版本历史
+
+按时间倒序。最新版本的能力见上文，这里保留每个版本当时的说明与兼容提示。
+
+<details>
+<summary>V0.6.2 新增：内置示例与标题背景</summary>
+
+### V0.6.2 新增：内置示例与标题背景
 
 左栏新增「标题页」标签。标题背景可以选一张已导入的背景素材，也可以直接导入图片；配置只保存素材 ID，随工程一起保存、另存为、备份恢复、撤销重做与导出，清除后回到默认标题页样式。标题图按 cover 保持比例，左侧加了一层渐变保证标题与按钮的对比度；文字仍由程序渲染，缩放窗口不会糊。素材被删除后标题页回退默认样式并明确提示，导出不会失败。
 
@@ -18,7 +75,12 @@
 
 本版仍不做独立游戏 EXE、多槽存档、主题编辑器、AI、TTS 或自动播放。
 
-## V0.6.1 新增：标题页与游戏菜单
+</details>
+
+<details>
+<summary>V0.6.1 新增：标题页与游戏菜单</summary>
+
+### V0.6.1 新增：标题页与游戏菜单
 
 导出的作品打开后先显示标题页：游戏标题、开始游戏、继续游戏、设置。没有有效存档时「继续游戏」禁用并说明原因；开始游戏从首节点启动，不删除已有存档；有进度时重新开始会先确认。游戏内提供「菜单」按钮与 Esc：返回游戏、保存进度、读取进度、设置、返回标题；结局画面同样可用。
 
@@ -28,7 +90,12 @@
 
 本版仍是单槽手动存档，不新增自动存档、多槽、快进、文本回顾或独立游戏 EXE。
 
-## V0.5 新增：基础音频
+</details>
+
+<details>
+<summary>V0.5 新增：基础音频</summary>
+
+### V0.5 新增：基础音频
 
 左栏「音频」可以导入背景音乐、音效和台词语音（可靠支持 PCM WAV），按内容复用素材、异步读取时长、试听与停止试听；删除被引用素材时会列出引用位置并默认阻止。右侧新增独立的「音频」分区：每句可选「沿用 / 播放或切换 / 停止」音乐，设置音量、循环、淡入淡出；添加多条音效（音量、触发延迟）；手动绑定一条台词语音。分类音量与静音是本机播放偏好，不写进工程。
 
@@ -38,19 +105,36 @@
 
 本版不做 TTS、自动配音、口型同步、音频剪辑、复杂时间轴、批量音频绑定、云服务或独立游戏 EXE。测试素材里两条英文语音只是功能占位，未绑定进正式中文原作。
 
-## V0.4.3 新增：批量编辑
+</details>
+
+<details>
+<summary>V0.4.3 新增：批量编辑</summary>
+
+### V0.4.3 新增：批量编辑
 
 一次勾选多句（Shift 连选、整段全选、折叠段落保留选择），批量设置说话角色与表情、指定在场角色的表情；复制某句的独立场景布局或演出，粘贴到所选句子并可选择替换或追加。所有写入先出预览：能改几句、跳过几句、冲突几句、前几句的前后对照与原因；应用后整批一次撤销、一次重做。详见 [docs/V0.4.3_BATCH.md](docs/V0.4.3_BATCH.md)。
 
-## V0.4.2 新增：章节与段落
+</details>
+
+<details>
+<summary>V0.4.2 新增：章节与段落</summary>
+
+### V0.4.2 新增：章节与段落
 
 长剧情可以整理成「章节 → 段落 → 句子」：折叠展开、显示句数、拖动或「移动到…」调整位置，当前句始终可见。章节顺序就是播放顺序，改动会改变「按顺序继续」时先列出受影响的句子；删除章节或段落默认保留剧情。文本导入先出预览（识别 `# 章节`、`## 段落`、`角色：台词`，列出来不及识别的行），确认后一次撤销即可还原。剧情检查的错误与提示可以点击直接跳到对应句子；「从本句 / 从本段试玩」会按前面的句子还原背景、表情与持续演出。详见 [docs/V0.4.2_CHAPTERS.md](docs/V0.4.2_CHAPTERS.md)。
 
-## V0.4.1 新增：角色与表情
+</details>
+
+<details>
+<summary>V0.4.1 新增：角色与表情</summary>
+
+### V0.4.1 新增：角色与表情
 
 作者可以建立「林悠」「林澈」这样的角色，填姓名与姓名颜色，为每人添加多个表情（整图变体）。录台词时选择谁在说话、本句用哪个表情；同场另一个角色也能单独设表情。切表情只替换现有角色图层的素材关联，坐标、尺寸、图层 ID、层级、透明度与演出绑定都不动，也不会把表情写回别人的分支。
 
 旧 V0.1 / V0.2 / V0.3 工程会自动升级到 `schema 4`，不按说话人文字猜人物；角色改名不影响已录入的台词。详见 [docs/V0.4.1_CHARACTERS.md](docs/V0.4.1_CHARACTERS.md)。
+
+</details>
 
 ## 它能做什么
 
@@ -277,9 +361,10 @@ npm run game:acceptance   # 解压 ZIP 跑真实 EXE，并单独验收单文件�
 
 ## 当前状态
 
-- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复、V0.6.2 内置示例与标题背景、V0.7《晚风》正式版（图标、版本信息、双形态、签名管线）、V0.7.2 通用独立游戏导出（发行设置、图标、ZIP / 单文件、离线构建组件）与播放器交互修复（禁选、禁拖、点击/拖动分离）、V0.7.3 音乐素材库与场景配乐（六首 OST、标题音乐、按引用导出）、V0.7.4 大型工程预览（会话目录 + pvres:// 按需读取）、V0.7.5 大型游戏发布（资源分离目录版 / ZIP）。
+- 已完成：网页版基线、桌面窗口与工程存储、可靠保存与备份、离线导出、V0.3.1 收尾修复、V0.6.2 内置示例与标题背景、V0.7《晚风》正式版（图标、版本信息、双形态、签名管线）、V0.7.2 通用独立游戏导出（发行设置、图标、ZIP / 单文件、离线构建组件）与播放器交互修复（禁选、禁拖、点击/拖动分离）、V0.7.3 音乐素材库与场景配乐（六首 OST、标题音乐、按引用导出）、V0.7.4 大型工程预览（会话目录 + pvres:// 按需读取）、V0.7.5 大型游戏发布（资源分离目录版 / ZIP）、**V0.7.6 素材流式导入与 1 GiB 级工程验收**（内容寻址去重、暂存生命周期、持续内存采样、三工程 Alpha 隔离副本验收）。
 - 未开始：NSIS 安装包、真实证书签名（等证书）、多槽存档、剧情变量、AI 辅助、自动更新、macOS / Linux 导出。
-- 打包好的 Windows 产物在 [Releases](https://github.com/hjw200775-ops/PaperVNStudio/releases) 下载（便携版 / 安装包，附 SHA-256）；`release/` 本身是忽略目录，不随仓库分发。也可自行 `npm run build:win`。
+- 已发布的 Windows 产物在 [Releases](https://github.com/hjw200775-ops/PaperVNStudio/releases) 下载（便携版 / 独立游戏包 / 试玩 HTML，附 SHA-256 或逐文件校验）；`release/` 本身是忽略目录，不随仓库分发。也可自行 `npm run build:win`。
+- V0.7.6 **不提供**打包产物，只发源码与验收证据：1 GiB 素材本体不入库，需要复现时用 `scripts/make-large-project-m3.cjs` 现场生成。
 
 细节见 `docs/DESKTOP_PREVIEW.md`（交付说明与构建记录）、`docs/ACCEPTANCE.md`（验收清单）、`docs/KNOWN_LIMITATIONS.md`（已知限制）。C 层与 D 层怎么一步步点，见 `docs/MANUAL_ACCEPTANCE.md`。
 
