@@ -16,6 +16,6 @@ merge.sceneMode='own';assert.equal(F.frame(p,C,merge.id,[first.id,choice.id,b.id
 merge.sceneMode='inherit';const reset=F.make('reset',L,'blur');reset.to=0;reset.duration=1;reset.easing='linear';reset.policy='hold';merge.effects=[reset];assert.equal(F.frame(p,C,merge.id,[first.id,choice.id,a.id],.5)[L].blur,4);
 const move=F.make('move',L,'move');move.to=10;move.toY=-10;move.duration=1;move.easing='linear';first.effects=[move];assert.equal(F.frame(p,C,first.id,[],.5)[L].x,5);assert.equal(F.frame(p,C,first.id,[],.5)[L].y,-5);
 assert.doesNotThrow(()=>F.validate([move]));assert.throws(()=>F.validate([move,{...move,id:'dup'}]));assert.throws(()=>F.validate([{...move,duration:NaN}]));
-const old=C.clone(p);old.schema=2;old.nodes.forEach(n=>delete n.effects);const upgraded=C.migrate(old);assert.equal(upgraded.schema,5);upgraded.nodes.forEach(n=>assert.deepEqual(n.effects,[]));
+const old=C.clone(p);old.schema=2;old.nodes.forEach(n=>delete n.effects);const upgraded=C.migrate(old);assert.equal(upgraded.schema,6);upgraded.nodes.forEach(n=>assert.deepEqual(n.effects,[]));
 const cached=F.before(p,C,merge.id,[first.id,choice.id,a.id]);const oldCached=JSON.stringify(cached);assert.deepEqual(F.frame(p,C,merge.id,[first.id,choice.id,a.id],.2,cached),F.frame(p,C,merge.id,[first.id,choice.id,a.id],.2));assert.equal(JSON.stringify(cached),oldCached);
 console.log('PASS: effect interpolation, delays, holds, sentence and auto restoration, branching, scene reset, auto-from, move, validation, v2 migration');

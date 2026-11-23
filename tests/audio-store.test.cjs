@@ -66,7 +66,7 @@ const root = dir('audio-project');
 const created = store.createProject(root, p);
 const disk = JSON.parse(fs.readFileSync(path.join(root, MAIN_FILE), 'utf8'));
 assert.equal(disk.audioAssets.length, 5);
-assert.equal(disk.schema, 5, '音频是 schema 5 的可选增量，不改版本号');
+assert.equal(disk.schema, 6, '演出是 schema 6 的增量；音频仍是 schema 5 引入的可选字段');
 for (const a of disk.audioAssets) {
   assert.equal(a.file, AUDIO_REL + '/' + sha(Buffer.from(a.id === 'au_1' ? B1 : a.id === 'au_2' ? B2 : a.id === 'au_3' ? B3 : a.id === 'au_4' ? B4 : B5)) + '.wav');
   assert(!('data' in a), '磁盘元数据不内嵌音频数据');

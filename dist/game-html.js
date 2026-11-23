@@ -7,11 +7,13 @@ function buildPlayerHTML(p, esc, report, opts) {
   if (typeof paperPlayer === 'function' && typeof buildGameHTML === 'function') {
     return buildGameHTML(p, { player: paperPlayer, coreFactory: createVNCore,
       effectFactory: createPaperEffects, audioFactory: createPaperAudio,
+      performanceFactory: createPaperPerformance,
       css: paperPlayerCSS, esc: escape, report, mode: (opts || {}).mode });
   }
   const ex = require('./export.js');
   return ex.buildGameHTML(p, { player: require('./player.js').paperPlayer,
     coreFactory: require('./core.js'), effectFactory: require('./effects.js'),
+    performanceFactory: require('./performance.js'),
     audioFactory: require('./audio.js'), css: require('./player.js').paperPlayerCSS, esc: escape, report, mode: (opts || {}).mode });
 }
 if (typeof module !== 'undefined') module.exports = { buildPlayerHTML };

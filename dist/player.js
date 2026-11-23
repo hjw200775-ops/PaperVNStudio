@@ -3,8 +3,9 @@
  * editor's "完整预览" both run this same player; "从本句试玩" stays in the editor.
  * 存档只保存 {id, trail}：trail 是恢复效果与音频状态所需的路径信息，
  * 绝不保存 AudioContext / HTMLAudioElement / 计时器等运行对象。 */
-function paperPlayer(P,coreFactory,effectFactory,audioFactory){
+function paperPlayer(P,coreFactory,effectFactory,audioFactory,performanceFactory){
  const C=coreFactory(),F=effectFactory(),E=id=>document.getElementById(id);
+ const PF=typeof performanceFactory==='function'?performanceFactory():null;
  /* 兜底：CSS 已覆盖的元素之外，也不让展示图被拖成系统文件拖放。输入控件除外。
     非真实 DOM 环境（测试里的 vm stub）跳过，不给播放器加环境耦合。 */
  if(typeof document!=='undefined'&&document&&typeof document.addEventListener==='function'){
@@ -129,9 +130,49 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory){
   });
  }
 
+ /* ---------- 舞台演出（V0.8） ----------
+  * 与逐图层效果的分工：效果负责「一句之内某个图层的属性插值」，
+  * 演出负责「动作序列 + 跨句延续 + 镜头与转场」。两者渲染到同一批 .visual-layer 上：
+  * 演出把位移与缩放写在内层 .pf-frame，效果写外层，互不覆盖。 */
+ let perfState=null, perfCtl=null, perfHint='';
+ const prefersReduced=()=>{try{return !!(globalThis.matchMedia&&globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches)}catch{return false}};
+ function perfActions(node){const pf=node&&node.performance;return pf&&Array.isArray(pf.actions)?pf.actions.filter(a=>a&&a.enabled!==false):[]}
+ /* 读档 / 后退 / 跳章：沿 trail 重放一遍，得到与逐句播过来完全相同的舞台状态。 */
+ function rebuildPerfState(){
+  let st=PF.emptyState();
+  const path=trail.slice();
+  for(let k=0;k<path.length;k++){
+   const node=P.nodes.find(x=>x.id===path[k]);
+   const acts=perfActions(node);
+   if(!acts.length)continue;
+   const layers=C.stage(P,path[k],path.slice(0,k));
+   st=PF.commit(st,acts,{P,layers});
+  }
+  return st;
+ }
+ function runPerformance(n,layers,animate){
+  if(!PF)return;
+  if(perfCtl){perfCtl.cancel();perfCtl=null}
+  if(!perfState)perfState=rebuildPerfState();
+  const acts=perfActions(n);
+  const before=perfState;
+  const after=acts.length?PF.stateAt(before,acts,Infinity,{P,layers}):before;
+  /* 立刻记账：即使动画没播完就跳句 / 快进，后续节点也从终态接着算，不会位置漂移。 */
+  perfState=after;
+  if(!acts.length){PF.applyDOM(E('layers'),layers,before,{P});return}
+  perfCtl=PF.play({container:E('layers'),layers,actions:acts,before,P,reduced:!animate||prefersReduced(),
+   onDone:()=>{perfState=after;perfCtl=null;if(perfHint)E('hint').textContent=perfHint}});
+  perfHint=E('hint').textContent;
+  if(perfCtl&&perfCtl.blockAt>0)E('hint').textContent='演出中 · 点击可跳过';
+ }
+ /* 阻塞演出未播完时，点击先把演出结算到终态，再点才推进剧情。 */
+ function perfBlocking(){return !!(perfCtl&&perfCtl.running&&perfCtl.blockAt>0)}
+ function perfSkip(){if(perfCtl)perfCtl.finish()}
+
  /* ---------- 舞台绘制 ---------- */
  function draw(animate,audioMode){
   cancelEffect();
+  if(perfCtl){perfCtl.cancel();perfCtl=null}
   const n=P.nodes[i];
   const layers=E('layers');
   if(layers)layers.replaceChildren();
@@ -154,6 +195,7 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory){
   E('back').disabled=!trail.length;
   const ls=C.stage(P,n.id,trail);
   if(animate)cancelEffect=F.animate(P,C,n.id,trail,E('layers'),ls);else F.apply(E('layers'),ls,F.frame(P,C,n.id,trail));
+  runPerformance(n,ls,animate);
   if(audioMode!=='none')enterAudio(audioMode);
  }
 
@@ -223,6 +265,7 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory){
   state='playing';
   i=Math.max(0,P.nodes.findIndex(n=>n.id===s.id));
   trail=s.trail.slice();
+  perfState=null;
   draw(false,'rebuild');
   showMsg('已读取进度');
   if(E('menuNote'))E('menuNote').textContent='';
@@ -274,6 +317,7 @@ function applyTitleBackground(){
  }
  function startSession(id,path){
   pauseTitleMusic();
+  perfState=null;
   show(E('titleScreen'),false);show(E('gameRoot'),true);
   show(E('menuOverlay'),false);show(E('settingsOverlay'),false);show(E('confirmOverlay'),false);
   state='playing';
@@ -363,18 +407,21 @@ function applyTitleBackground(){
  /* ---------- 推进与返回 ---------- */
  function go(target){
   if(state!=='playing')return;
+  if(perfBlocking()){perfSkip();return}
   const j=P.nodes.findIndex(n=>n.id===target);
   if(j<0)return;
   trail.push(P.nodes[i].id);i=j;draw(true,'enter');
  }
  function next(){
   if(state!=='playing')return;
+  if(perfBlocking()){perfSkip();return}
   const n=P.nodes[i];
   if(n?.type==='say')go(n.next||P.nodes[i+1]?.id);
  }
  function back(){
   if(state!=='playing'||!trail.length)return;
   const at=trail.pop();i=P.nodes.findIndex(n=>n.id===at);
+  perfState=null;
   draw(false,'rebuild');
  }
 
@@ -469,5 +516,5 @@ function applyTitleBackground(){
  }
  renderTitle();
 }
-const paperPlayerCSS=`/* 玩家端禁选区：舞台、台词、选项、标题页与菜单不接受文本选择，展示图片不参与原生拖拽。只挂在结构容器上，不绑对话框样式——V0.8 的快捷栏与 UI 设计器放进这些容器就自动继承。注意不要动 pointer-events：#layers 靠 none 让点击穿透到舞台。 */#titleScreen,#gameRoot,.overlay,#msg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#titleScreen img,#gameRoot img,.overlay img{-webkit-user-drag:none;user-drag:none;-webkit-user-select:none;user-select:none}/* 设置面板的滑块、复选与将来的输入框照常可用、可选中文本。 */#titleScreen input,#gameRoot input,#titleScreen textarea,#gameRoot textarea,.overlay input,.overlay textarea,.overlay select{-webkit-user-select:text;user-select:text}*{box-sizing:border-box}body{margin:0;background:#17261f;color:#f3f5eb;font:16px/1.8 "Microsoft YaHei",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px}h1,h2{font-weight:400;margin:0}h1{font:500 clamp(24px,4vw,44px)/1.4 "Songti SC","SimSun",serif;letter-spacing:2px}h2{font-size:16px;letter-spacing:1px}.title-eyebrow{font:10px/1.6 Georgia,serif;letter-spacing:3px;color:#8fb99b;margin:0 0 6px}#titleScreen{width:min(560px,94vw)}.title-card{border:1px solid #3b5548;background:#1c3028;border-radius:10px;padding:clamp(20px,4vw,34px);box-shadow:0 12px 40px #0003}.title-actions{display:grid;gap:8px;margin-top:20px}.title-note{font-size:12px;color:#b9cbbd;line-height:1.7;margin:12px 0 0}.title-note:empty{display:none}/* 标题背景由工程素材渲染：cover 保持比例，左侧渐变保证标题与按钮对比度。 */#titleScreen.has-bg{position:fixed;inset:0;width:auto;max-width:none;display:flex;align-items:center;justify-content:center;padding:clamp(16px,4vw,48px);overflow:auto}#titleBg{position:absolute;inset:0;overflow:hidden;z-index:0}#titleBg img{width:100%;height:100%;object-fit:cover;display:block}#titleBg::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,#0b1712f2 0%,#0b1712b8 42%,#0b171226 78%,#0b171200 100%),linear-gradient(0deg,#0b1712cc 0%,#0b171200 45%)}#titleScreen.has-bg .title-card{position:relative;z-index:1;background:#16261fe8}#gameRoot{width:min(1100px,96vw)}#scene{aspect-ratio:16/9;position:relative;overflow:hidden;background:#dfe7dd;border-radius:8px;cursor:pointer;width:100%}#layers{position:absolute;inset:0;pointer-events:none}.visual-layer{position:absolute}.visual-layer img{width:100%;height:100%;display:block;transform-origin:bottom center}.breathe{animation:b 4s ease-in-out infinite}.sway{animation:s 5s ease-in-out infinite}@keyframes b{50%{transform:scaleY(1.017)}}@keyframes s{0%,100%{transform:rotate(-1deg)}50%{transform:rotate(1deg)}}#box{position:absolute;bottom:5%;left:5%;right:5%;padding:clamp(8px,2vw,18px) clamp(12px,2vw,22px);background:#fbfff1ed;color:#273d35;border-radius:6px;font-size:clamp(11px,1.6vw,18px)}#who{font-weight:bold;color:#3f6753}#text{white-space:pre-wrap;overflow-wrap:anywhere}#hint{font-size:10px;text-align:right;color:#76876c}#choices{position:absolute;top:10%;left:20%;right:20%;display:grid;gap:6px}button{font:inherit;font-size:clamp(11px,1.3vw,14px);background:#f3f5eb;color:#273d35;border:1px solid #b7c2ad;border-radius:5px;padding:8px 14px;cursor:pointer}button:hover{background:#e7efdf}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible{outline:2px solid #8fb99b;outline-offset:2px}#playBar{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}#playBar button{font-size:12px;padding:6px 12px}#menuBtn{background:#1c3028;color:#e9f1e4;border-color:#3b5548}.overlay{position:fixed;inset:0;background:#0b1511cc;display:flex;align-items:center;justify-content:center;padding:16px;z-index:30}.panel{width:min(520px,92vw);max-height:88vh;overflow:auto;background:#1c3028;border:1px solid #3b5548;border-radius:10px;padding:clamp(18px,3vw,28px);box-shadow:0 18px 50px #0005}.menu-actions{display:grid;gap:8px;margin-top:16px}.note{font-size:12px;color:#b9cbbd;line-height:1.7;margin:12px 0 0;overflow-wrap:anywhere}.note:empty{display:none}#audioPanel{margin-top:14px;border-top:1px solid #3b5548;padding-top:12px}.audio-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}#audioStatus{color:#b9cbbd;font-size:12px;line-height:1.6}#audioStatus.audio-error{color:#ffb4a8}#audioMixers{display:grid;gap:6px}#audioMixers label{display:grid;grid-template-columns:54px 1fr 40px;align-items:center;gap:8px;font-size:12px;color:#d7e3d5}#audioMixers input[type=range]{width:100%;accent-color:#8fb99b}#audioMixers span{text-align:right;font:11px monospace;color:#9db3a4}#audioMixers .mute-label{display:flex;grid-template-columns:none;gap:8px}.mute-label input{width:auto;accent-color:#8fb99b}#msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0f1d17e8;border:1px solid #3b5548;color:#eef5ea;padding:9px 16px;border-radius:6px;font-size:12px;max-width:92vw;z-index:40;pointer-events:none}#msg:empty{display:none}[hidden]{display:none!important}@media(max-width:640px){body{padding:10px;gap:8px}.title-card{padding:18px}.title-actions button{width:100%}#playBar{justify-content:space-between}#playBar button{flex:1}.panel{padding:16px;max-height:90vh}#audioMixers label{grid-template-columns:44px 1fr 34px}#scene{aspect-ratio:16/10}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}`;
+const paperPlayerCSS=`/* 玩家端禁选区：舞台、台词、选项、标题页与菜单不接受文本选择，展示图片不参与原生拖拽。只挂在结构容器上，不绑对话框样式——V0.8 的快捷栏与 UI 设计器放进这些容器就自动继承。注意不要动 pointer-events：#layers 靠 none 让点击穿透到舞台。 */#titleScreen,#gameRoot,.overlay,#msg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}#titleScreen img,#gameRoot img,.overlay img{-webkit-user-drag:none;user-drag:none;-webkit-user-select:none;user-select:none}/* 设置面板的滑块、复选与将来的输入框照常可用、可选中文本。 */#titleScreen input,#gameRoot input,#titleScreen textarea,#gameRoot textarea,.overlay input,.overlay textarea,.overlay select{-webkit-user-select:text;user-select:text}*{box-sizing:border-box}body{margin:0;background:#17261f;color:#f3f5eb;font:16px/1.8 "Microsoft YaHei",sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px}h1,h2{font-weight:400;margin:0}h1{font:500 clamp(24px,4vw,44px)/1.4 "Songti SC","SimSun",serif;letter-spacing:2px}h2{font-size:16px;letter-spacing:1px}.title-eyebrow{font:10px/1.6 Georgia,serif;letter-spacing:3px;color:#8fb99b;margin:0 0 6px}#titleScreen{width:min(560px,94vw)}.title-card{border:1px solid #3b5548;background:#1c3028;border-radius:10px;padding:clamp(20px,4vw,34px);box-shadow:0 12px 40px #0003}.title-actions{display:grid;gap:8px;margin-top:20px}.title-note{font-size:12px;color:#b9cbbd;line-height:1.7;margin:12px 0 0}.title-note:empty{display:none}/* 标题背景由工程素材渲染：cover 保持比例，左侧渐变保证标题与按钮对比度。 */#titleScreen.has-bg{position:fixed;inset:0;width:auto;max-width:none;display:flex;align-items:center;justify-content:center;padding:clamp(16px,4vw,48px);overflow:auto}#titleBg{position:absolute;inset:0;overflow:hidden;z-index:0}#titleBg img{width:100%;height:100%;object-fit:cover;display:block}#titleBg::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,#0b1712f2 0%,#0b1712b8 42%,#0b171226 78%,#0b171200 100%),linear-gradient(0deg,#0b1712cc 0%,#0b171200 45%)}#titleScreen.has-bg .title-card{position:relative;z-index:1;background:#16261fe8}#gameRoot{width:min(1100px,96vw)}#scene{aspect-ratio:16/9;position:relative;overflow:hidden;background:#dfe7dd;border-radius:8px;cursor:pointer;width:100%}#layers{position:absolute;inset:0;pointer-events:none}.visual-layer{position:absolute}.visual-layer img{width:100%;height:100%;display:block;transform-origin:bottom center}.breathe{animation:b 4s ease-in-out infinite}.sway{animation:s 5s ease-in-out infinite}@keyframes b{50%{transform:scaleY(1.017)}}@keyframes s{0%,100%{transform:rotate(-1deg)}50%{transform:rotate(1deg)}}#box{position:absolute;z-index:5;bottom:5%;left:5%;right:5%;padding:clamp(8px,2vw,18px) clamp(12px,2vw,22px);background:#fbfff1ed;color:#273d35;border-radius:6px;font-size:clamp(11px,1.6vw,18px)}#who{font-weight:bold;color:#3f6753}#text{white-space:pre-wrap;overflow-wrap:anywhere}#hint{font-size:10px;text-align:right;color:#76876c}#choices{position:absolute;top:10%;left:20%;right:20%;display:grid;gap:6px}button{font:inherit;font-size:clamp(11px,1.3vw,14px);background:#f3f5eb;color:#273d35;border:1px solid #b7c2ad;border-radius:5px;padding:8px 14px;cursor:pointer}button:hover{background:#e7efdf}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible{outline:2px solid #8fb99b;outline-offset:2px}#playBar{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}#playBar button{font-size:12px;padding:6px 12px}#menuBtn{background:#1c3028;color:#e9f1e4;border-color:#3b5548}.overlay{position:fixed;inset:0;background:#0b1511cc;display:flex;align-items:center;justify-content:center;padding:16px;z-index:30}.panel{width:min(520px,92vw);max-height:88vh;overflow:auto;background:#1c3028;border:1px solid #3b5548;border-radius:10px;padding:clamp(18px,3vw,28px);box-shadow:0 18px 50px #0005}.menu-actions{display:grid;gap:8px;margin-top:16px}.note{font-size:12px;color:#b9cbbd;line-height:1.7;margin:12px 0 0;overflow-wrap:anywhere}.note:empty{display:none}#audioPanel{margin-top:14px;border-top:1px solid #3b5548;padding-top:12px}.audio-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}#audioStatus{color:#b9cbbd;font-size:12px;line-height:1.6}#audioStatus.audio-error{color:#ffb4a8}#audioMixers{display:grid;gap:6px}#audioMixers label{display:grid;grid-template-columns:54px 1fr 40px;align-items:center;gap:8px;font-size:12px;color:#d7e3d5}#audioMixers input[type=range]{width:100%;accent-color:#8fb99b}#audioMixers span{text-align:right;font:11px monospace;color:#9db3a4}#audioMixers .mute-label{display:flex;grid-template-columns:none;gap:8px}.mute-label input{width:auto;accent-color:#8fb99b}#msg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0f1d17e8;border:1px solid #3b5548;color:#eef5ea;padding:9px 16px;border-radius:6px;font-size:12px;max-width:92vw;z-index:40;pointer-events:none}#msg:empty{display:none}[hidden]{display:none!important}@media(max-width:640px){body{padding:10px;gap:8px}.title-card{padding:18px}.title-actions button{width:100%}#playBar{justify-content:space-between}#playBar button{flex:1}.panel{padding:16px;max-height:90vh}#audioMixers label{grid-template-columns:44px 1fr 34px}#scene{aspect-ratio:16/10}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}.pf-frame{width:100%;height:100%;will-change:transform,opacity}.pf-overlay{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;background:#000}.pf-bg-ghost{position:absolute;pointer-events:none;z-index:2}.pf-frame img{width:100%;height:100%;display:block}`;
 if(typeof module!=='undefined')module.exports={paperPlayer,paperPlayerCSS};

@@ -73,7 +73,7 @@ function bindCast(p) {
 /* ---------- 1. 迁移 ---------- */
 const raw = v3Project();
 const migrated = C.migrate(raw);
-assert.equal(migrated.schema, 5);
+assert.equal(migrated.schema, 6);
 assert.deepEqual(migrated.characters, [], '旧工程不凭空造角色');
 assert.equal(migrated.nodes[2].name, '林澈', '说话人文本原样保留，没有被猜成角色');
 assert.deepEqual(migrated.nodes[1].layers, raw.nodes[1].layers, '未改动的节点图层完全相等');
@@ -203,7 +203,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pvn-cast-'));
 const root = path.join(tmp, '晚风演示');
 store.createProject(root, p);
 const disk = JSON.parse(fs.readFileSync(path.join(root, 'project.paper.json'), 'utf8'));
-assert.equal(disk.schema, 5);
+assert.equal(disk.schema, 6);
 assert.equal(disk.characters.length, 2, '角色写入工程文件');
 assert.equal(disk.characters[0].expressions.length, 2);
 assert.equal(disk.nodes[1].speakerId, 'ch_you', '台词的角色绑定写入工程文件');

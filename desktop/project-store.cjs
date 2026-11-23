@@ -264,7 +264,7 @@ function createProjectStore(options = {}) {
     const merged = dedupeAudio(dedupeAssets(input));
     C.validate(merged);
     let p = C.migrate(merged);
-    if (p.schema !== 5) throw new Error('工程版本无法迁移');
+    if (p.schema !== 6) throw new Error('工程版本无法迁移');
     C.validate(p);
     for (const n of p.nodes) F.validate(n.effects || []);
     const ids = new Set();
@@ -383,7 +383,7 @@ function createProjectStore(options = {}) {
       format: FORMAT,
       formatVersion: FORMAT_VERSION,
       savedAt: new Date(clock()).toISOString(),
-      schema: 5,
+      schema: 6,
       id: p.id,
       title: p.title,
       titleBackground: typeof p.titleBackground === 'string' ? p.titleBackground : '',
@@ -403,7 +403,7 @@ function createProjectStore(options = {}) {
     if (!disk || disk.format !== FORMAT || disk.formatVersion !== FORMAT_VERSION) {
       throw new Error('不是桌面工程目录（缺少 project.paper.json 或格式版本不匹配）');
     }
-    if (![3, 4, 5].includes(disk.schema) || typeof disk.id !== 'string' || typeof disk.title !== 'string' ||
+    if (![3, 4, 5, 6].includes(disk.schema) || typeof disk.id !== 'string' || typeof disk.title !== 'string' ||
         !Array.isArray(disk.nodes) || !Array.isArray(disk.assets) || !Array.isArray(disk.presets)) {
       throw new Error('桌面工程元数据格式错误');
     }

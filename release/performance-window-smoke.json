@@ -1,0 +1,80 @@
+{
+  "at": "2026-11-23T17:15:57.631Z",
+  "ok": true,
+  "version": "0.8.0",
+  "stages": {
+    "真实窗口启动": {
+      "ok": true,
+      "detail": {
+        "nodes": 3,
+        "assets": 5,
+        "audio": 0,
+        "chapters": 1,
+        "revision": 0,
+        "past": 0,
+        "future": 0
+      }
+    },
+    "演出面板渲染（3 条动作 / 7 个预设）": {
+      "ok": true,
+      "detail": {
+        "rows": [
+          "1. 角色出现 · a_yuu 从左侧进入 · 0.8s · 阻塞 ↑ ↓ 复制 删除",
+          "2. 角色出现 · a_che 淡入 · 0.6s · 并行 ↑ ↓ 复制 删除",
+          "3. 角色移动 · a_yuu 到 35% / 45% · 0.6s · 阻塞 ↑ ↓ 复制 删除"
+        ],
+        "presets": 7
+      }
+    },
+    "演出面板截图": {
+      "ok": true,
+      "detail": "docs\\screenshots\\v080-performance-panel.png"
+    },
+    "阻塞演出：点击先结算再放行（不跳句）": {
+      "ok": true,
+      "detail": {
+        "opacityEarly": 0.3111,
+        "opacitySettled": 1,
+        "transform": "translate(111.75px, 0px) scale(1)"
+      }
+    },
+    "第二句：背景交叉淡化 + 表情切换 + 镜头推进": {
+      "ok": true,
+      "detail": {
+        "midGhost": true,
+        "midGhostOpacity": 0.399625,
+        "bg": "d8fee65869941ad0b7667ee822a990b7b3a9.png",
+        "expr": "a89b68e774421a78b2e385c2a488646ff897.png",
+        "camScale": 1.1
+      }
+    },
+    "编辑器与发布运行时终态一致": {
+      "ok": true,
+      "detail": {
+        "editorDxPct": 14.999389871873092,
+        "previewDxPct": 15,
+        "scale": 1,
+        "camera": 1.1
+      }
+    },
+    "读档重建舞台状态（无动画回放）": {
+      "ok": true,
+      "detail": {
+        "dxPct": 14.982976616920618,
+        "bg": "d8fee65869941ad0b7667ee822a990b7b3a9.png"
+      }
+    },
+    "全屏渐暗只作用舞台，对话框仍在最上层": {
+      "ok": true,
+      "detail": {
+        "dim": 1,
+        "textVisible": true,
+        "textOnTop": true
+      }
+    }
+  },
+  "problems": [],
+  "screenshotPanel": "docs\\screenshots\\v080-performance-panel.png",
+  "screenshotEditor": "docs\\screenshots\\v080-performance-editor.png",
+  "screenshotPreview": "docs\\screenshots\\v080-performance-preview.png"
+}

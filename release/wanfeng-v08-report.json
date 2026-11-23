@@ -1,0 +1,184 @@
+{
+  "at": "2026-11-23T17:20:26.858Z",
+  "version": "0.8.0",
+  "source": "C:/Users/Administrator/WorkBuddy/LAPTOP-O1JJ0J9M/PaperVNStudio-v0.3-source-and-AI-guide/wanfeng_alpha/projects/Wanfeng_Part1_Rehearsal",
+  "sourceIntact": true,
+  "scenes": [
+    {
+      "scene": "清晨的相遇",
+      "node": 3,
+      "shot": "docs/screenshots/v080-wanfeng-scene1.png",
+      "camera": [
+        1.04,
+        0,
+        0
+      ],
+      "layers": [
+        {
+          "layer": "ly_bg",
+          "src": "fad6fb78107aa3ea61f1.png",
+          "display": "block",
+          "opacity": 1,
+          "transform": "translate(0px, 0px) scale(1)"
+        },
+        {
+          "layer": "c_you",
+          "src": "ec37f5644a470b9e2630.png",
+          "display": "block",
+          "opacity": 1,
+          "transform": "translate(0px, 0px) scale(1)"
+        },
+        {
+          "layer": "c_che",
+          "src": "2094763d9c94ea179bfb.png",
+          "display": "block",
+          "opacity": 1,
+          "transform": "translate(0px, 0px) scale(1)"
+        }
+      ],
+      "text": "我知道。"
+    },
+    {
+      "scene": "放学后的走廊",
+      "node": 20,
+      "shot": "docs/screenshots/v080-wanfeng-scene2.png",
+      "camera": [
+        1.1167,
+        -11,
+        0
+      ],
+      "layers": [
+        {
+          "layer": "ly_bg",
+          "src": "e0862a1a82f76125c056.png",
+          "display": "block",
+          "opacity": 1,
+          "transform": "translate(0px, 0px) scale(1)"
+        },
+        {
+          "layer": "c_su",
+          "src": "7a0cd880e24d24d5e218.png",
+          "display": "block",
+          "opacity": 1,
+          "transform": "translate(-147.33px, 0px) scale(1)"
+        },
+        {
+          "layer": "c_you",
+          "src": "4c2339f83f8ba1b58c1e.png",
+          "display": "block",
+          "opacity": 1,
+          "transform": "translate(122.77px, 0px) scale(1.04)"
+        }
+      ],
+      "text": "她把笔记递过去，指腹在封面上停了一下。"
+    },
+    {
+      "scene": "夜晚的房间",
+      "node": 31,
+      "shot": "docs/screenshots/v080-wanfeng-scene3.png",
+      "camera": [
+        1.1,
+        33,
+        0
+      ],
+      "layers": [
+        {
+          "layer": "ly_bg",
+          "src": "55bf6e129d27f15cf75e.png",
+          "display": "block",
+          "opacity": 1,
+          "transform": "translate(0px, 0px) scale(1)"
+        },
+        {
+          "layer": "c_you",
+          "src": "6cd509647b68e2b62740.png",
+          "display": "block",
+          "opacity": 1,
+          "transform": "translate(72.6px, 0px) scale(1.04)"
+        },
+        {
+          "layer": "c_che",
+          "src": "eb3c53dc1266ea3ec54b.png",
+          "display": "block",
+          "opacity": 1,
+          "transform": "translate(-72.6px, 0px) scale(1)"
+        }
+      ],
+      "text": "哥。"
+    }
+  ],
+  "ok": true,
+  "problems": [],
+  "isolation": {
+    "dir": "release/wanfeng-v080/source-copy",
+    "copiedAssets": 14,
+    "sourceNodes": 216
+  },
+  "detail": {
+    "隔离副本（14 个素材，原件未改动）": {
+      "dir": "release/wanfeng-v080/source-copy",
+      "copiedAssets": 14,
+      "sourceNodes": 216
+    },
+    "工程生成：37 句 / 54 个演出动作 / 预计 143 秒": {
+      "beforeSeconds": 143,
+      "afterSeconds": 143,
+      "nodes": 37,
+      "performanceActions": 54
+    },
+    "单文件试玩版：29.6 MB / 单 script / 含演出运行时": {
+      "after": {
+        "file": "release/wanfeng-v080/晚风经过二楼走廊·演出优化版.html",
+        "bytes": 31033049,
+        "scriptTags": 1,
+        "hasPerf": true
+      },
+      "before": {
+        "file": "release/wanfeng-v080/晚风经过二楼走廊·原始对照版.html",
+        "bytes": 31022462
+      }
+    }
+  },
+  "duration": {
+    "beforeSeconds": 143,
+    "afterSeconds": 143,
+    "nodes": 37,
+    "performanceActions": 54
+  },
+  "exports": {
+    "after": {
+      "file": "release/wanfeng-v080/晚风经过二楼走廊·演出优化版.html",
+      "bytes": 31033049,
+      "scriptTags": 1,
+      "hasPerf": true
+    },
+    "before": {
+      "file": "release/wanfeng-v080/晚风经过二楼走廊·原始对照版.html",
+      "bytes": 31022462
+    }
+  },
+  "contrast": {
+    "node": {
+      "acts": 2,
+      "layers": [
+        "ly_bg@0%",
+        "c_you@4%",
+        "c_che@62%"
+      ],
+      "text": "我知道。"
+    },
+    "beforeActions": 0,
+    "afterActions": 2
+  },
+  "files": {
+    "beforeProject": "release/wanfeng-v080/before",
+    "afterProject": "release/wanfeng-v080/after",
+    "trialAfter": "release/wanfeng-v080/晚风经过二楼走廊·演出优化版.html",
+    "trialBefore": "release/wanfeng-v080/晚风经过二楼走廊·原始对照版.html",
+    "screenshots": [
+      "docs/screenshots/v080-wanfeng-scene1.png",
+      "docs/screenshots/v080-wanfeng-scene2.png",
+      "docs/screenshots/v080-wanfeng-scene3.png"
+    ]
+  }
+}

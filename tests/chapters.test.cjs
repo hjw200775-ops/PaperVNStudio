@@ -59,7 +59,7 @@ function v4() {
 /* ---------- 1. 迁移 ---------- */
 const raw = v4();
 const p = C.migrate(raw);
-assert.equal(p.schema, 5);
+assert.equal(p.schema, 6);
 assert.equal(p.chapters.length, 1, '旧工程得到一个默认章节');
 assert.equal(p.chapters[0].paragraphs.length, 1, '旧工程得到一个默认段落');
 assert.equal(p.chapters[0].title, '第一章');
@@ -243,7 +243,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pvn-chapters-'));
 const root = path.join(tmp, '章节工程');
 store.createProject(root, q);
 const disk = JSON.parse(fs.readFileSync(path.join(root, 'project.paper.json'), 'utf8'));
-assert.equal(disk.schema, 5);
+assert.equal(disk.schema, 6);
 assert.equal(disk.chapters.length, 2);
 assert.equal(disk.chapters[0].paragraphs[1].title, '上学路');
 assert.equal(disk.nodes[3].paragraphId, 'pg_school');

@@ -1,7 +1,7 @@
 # 纸间 PaperVNStudio
 
 <p>
-  <img alt="version" src="https://img.shields.io/badge/version-0.7.6-2F6F5E?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-0.8.0-2F6F5E?style=flat-square">
   <img alt="electron" src="https://img.shields.io/badge/Electron-45-47848F?style=flat-square&logo=electron&logoColor=white">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D4?style=flat-square">
@@ -11,20 +11,62 @@
 
 <img src="docs/screenshots/v076-editor-assets.png" alt="编辑器：左侧剧情脚本、中间舞台、右侧剧情与画面">
 
-> **V0.7.6 已发布。** 素材不再以 Base64 进入渲染进程：导入即落盘、内容寻址去重，1 GiB 级工程在真实窗口跑通「导入 → 编辑 → 播放 → 撤销 → 保存 → 重开 → 预览 → 导出 → 启动」全链路。
-> [下载最新版](https://github.com/hjw200775-ops/PaperVNStudio/releases/latest) · [更新日志](CHANGELOG.md) · [验收报告](docs/V0.7.6_ACCEPTANCE_REPORT.md) · [已知限制](docs/KNOWN_LIMITATIONS.md)
+> **V0.8.0 已发布。** 新增「舞台演出」：角色登场 / 离场 / 移动 / 缩放 / 表情、背景转场、镜头推拉、闪白与震动，
+> 用「顺序 · 并行 · 阻塞」编排成一段动作序列。跳过动画与正常播完必然是同一个终态，编辑器、完整预览、
+> 单文件 HTML、独立游戏共用同一套运行时。
+> [下载最新版](https://github.com/hjw200775-ops/PaperVNStudio/releases/latest) · [更新日志](CHANGELOG.md) · [演出架构](docs/V0.8.0_STAGE_PERFORMANCE.md) · [编辑器教程](docs/STAGE_PERFORMANCE_GUIDE.md) · [验收报告](docs/V0.8.0_ACCEPTANCE_REPORT.md)
 
 ## 下载
 
 | 版本 | 你能拿到什么 | 入口 |
 | --- | --- | --- |
-| **V0.7.6（最新）** | 源码、新增测试、1 GiB 生成脚本与验收数据 | [Releases › v0.7.6](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.6) |
+| **V0.8.0（最新）** | 演出系统的源码、测试与《晚风》演出优化试玩版构建脚本 | [Releases › v0.8.0](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.8.0) |
+| V0.7.6 | 源码、流式素材测试、1 GiB 生成脚本与验收数据 | [Releases › v0.7.6](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.6) |
 | V0.7.5 | 《晚风》第一章节选单文件试玩 HTML（23.6 MB） | [Releases › v0.7.5](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.5) |
 | V0.7.3 | 纸间便携版 EXE（126 MB）+ 试玩 HTML | [Releases › v0.7.3](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.3) |
 | V0.7.1 / V0.7.0 | 《晚风》独立游戏包：目录版 ZIP、单文件便携 EXE | [Releases › v0.7.1](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.1) |
 | V0.6.2 及更早 | 便携版 ZIP + 示例 HTML | [全部版本](https://github.com/hjw200775-ops/PaperVNStudio/releases) |
 
 产物面向 Windows 10/11 x64；**未代码签名**，首次运行若出现 SmartScreen 提示，选「更多信息 → 仍要运行」。不想下载二进制就从源码跑：`npm install && npm run desktop`。
+
+## V0.8.0 新增：舞台演出（Stage Performance Engine）
+
+V0.7 的「效果」只能描述「一句之内、某个图层怎么变」。要做真正的演出，还需要另一件事：
+**一串有先后关系的动作**——她从左边走上来（此刻不许翻页），背景同时淡到夜晚，镜头缓缓推近。
+
+- **14 种声明式动作**：角色出现 / 离场 / 移动 / 缩放 / 透明度 / 表情 / 上下浮动，背景切换（6 种转场），
+  镜头平移 / 缩放，全屏渐暗、闪白、震动，等待。没有「执行脚本」这一项——剧情里写不进 JavaScript。
+- **顺序 · 并行 · 延迟 · 阻塞**：关系是相对上一条动作的，拖动列表就能改语义；勾了「阻塞」的动作演完才允许翻页。
+- **跳过 = 播完**：整段演出是「状态 + 时间 → 画面」的纯函数，`t = ∞` 即终态，所以点击跳过得到的画面
+  与看完完全一致；读档、后退、切章靠重放 trail 得到同一份状态，存档格式没有变。
+- **一套运行时，四个出口**：编辑器试玩、完整预览、单文件 HTML、独立游戏共用 `performance.js`；
+  演出写内层 `.pf-frame`，旧的图层效果写外层 `.visual-layer`，互不覆盖。
+- **7 个预设**：角色淡入登场、侧面进入、向前靠近、退场，场景淡入淡出，回忆闪白，轻微震动——
+  预设只生成标准动作，生成后随便改。
+
+| 验收（真实 Electron 窗口 / 1 GiB 工程） | 实测 |
+| --- | --- |
+| 《晚风》三场景演出样板（清晨的相遇 / 放学后的走廊 / 夜晚的房间） | 37 句 / 54 个动作 / 预计 2 分 23 秒，单文件试玩 29.6 MB |
+| 阻塞演出点击语义 | 第一次点击结算动画不跳句，第二次才推进；终态与播完一致 |
+| 编辑器 vs 完整预览 vs 读档重建 | 角色位置误差 < 0.4%、缩放一致、镜头缩放一致、背景一致 |
+| 1 GiB 工程（1,577,977,792 bytes / 576 节点 / 12 章） | 打开 0.57 s；演出期间 fps 99、最差帧 59 ms；峰值内存 629 MB |
+
+<img src="docs/screenshots/v080-performance-panel.png" alt="编辑器右侧的舞台演出面板：7 个预设、动作列表与参数">
+
+三场景样板见下方截图；架构与取舍见 [docs/V0.8.0_STAGE_PERFORMANCE.md](docs/V0.8.0_STAGE_PERFORMANCE.md)，
+上手步骤见 [docs/STAGE_PERFORMANCE_GUIDE.md](docs/STAGE_PERFORMANCE_GUIDE.md)，
+数据与证据见 [docs/V0.8.0_ACCEPTANCE_REPORT.md](docs/V0.8.0_ACCEPTANCE_REPORT.md)。
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/v080-wanfeng-scene1.png" alt="清晨的相遇"></td>
+    <td><img src="docs/screenshots/v080-wanfeng-scene3.png" alt="夜晚的房间"></td>
+  </tr>
+  <tr>
+    <td align="center">清晨的相遇：侧面进入 + 表情切换 + 镜头推近</td>
+    <td align="center">夜晚的房间：夜景转场 + 双人站位 + 缓慢推近</td>
+  </tr>
+</table>
 
 ## V0.7.6 新增：素材流式导入与 1 GiB 工程
 

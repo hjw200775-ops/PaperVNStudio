@@ -1,8 +1,9 @@
 'use strict';
-const C=createVNCore(),F=createPaperEffects(),A=createPaperAudio(),$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const C=createVNCore(),F=createPaperEffects(),A=createPaperAudio(),PF=createPaperPerformance(),$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const H=window.PaperHost||null; /* desktop adapter; null keeps the original web behaviour */
 let p=C.sample(),selected=p.nodes[0].id,selectedLayer=null,playing=false,current=selected,trail=[],db,saveTimer,toastTimer,hideDialogue=false,drag=null;
 let effectId=null,effectMode='layout',effectCancel=()=>{},playbackAnimate=true;
+let perfId=null,perfCtl=null,perfStageState=null;
 let past=[],future=[],group='',groupTime=0,revision=0,slot=null,castSel=null;
 const node=()=>p.nodes.find(n=>n.id===selected),active=()=>p.nodes.find(n=>n.id===(playing?current:selected));
 const displayed=()=>C.scene(p,playing?current:selected,playing?trail:undefined);
@@ -343,14 +344,14 @@ function renderLayerUI(){const n=node();if(!n)return;const ls=displayed(),shown=
  $('#layerCharLabel').hidden=l.kind!=='char';
  $('#layerChar').innerHTML='<option value="">未绑定角色</option>'+(l.characterId&&!C.characterIn(p,l.characterId)?'<option value="'+esc(l.characterId)+'">角色已删除（保留占位）</option>':'')+chars().map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
  $('#layerChar').value=l.characterId||'';$('#layerChar').disabled=l.locked}
-$('#inherit').checked=n.sceneMode==='inherit';$('#assetReuse').innerHTML='<option value="">复用已导入素材…</option>'+p.assets.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');$('#presets').innerHTML='<option value="">选择场景预设…</option>'+p.presets.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>').join('');renderEffectUI()}
+$('#inherit').checked=n.sceneMode==='inherit';$('#assetReuse').innerHTML='<option value="">复用已导入素材…</option>'+p.assets.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');$('#presets').innerHTML='<option value="">选择场景预设…</option>'+p.presets.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>').join('');renderEffectUI();renderPerfUI()}
 function drawSelection(){const l=layer(),box=$('#selectionBox');box.hidden=playing||effectMode!=='layout'||!l||l.hidden||l.locked;if(box.hidden)return;Object.assign(box.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%'});box.querySelector('span').textContent=l.name}
-function renderCanvas(){const n=active(),ls=staged();$('#layersCanvas').replaceChildren();for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)continue;const wrap=document.createElement('div');wrap.className='visual-layer'+(l.locked?' locked':'');wrap.dataset.layer=l.id;Object.assign(wrap.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%',opacity:l.opacity/100});const im=document.createElement('img');im.src=a.data;im.alt=l.name;im.className=l.motion;im.style.objectFit=l.fit;im.draggable=false;wrap.appendChild(im);$('#layersCanvas').appendChild(wrap)}$('#placeholder').hidden=ls.some(l=>!l.hidden&&asset(l.asset));const say=n?C.speakerOf(p,n):{name:'',color:''};$('#speaker').style.color=n&&say.color?say.color:'';$('#speaker').textContent=n?(say.name||(n.type==='end'?'故事结束':'')):'';$('#line').textContent=n?.text||'添加一句对话，故事就从这里开始。';$('#choices').replaceChildren();if(n?.type==='choice')for(const o of n.options){const b=document.createElement('button');b.textContent=o.text||'未命名选项';b.onclick=e=>{e.stopPropagation();if(playing)go(o.target);else toast('从头试玩即可体验分支；目标在右侧设置。')};$('#choices').appendChild(b)}$('#nextHint').textContent=n?.type==='end'?'故事结束':n?.type==='choice'?'选项可进入普通对话，并再次汇合':playing?'点击舞台 / 空格继续 ▸':'编辑模式 · 可隐藏对话框方便拖动';$('#modeLabel').textContent=playing?'试玩中 · 使用实际经过的画面':'编辑模式 · 16:9';$('#sceneStatus').textContent=n?(n.sceneMode==='inherit'?'沿用上一画面'+(playing?'':' · 按脚本顺序预览'):'本节点独立画面'):'空白舞台';$('#selectionTitle').textContent=n?.type==='choice'?'不同的回答，也能汇回同一段故事。':'拖动图层，安排这一幕的演出。';$('#position').textContent=n?String(p.nodes.indexOf(n)+1).padStart(2,'0')+' / '+String(p.nodes.length).padStart(2,'0'):'空白舞台';$('#play').textContent=playing?'↻ 重新试玩':'▷ 从头试玩';$('#prev').disabled=playing?!trail.length:p.nodes.findIndex(n=>n.id===selected)<=0;$('#next').disabled=!n||n.type!=='say'||!C.edges(p,n).length;$('#stop').disabled=!playing;$('#slotSave').disabled=!playing;$('#slotLoad').disabled=!playing;document.body.classList.toggle('playing',playing);document.body.classList.toggle('hide-dialogue',hideDialogue);$('#toggleUI').textContent=hideDialogue?'显示对话框':'隐藏对话框';$('#toggleUI').disabled=playing;$('#flatten').disabled=playing||!ls.some(l=>!l.hidden);drawSelection();runStageEffects()}
+function renderCanvas(){const n=active(),ls=staged();$('#layersCanvas').replaceChildren();for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)continue;const wrap=document.createElement('div');wrap.className='visual-layer'+(l.locked?' locked':'');wrap.dataset.layer=l.id;Object.assign(wrap.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%',opacity:l.opacity/100});const im=document.createElement('img');im.src=a.data;im.alt=l.name;im.className=l.motion;im.style.objectFit=l.fit;im.draggable=false;wrap.appendChild(im);$('#layersCanvas').appendChild(wrap)}$('#placeholder').hidden=ls.some(l=>!l.hidden&&asset(l.asset));const say=n?C.speakerOf(p,n):{name:'',color:''};$('#speaker').style.color=n&&say.color?say.color:'';$('#speaker').textContent=n?(say.name||(n.type==='end'?'故事结束':'')):'';$('#line').textContent=n?.text||'添加一句对话，故事就从这里开始。';$('#choices').replaceChildren();if(n?.type==='choice')for(const o of n.options){const b=document.createElement('button');b.textContent=o.text||'未命名选项';b.onclick=e=>{e.stopPropagation();if(playing)go(o.target);else toast('从头试玩即可体验分支；目标在右侧设置。')};$('#choices').appendChild(b)}$('#nextHint').textContent=n?.type==='end'?'故事结束':n?.type==='choice'?'选项可进入普通对话，并再次汇合':playing?'点击舞台 / 空格继续 ▸':'编辑模式 · 可隐藏对话框方便拖动';$('#modeLabel').textContent=playing?'试玩中 · 使用实际经过的画面':'编辑模式 · 16:9';$('#sceneStatus').textContent=n?(n.sceneMode==='inherit'?'沿用上一画面'+(playing?'':' · 按脚本顺序预览'):'本节点独立画面'):'空白舞台';$('#selectionTitle').textContent=n?.type==='choice'?'不同的回答，也能汇回同一段故事。':'拖动图层，安排这一幕的演出。';$('#position').textContent=n?String(p.nodes.indexOf(n)+1).padStart(2,'0')+' / '+String(p.nodes.length).padStart(2,'0'):'空白舞台';$('#play').textContent=playing?'↻ 重新试玩':'▷ 从头试玩';$('#prev').disabled=playing?!trail.length:p.nodes.findIndex(n=>n.id===selected)<=0;$('#next').disabled=!n||n.type!=='say'||!C.edges(p,n).length;$('#stop').disabled=!playing;$('#slotSave').disabled=!playing;$('#slotLoad').disabled=!playing;document.body.classList.toggle('playing',playing);document.body.classList.toggle('hide-dialogue',hideDialogue);$('#toggleUI').textContent=hideDialogue?'显示对话框':'隐藏对话框';$('#toggleUI').disabled=playing;$('#flatten').disabled=playing||!ls.some(l=>!l.hidden);drawSelection();runStageEffects();syncPerfStage()}
 function updateHistory(){$('#undo').disabled=playing||!past.length;$('#redo').disabled=playing||!future.length}
 function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind();renderAudioUI();renderTitleTab();syncPublishFields()}
-function go(id){if(!p.nodes.some(n=>n.id===id))return toast('这个分支尚未设置有效目标');trail.push(current);current=id;playbackAnimate=true;renderCanvas();if(playing)enterAudioInto(id,'enter')}
-function next(){const n=active();if(n?.type!=='say')return;const id=C.edges(p,n)[0];if(!id)return;if(playing)go(id);else selectNode(id)}
-function stop(){playing=false;trail=[];$('#entryNotice').hidden=true;audioStopAll();render()}
+function go(id){if(perfBlocking()){perfSkip();return}perfStageState=null;if(!p.nodes.some(n=>n.id===id))return toast('这个分支尚未设置有效目标');trail.push(current);current=id;playbackAnimate=true;renderCanvas();if(playing)enterAudioInto(id,'enter')}
+function next(){if(perfBlocking()){perfSkip();return}const n=active();if(n?.type!=='say')return;const id=C.edges(p,n)[0];if(!id)return;if(playing)go(id);else selectNode(id)}
+function stop(){playing=false;trail=[];perfStageState=null;$('#entryNotice').hidden=true;audioStopAll();render()}
 function describeNode(id){const n=p.nodes.find(x=>x.id===id);if(!n)return '这句';const i=p.nodes.indexOf(n);const g=C.paragraphMap(p).get(n.paragraphId);return (g?g.paragraph.title+' · ':'')+'第 '+(i+1)+' 句'}
 /* 前置状态沿用现有 scene/effects/cast 解析：把「到本句为止的脚本顺序」当作路径。
    前面出现分支或跳转时明确告诉作者这是近似还原，而不是假装走了真实路径。 */
@@ -410,11 +411,11 @@ $('#playPara').onclick=()=>{
  }
  toast('这句还不在任何段落里，先用「移动到…」放进段落');
 };
-$('#play').onclick=()=>{if(!p.nodes.length)return toast('请先添加剧情');playing=true;playbackAnimate=true;current=p.nodes[0].id;trail=[];selectedLayer=null;audioStopAll();render();enterAudioInto(current,'rebuild');$('#stage').focus()};$('#stop').onclick=stop;$('#next').onclick=next;$('#prev').onclick=()=>{if(playing){if(trail.length)current=trail.pop();playbackAnimate=false;renderCanvas();enterAudioInto(current,'rebuild')}else{const i=p.nodes.findIndex(n=>n.id===selected);if(i>0)selectNode(p.nodes[i-1].id)}};
+$('#play').onclick=()=>{if(!p.nodes.length)return toast('请先添加剧情');perfStageState=null;playing=true;playbackAnimate=true;current=p.nodes[0].id;trail=[];selectedLayer=null;audioStopAll();render();enterAudioInto(current,'rebuild');$('#stage').focus()};$('#stop').onclick=stop;$('#next').onclick=next;$('#prev').onclick=()=>{if(playing){if(trail.length)current=trail.pop();playbackAnimate=false;renderCanvas();enterAudioInto(current,'rebuild')}else{const i=p.nodes.findIndex(n=>n.id===selected);if(i>0)selectNode(p.nodes[i-1].id)}};
 let stagePress=null;$('#stage').onpointerdown=e=>{stagePress={x:e.clientX,y:e.clientY}};$('#stage').onpointercancel=()=>{stagePress=null};/* 与播放器一致：拖动（拖选、拖素材）不算点击，不推进剧情。 */$('#stage').onclick=e=>{if(!playing||e.target.tagName==='BUTTON')return;if(stagePress&&Math.hypot(e.clientX-stagePress.x,e.clientY-stagePress.y)>8){stagePress=null;return}stagePress=null;next()};$('#stage').onkeydown=e=>{if(playing&&e.target.tagName!=='BUTTON'&&(e.key===' '||e.key==='Enter')){e.preventDefault();next()}};$('#toggleUI').onclick=()=>{hideDialogue=!hideDialogue;renderCanvas()};
 $('#title').oninput=e=>{checkpoint('title');p.title=e.target.value;revision++;queueSave();updateHistory()};for(const [id,key]of [['name','name'],['body','text']])$('#'+id).oninput=e=>{const n=node();if(!n||playing)return;checkpoint(n.id+'-'+key);n[key]=e.target.value;revision++;queueSave();renderList();renderFlow();renderCanvas();updateHistory()};$('#type').onchange=e=>edit(()=>{const n=node();n.type=e.target.value;if(n.type==='choice'&&!n.options)n.options=[{text:'选项一',target:''},{text:'选项二',target:''}]});$('#jump').onchange=e=>edit(()=>node().next=e.target.value);$('#addOption').onclick=()=>edit(()=>node().options.push({text:'新选项',target:''}));
 function add(type){edit(()=>{const cur=node();const pid=cur&&cur.paragraphId?cur.paragraphId:(p.chapters[0]&&p.chapters[0].paragraphs[0]?p.chapters[0].paragraphs[0].id:'');const n=C.makeNode(type);n.paragraphId=pid;const i=p.nodes.findIndex(x=>x.id===selected);p.nodes.splice(i+1,0,n);selected=n.id;selectedLayer=null})}$('#add').onclick=()=>add('say');$('#addChoice').onclick=()=>add('choice');$('#addEnd').onclick=()=>add('end');
-$('#duplicate').onclick=()=>{if(!node())return;edit(()=>{const n=C.clone(node());n.id=C.id();const mapping=new Map();n.layers.forEach(l=>{const old=l.id;l.id=C.id();mapping.set(old,l.id)});n.effects.forEach(e=>{e.id=C.id();e.layer=mapping.get(e.layer)||e.layer});p.nodes.splice(p.nodes.findIndex(n=>n.id===selected)+1,0,n);selected=n.id;selectedLayer=null})};function moveNode(d){
+$('#duplicate').onclick=()=>{if(!node())return;edit(()=>{const n=C.clone(node());n.id=C.id();const mapping=new Map();n.layers.forEach(l=>{const old=l.id;l.id=C.id();mapping.set(old,l.id)});n.effects.forEach(e=>{e.id=C.id();e.layer=mapping.get(e.layer)||e.layer});if(n.performance&&Array.isArray(n.performance.actions))for(const pa of n.performance.actions){pa.id=C.id();if(mapping.has(pa.target))pa.target=mapping.get(pa.target)}p.nodes.splice(p.nodes.findIndex(n=>n.id===selected)+1,0,n);selected=n.id;selectedLayer=null})};function moveNode(d){
  const n=node();if(!n)return;
  const siblings=p.nodes.filter(x=>x.paragraphId===n.paragraphId);
  const i=siblings.indexOf(n),j=i+d;
@@ -1804,7 +1805,7 @@ if(H)window.__pvnM3={
  undo:()=>undo(),redo:()=>redo(),
  editText:t=>edit(()=>{const n=node();if(n)n.text=String(t)},'accept-text'),
  nodeText:()=>{const n=node();return n?n.text:''},
- play:()=>{$('#play').click()},stop:()=>{$('#stop').click()},
+ play:()=>{$('#play').click()},stop:()=>{$('#stop').click()},advance:()=>next(),perfCount:()=>perfList().length,
  unlockAudio:()=>{try{return runtime().unlock()}catch{return false}},
  audioState:()=>{try{return runtime().status()}catch{return null}},
  sceneInfo:()=>({node:selected,position:$('#position').textContent,
@@ -1815,3 +1816,282 @@ if(H)window.__pvnM3={
  saveAs:()=>H.saveAs(savePayload()),
  render:()=>render()
 };
+
+/* ================= V0.8.0 · 舞台演出编辑（M3） =================
+ * 与「效果」并列的第二套编排语言：一段动作序列，可顺序、可并行、可阻塞推进。
+ * 所有改动都走 edit()，因此撤销 / 重做 / 自动保存与其它编辑操作完全一致。 */
+/* 试玩时必须取「正在播放的这一句」而不是「列表里选中的那一句」：
+   否则推进到下一句后，舞台仍在重放上一句的演出，背景/表情/镜头都不会变。
+   编辑时不试玩，active() 与 node() 是同一个节点，两种语义自然统一。 */
+function perfList() { const n = active(); return (n && n.performance && Array.isArray(n.performance.actions)) ? n.performance.actions : []; }
+function perfNode() { return perfList().find(a => a.id === perfId) || null; }
+function perfEnsure() { const n = node(); if (!n) return null; if (!n.performance || !Array.isArray(n.performance.actions)) n.performance = { version: 1, actions: [] }; return n.performance; }
+const PERF_LABEL = { side: '进入方式', mode: '离场方式', x: 'X（舞台 %）', y: 'Y（舞台 %）', scale: '缩放 %', opacity: '透明度 %', expressionId: '表情', amplitude: '幅度', times: '次数', assetId: '背景素材', transition: '转场方式', color: '颜色', to: '程度 %', strength: '强度' };
+const PERF_OPTIONS = {
+  side: [['fade', '淡入'], ['left', '从左侧进入'], ['right', '从右侧进入'], ['none', '直接出现']],
+  mode: [['fade', '淡出'], ['out', '移出舞台']],
+  transition: [['cut', '直接切换'], ['crossfade', '交叉淡化'], ['fadeBlack', '黑屏过渡'], ['fadeWhite', '白屏过渡'], ['slideLeft', '自右向左滑入'], ['slideRight', '自左向右滑入']],
+  color: [['black', '黑'], ['white', '白']]
+};
+
+function perfBounds(type, key) {
+  if (type === 'camera.move' && (key === 'x' || key === 'y')) return { min: -50, max: 50, step: 1 };
+  if (key === 'x' || key === 'y') return { min: -200, max: 200, step: 1 };
+  if (key === 'scale') return { min: 10, max: 400, step: 5 };
+  if (key === 'opacity' || key === 'to') return { min: 0, max: 100, step: 5 };
+  if (key === 'amplitude') return { min: 0.5, max: 20, step: 0.5 };
+  if (key === 'times') return { min: 1, max: 6, step: 1 };
+  if (key === 'strength') return { min: 0.5, max: 6, step: 0.2 };
+  return { min: 0, max: 100, step: 1 };
+}
+
+function perfTargetOptions(type) {
+  const meta = PF.TYPES[type] || { target: 'stage' };
+  const ls = displayed();
+  if (meta.target === 'char') {
+    const opts = ls.filter(l => l.kind === 'char').map(l => [l.characterId ? 'char:' + l.characterId : l.id, l.name + (l.characterId ? '（角色）' : '')]);
+    return opts.length ? opts : [['', '当前画面没有角色图层']];
+  }
+  if (meta.target === 'bg') {
+    const bg = ls.find(l => l.kind === 'bg');
+    return [['bg', bg ? bg.name + '（背景）' : '当前没有背景图层']];
+  }
+  return [['', '舞台 / 镜头（全屏）']];
+}
+
+function perfControl(action, key) {
+  const type = action.type, val = action.params[key];
+  if (key === 'assetId') {
+    const list = p.assets.filter(a => a.kind === 'bg');
+    return '<select data-param="assetId">' + list.map(a => '<option value="' + esc(a.id) + '"' + (a.id === val ? ' selected' : '') + '>' + esc(a.name) + '</option>').join('') + (list.length ? '' : '<option value="">没有背景素材</option>') + '</select>';
+  }
+  if (key === 'expressionId') {
+    const ls = displayed(), layerId = PF.resolveTarget(ls, type, action.target);
+    const l = ls.find(x => x.id === layerId);
+    const c = l && l.characterId ? (p.characters || []).find(x => x.id === l.characterId) : null;
+    const list = c ? c.expressions : [];
+    return '<select data-param="expressionId">' + list.map(e => '<option value="' + esc(e.id) + '"' + (e.id === val ? ' selected' : '') + '>' + esc(e.name) + '</option>').join('') + (list.length ? '' : '<option value="">该图层未绑定角色</option>') + '</select>';
+  }
+  if (PERF_OPTIONS[key]) {
+    return '<select data-param="' + key + '">' + PERF_OPTIONS[key].map(([v, t]) => '<option value="' + v + '"' + (v === val ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
+  }
+  const b = perfBounds(type, key);
+  return '<input data-param="' + key + '" type="number" min="' + b.min + '" max="' + b.max + '" step="' + b.step + '" value="' + val + '">';
+}
+
+function renderPerfUI() {
+  const typeSel = $('#perfType');
+  if (!typeSel.options.length) {
+    typeSel.innerHTML = Object.entries(PF.TYPES).map(([k, v]) => '<option value="' + k + '">' + v.name + '</option>').join('');
+  }
+  const acts = perfList();
+  if (perfId && !acts.some(a => a.id === perfId)) perfId = null;
+  $('#perfCount').textContent = acts.length;
+
+  /* 预设：只生成标准动作，不引入第二套机制 */
+  const presetBox = $('#perfPresets');
+  if (!presetBox.children.length) {
+    presetBox.innerHTML = PF.PRESETS.map(pr => '<button data-perf-preset="' + pr.id + '">' + esc(pr.name) + '</button>').join('');
+    presetBox.querySelectorAll('[data-perf-preset]').forEach(b => {
+      b.onclick = () => {
+        const pr = PF.PRESETS.find(x => x.id === b.dataset.perfPreset);
+        if (!pr) return;
+        const targetType = pr.id.startsWith('char') ? 'char' : 'stage';
+        const ls = displayed();
+        const target = targetType === 'char'
+          ? (ls.find(l => l.id === selectedLayer && l.kind === 'char') || ls.find(l => l.kind === 'char') || {})
+          : '';
+        if (targetType === 'char' && !target.id) return toast('先选一个角色图层，再套用这个预设');
+        const key = target.characterId ? 'char:' + target.characterId : target.id;
+        edit(() => {
+          const perf = perfEnsure();
+          const built = pr.build(() => C.id(), target.characterId ? key : target.id, { assetId: p.assets.find(a => a.kind === 'bg')?.id || '', scale: 140 });
+          perf.actions.push(...built);
+          perfId = built[built.length - 1].id;
+        });
+        toast('已套用预设：' + pr.name);
+      };
+    });
+  }
+
+  /* 目标下拉随类型变化 */
+  const targetSel = $('#perfTarget');
+  const opts = perfTargetOptions(typeSel.value);
+  targetSel.innerHTML = opts.map(([v, t]) => '<option value="' + esc(v) + '">' + esc(t) + '</option>').join('');
+  targetSel.disabled = opts.length === 1 && !opts[0][0];
+
+  /* 动作列表 */
+  const ls = displayed();
+  $('#perfList').innerHTML = acts.map((a, i) => {
+    const d = PF.describe(a, ls, p);
+    const flags = (a.blocking ? ' · 阻塞' : '') + (a.mode === 'parallel' ? ' · 并行' : '') + (a.enabled === false ? ' · 已停用' : '');
+    return '<div class="perf-row' + (a.id === perfId ? ' active' : '') + '">' +
+      '<button data-perf="' + esc(a.id) + '"><b>' + (i + 1) + '. ' + esc(d.type) + '</b> · ' + esc(d.who) +
+      '<small>' + esc(d.detail) + ' · ' + a.duration + 's' + flags + '</small></button>' +
+      '<span class="perf-ops">' +
+      '<button data-perf-up="' + esc(a.id) + '" aria-label="上移">↑</button>' +
+      '<button data-perf-down="' + esc(a.id) + '" aria-label="下移">↓</button>' +
+      '<button data-perf-copy="' + esc(a.id) + '" aria-label="复制">复制</button>' +
+      '<button data-perf-del="' + esc(a.id) + '" class="danger" aria-label="删除">删除</button>' +
+      '</span></div>';
+  }).join('');
+
+  $('#perfList').querySelectorAll('[data-perf]').forEach(b => { b.onclick = () => { perfId = b.dataset.perf; renderPerfUI(); }; });
+  $('#perfList').querySelectorAll('[data-perf-up]').forEach(b => { b.onclick = () => perfMove(b.dataset.perfUp, -1); });
+  $('#perfList').querySelectorAll('[data-perf-down]').forEach(b => { b.onclick = () => perfMove(b.dataset.perfDown, 1); });
+  $('#perfList').querySelectorAll('[data-perf-copy]').forEach(b => { b.onclick = () => perfDuplicate(b.dataset.perfCopy); });
+  $('#perfList').querySelectorAll('[data-perf-del]').forEach(b => { b.onclick = () => perfRemove(b.dataset.perfDel); });
+
+  /* 属性面板 */
+  const a = perfNode();
+  $('#perfProps').hidden = !a;
+  if (!a) return;
+  $('#perfName').textContent = PF.TYPES[a.type].name + ' · ' + PF.describe(a, ls, p).who;
+  $('#perfParams').innerHTML = Object.keys(a.params).map(key => {
+    return '<label class="perf-param">' + PERF_LABEL[key] + perfControl(a, key) + '</label>';
+  }).join('') + (Object.keys(a.params).length ? '' : '<p class="hint">这个动作不需要参数。</p>');
+  $('#perfParams').querySelectorAll('[data-param]').forEach(input => {
+    const key = input.dataset.param;
+    const evt = input.tagName === 'SELECT' ? 'change' : 'input';
+    input.addEventListener(evt, () => {
+      const cur = perfNode(); if (!cur || playing) return;
+      let v = input.value;
+      if (input.tagName !== 'SELECT') {
+        v = +v;
+        const b = perfBounds(cur.type, key);
+        if (!Number.isFinite(v) || v < b.min || v > b.max) return;
+      }
+      checkpoint('perf-' + cur.id + '-' + key);
+      cur.params[key] = v;
+      revision++; queueSave();
+      renderPerfUI(); renderCanvas(); updateHistory();
+    });
+  });
+  if (document.activeElement !== $('#perfDuration')) $('#perfDuration').value = a.duration;
+  if (document.activeElement !== $('#perfDelay')) $('#perfDelay').value = a.delay;
+  $('#perfEasing').value = a.easing;
+  $('#perfMode').value = a.mode;
+  $('#perfBlocking').checked = a.blocking === true;
+}
+
+function perfMove(id, delta) {
+  edit(() => {
+    const list = perfList();
+    const at = list.findIndex(x => x.id === id);
+    const to = at + delta;
+    if (at < 0 || to < 0 || to >= list.length) return;
+    const [item] = list.splice(at, 1);
+    list.splice(to, 0, item);
+  });
+}
+function perfDuplicate(id) {
+  edit(() => {
+    const list = perfList();
+    const at = list.findIndex(x => x.id === id);
+    if (at < 0) return;
+    const copy = C.clone(list[at]);
+    copy.id = C.id();
+    list.splice(at + 1, 0, copy);
+    perfId = copy.id;
+  });
+}
+function perfRemove(id) {
+  edit(() => {
+    const perf = perfEnsure();
+    perf.actions = perf.actions.filter(x => x.id !== id);
+    if (perfId === id) perfId = null;
+  });
+}
+
+/* 预览与终态：容器与图层都取当前舞台，不写工程 */
+function perfStageLayers() { return staged(); }
+function perfResetStage() {
+  const ls = perfStageLayers();
+  const n = active();
+  if (!n) return;
+  F.apply($('#layersCanvas'), ls, F.frame(p, C, n.id, playing ? trail : undefined));
+}
+function perfPlay(actions) {
+  if (playing) return;
+  if (!actions.length) return toast('这句还没有演出动作');
+  if (perfCtl) { perfCtl.cancel(); perfCtl = null; }
+  const ls = perfStageLayers();
+  perfResetStage();
+  perfCtl = PF.play({
+    container: $('#layersCanvas'), layers: ls, actions, before: PF.emptyState(), P: p, reduced: false,
+    onDone: () => { perfCtl = null; }
+  });
+}
+function perfApplyEnd(actions) {
+  if (!actions.length) return toast('这句还没有演出动作');
+  if (perfCtl) { perfCtl.cancel(); perfCtl = null; }
+  const ls = perfStageLayers();
+  PF.applyDOM($('#layersCanvas'), ls, PF.stateAt(PF.emptyState(), actions, Infinity, { P: p, layers: ls }), { P: p });
+}
+/* 沿试玩走过的路径重放演出，得到与播放器一致的舞台状态。 */
+function perfReplayState() {
+  let st = PF.emptyState();
+  const path = playing ? trail.slice() : [];
+  for (let k = 0; k < path.length; k++) {
+    const nd = p.nodes.find(x => x.id === path[k]);
+    const acts = (nd && nd.performance && Array.isArray(nd.performance.actions)) ? nd.performance.actions : [];
+    if (!acts.length) continue;
+    st = PF.commit(st, acts, { P: p, layers: C.stage(p, path[k], path.slice(0, k)) });
+  }
+  return st;
+}
+/* 试玩时自动播放本句演出；编辑时保持布局视图（作者要能继续拖动素材）。 */
+function syncPerfStage() {
+  if (!playing) { if (perfCtl) { perfCtl.cancel(); perfCtl = null; } return; }
+  const acts = perfList();
+  if (perfCtl) { perfCtl.cancel(); perfCtl = null; }
+  if (!perfStageState) perfStageState = perfReplayState();
+  const before = perfStageState;
+  const layers = staged();
+  const after = acts.length ? PF.stateAt(before, acts, Infinity, { P: p, layers }) : before;
+  perfStageState = after;
+  if (!acts.length) { PF.applyDOM($('#layersCanvas'), layers, before, { P: p }); return; }
+  perfCtl = PF.play({
+    container: $('#layersCanvas'), layers, actions: acts, before, P: p, reduced: false,
+    onDone: () => { perfCtl = null; }
+  });
+}
+
+/* ---------- 绑定 ---------- */
+$('#perfType').onchange = () => renderPerfUI();
+$('#perfAdd').onclick = () => {
+  if (playing) return toast('请先退出试玩再编辑');
+  const type = $('#perfType').value;
+  const target = $('#perfTarget').value;
+  if (PF.TYPES[type].target === 'char' && !target) return toast('当前画面没有角色图层，先添加立绘再编排角色动作');
+  const action = PF.make(C.id(), type, target);
+  edit(() => {
+    const perf = perfEnsure();
+    perf.actions.push(action);
+    perfId = action.id;
+  });
+  toast('已添加：' + PF.TYPES[type].name);
+};
+$('#perfPreviewAll').onclick = () => perfPlay(perfList());
+$('#perfPreviewOne').onclick = () => { const a = perfNode(); if (a) perfPlay([a]); };
+$('#perfEnd').onclick = () => perfApplyEnd(perfList());
+$('#perfDelete').onclick = () => { const a = perfNode(); if (a) perfRemove(a.id); };
+for (const [id, key, kind] of [['perfDuration', 'duration', 'num'], ['perfDelay', 'delay', 'num'], ['perfEasing', 'easing', 'str'], ['perfMode', 'mode', 'str']]) {
+  const input = $('#' + id);
+  input.addEventListener(input.tagName === 'SELECT' ? 'change' : 'input', () => {
+    const a = perfNode(); if (!a || playing) return;
+    const v = kind === 'num' ? +input.value : input.value;
+    if (kind === 'num' && (!Number.isFinite(v) || v < 0 || v > 30)) return;
+    checkpoint('perf-' + a.id + '-' + key);
+    a[key] = v;
+    revision++; queueSave(); renderPerfUI(); renderCanvas(); updateHistory();
+  });
+}
+$('#perfBlocking').addEventListener('change', () => {
+  const a = perfNode(); if (!a || playing) return;
+  edit(() => { a.blocking = $('#perfBlocking').checked; });
+});
+
+/* 试玩时的阻塞判定与跳过：与播放器同一套语义（点击先结算演出，再放行剧情）。 */
+function perfBlocking() { return !!(perfCtl && perfCtl.running && perfCtl.blockAt > 0); }
+function perfSkip() { if (perfCtl) perfCtl.finish(); }

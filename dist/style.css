@@ -233,3 +233,25 @@ body.playing #stage img{-webkit-user-drag:none;user-drag:none}
 .asset-progress-bar{flex:1;min-width:90px;height:5px;border-radius:3px;background:var(--soft,#eef2e9);overflow:hidden}
 .asset-progress-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .12s linear}
 .asset-progress button{flex:0 0 auto;font-size:11px;padding:4px 8px}
+
+/* V0.8 舞台演出层：位移与缩放写在内层 frame，与外层的逐句效果互不覆盖。 */
+.pf-frame{width:100%;height:100%;will-change:transform,opacity}.pf-overlay{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;background:#000}.pf-bg-ghost{position:absolute;pointer-events:none;z-index:2}.pf-frame img{width:100%;height:100%;display:block}
+
+/* V0.8 舞台演出面板：与「效果」面板同一套排版语言，避免打乱剧本编辑的工作流。 */
+#performancePanel{margin:14px 0;padding:12px 10px;border:1px solid #d6dfd0;border-radius:7px;background:#f8f9f4}
+#performancePanel summary{cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+#perfCount{font:10px monospace;color:#7a5a2f;background:#efe6d2;padding:1px 7px;border-radius:10px}
+#performancePanel .hint{font-size:10px}
+#performancePanel .two{gap:7px;margin-bottom:9px}
+#performancePanel .two button,#performancePanel .two select,#performancePanel .two input{font-size:10px;padding:6px}
+.perf-presets{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:8px 0}
+.perf-presets button{padding:5px 6px;font-size:10px;background:#fff;text-align:left}
+.perf-row{display:flex;gap:4px;padding:6px;background:#fff;border:1px solid var(--line);border-radius:5px;margin:5px 0;align-items:center}
+.perf-row.active{border-color:#b08a4a;background:#fdf7ea}
+.perf-row>button{flex:1;border:0;background:none;padding:0;text-align:left;min-width:0;font-size:10px;overflow-wrap:anywhere}
+.perf-row small{display:block;font-size:9px;color:var(--muted)}
+.perf-ops{display:flex;gap:2px}
+.perf-ops button{padding:2px 4px;font-size:9px}
+#perfProps{padding:12px 8px;border-top:1px solid var(--line);margin-top:10px}
+#perfProps label{font-size:10px;margin-bottom:9px}
+#perfParams .perf-param{margin-bottom:8px}

@@ -9,6 +9,12 @@ release/*
 !release/alpha-acceptance.json
 !release/large-project-m3-generation.json
 !release/m3-window-smoke.json
+# V0.8.0：演出验收的文字报告与清单（不含素材、不含 exe、不含 30 MB 试玩 HTML）
+!release/performance-window-smoke.json
+!release/performance-benchmark.json
+!release/wanfeng-v08-report.json
+!release/wanfeng-v08-recording.json
+!release/portable-dir-manifest.json
 release-*/
 out-*/
 out/

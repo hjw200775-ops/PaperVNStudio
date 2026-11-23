@@ -44,7 +44,7 @@ function project() {
   const v4 = C.clone(project());
   v4.schema = 4;
   delete v4.titleBackground;
-  assert.equal(C.migrate(v4).schema, 5);
+  assert.equal(C.migrate(v4).schema, 6);
   assert.equal(C.migrate(v4).titleBackground, '', 'schema 4 工程升级后仍是默认标题页');
   console.log('  ok  迁移：旧工程补默认值，已有标题背景保留');
 }
@@ -82,7 +82,7 @@ function project() {
 
   const broken = Object.assign({}, disk, { titleBackground: 7 });
   assert.throws(() => store.validateDisk(broken), /标题背景/);
-  assert.equal(store.validateDisk(Object.assign({}, disk, { titleBackground: undefined })).schema, 5,
+  assert.equal(store.validateDisk(Object.assign({}, disk, { titleBackground: undefined })).schema, 6,
     '旧工程没有该字段仍可打开');
   fs.rmSync(dir, { recursive: true, force: true });
   fs.rmSync(again, { recursive: true, force: true });

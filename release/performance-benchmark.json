@@ -1,0 +1,173 @@
+{
+  "at": "2026-11-23T17:37:03.289Z",
+  "version": "0.8.0",
+  "machine": {
+    "platform": "win32",
+    "arch": "x64",
+    "cpus": 12,
+    "totalMemBytes": 34187800576
+  },
+  "source": "F:\\pvn-1gib-m3",
+  "ok": true,
+  "stages": {
+    "基准工程": {
+      "ok": true,
+      "nodes": 576,
+      "assets": 100,
+      "gb": 1.47
+    },
+    "打开工程": {
+      "ok": true,
+      "ms": 573,
+      "nodes": 576,
+      "assets": 100
+    },
+    "待机内存": {
+      "ok": true,
+      "snapshot": {
+        "at": 1795455426647,
+        "stage": "待机",
+        "main": 184475648,
+        "renderer": 149835776,
+        "total": 530796544,
+        "processes": 4
+      }
+    },
+    "播放演出": {
+      "ok": true,
+      "actions": 5,
+      "frames": 528,
+      "elapsedMs": 5326,
+      "fps": 99.1,
+      "worstFrameMs": 59,
+      "peakTotalBytes": 646094848
+    },
+    "切章": {
+      "ok": true,
+      "chapters": 12,
+      "clicked": true,
+      "ms": 1216,
+      "snapshot": {
+        "at": 1795455434562,
+        "stage": "切章",
+        "main": 172003328,
+        "renderer": 227217408,
+        "total": 601255936,
+        "processes": 4
+      }
+    },
+    "跳过演出": {
+      "ok": true,
+      "ms": 681,
+      "snapshot": {
+        "at": 1795455436288,
+        "stage": "跳过演出",
+        "main": 214425600,
+        "renderer": 234668032,
+        "total": 653500416,
+        "processes": 4
+      }
+    },
+    "连续播放": {
+      "ok": true,
+      "beforeTotal": 653500416,
+      "afterTotal": 635662336,
+      "deltaBytes": -17838080
+    },
+    "GC 回落": {
+      "ok": true,
+      "snapshot": {
+        "at": 1795455440422,
+        "stage": "GC 回落",
+        "main": 172777472,
+        "renderer": 186355712,
+        "total": 563597312,
+        "processes": 4
+      }
+    }
+  },
+  "problems": [],
+  "benchProject": {
+    "dir": "release/bench-project",
+    "linkedFiles": 0,
+    "copiedFiles": 0
+  },
+  "project": {
+    "nodes": 576,
+    "assets": 100,
+    "chapters": 12,
+    "bytes": 1577977792,
+    "files": 206
+  },
+  "openMs": 573,
+  "memory": {
+    "stages": {
+      "启动": {
+        "count": 5,
+        "mainPeak": 184995840,
+        "rendererPeak": 150228992,
+        "totalPeak": 532877312,
+        "totalMin": 517095424
+      },
+      "待机": {
+        "count": 7,
+        "mainPeak": 184475648,
+        "rendererPeak": 150192128,
+        "totalPeak": 531947520,
+        "totalMin": 530788352
+      },
+      "播放演出": {
+        "count": 26,
+        "mainPeak": 213786624,
+        "rendererPeak": 235024384,
+        "totalPeak": 646094848,
+        "totalMin": 542212096
+      },
+      "切章": {
+        "count": 6,
+        "mainPeak": 172003328,
+        "rendererPeak": 233783296,
+        "totalPeak": 609202176,
+        "totalMin": 601255936
+      },
+      "跳过演出": {
+        "count": 8,
+        "mainPeak": 215343104,
+        "rendererPeak": 234668032,
+        "totalPeak": 653500416,
+        "totalMin": 605806592
+      },
+      "连续播放": {
+        "count": 13,
+        "mainPeak": 226979840,
+        "rendererPeak": 234795008,
+        "totalPeak": 659931136,
+        "totalMin": 592306176
+      },
+      "GC 回落": {
+        "count": 6,
+        "mainPeak": 172777472,
+        "rendererPeak": 186355712,
+        "totalPeak": 563597312,
+        "totalMin": 563548160
+      }
+    },
+    "samples": 71
+  },
+  "baseline": {
+    "source": "release/memory-profile.json",
+    "version": "0.7.6-M3",
+    "mainPeakBytes": 539791360,
+    "rendererPeakBytes": 340246528,
+    "totalPeakBytes": 1172299776
+  },
+  "peakTotalBytes": 659931136,
+  "verdict": {
+    "compared": true,
+    "baselineBytes": 1172299776,
+    "ratio": 0.563,
+    "deltaPercent": -43.7,
+    "worse": false,
+    "note": "V0.7.6 基线包含 1.5 GB 素材导入阶段（全流程最重），本次只覆盖打开/演出/切章/跳过/连续播放，口径不同，差值不代表优化或退化；判定只看是否出现数量级退化。"
+  }
+}

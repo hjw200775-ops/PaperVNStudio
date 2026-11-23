@@ -36,6 +36,7 @@ const ALLOWED = {
   '/style.css': 'text/css; charset=utf-8',
   '/core.js': 'text/javascript; charset=utf-8',
   '/effects.js': 'text/javascript; charset=utf-8',
+  '/performance.js': 'text/javascript; charset=utf-8',
   '/player.js': 'text/javascript; charset=utf-8',
   '/app.js': 'text/javascript; charset=utf-8',
   '/export.js': 'text/javascript; charset=utf-8',
