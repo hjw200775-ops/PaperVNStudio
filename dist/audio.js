@@ -1238,6 +1238,8 @@ function createPaperAudio(){
     mode:precise?'precise':'stream',modePref,preciseReason,graphError,
     cache:cacheStats(),graph:graph?{state:graph.ctx.state,sampleRate:graph.ctx.sampleRate,baseLatency:graph.ctx.baseLatency}:null,
     events:audioEvents.slice(0,12),generation,
+    /* 双 BGM 直接检测：精确模式与流式 BGM 同时存在就是叠加（除非是精确交叉淡化期间的短暂共存）。 */
+    dualBgm:!!(precise&&bgm),
     errors:errors.slice(0,8),playbackStats:playbackStats()};
   }
 

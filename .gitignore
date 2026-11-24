@@ -49,3 +49,4 @@ backups/
 !release/audio-memory-profile.json
 !release/large-project-audio-acceptance.json
 !release/audio-soak-15min.json
+!release/audio-soak-15min-rc3.1.json

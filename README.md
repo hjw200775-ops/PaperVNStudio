@@ -1,7 +1,7 @@
 # 纸间 PaperVNStudio
 
 <p>
-  <img alt="version" src="https://img.shields.io/badge/version-0.8.1--RC2-2F6F5E?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-0.8.1--RC3.1-2F6F5E?style=flat-square">
   <img alt="electron" src="https://img.shields.io/badge/Electron-45-47848F?style=flat-square&logo=electron&logoColor=white">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D4?style=flat-square">
@@ -11,11 +11,16 @@
 
 <img src="docs/screenshots/v076-editor-assets.png" alt="编辑器：左侧剧情脚本、中间舞台、右侧剧情与画面">
 
+> **V0.8.1-RC3.1：播放可靠性修复与循环试听编辑器。** 修复了配音被切句打断时误报「播放失败」并永久挂横幅的
+> 根因（区分合法取消与真正失败，新增播放事件统计）；严格验收脚本会捕捉真实播放失败；编辑器内新增循环试听工具
+> （波形、A/B 标记拖动、循环边界试听、候选区间），标题音乐支持循环区间配置。
+> 900 秒浸泡 `failed=0`、`cancelled=44`、零错误横幅。详见 [RC3.1 验收报告](docs/V0.8.1_RC3.1_ACCEPTANCE_REPORT.md)。
+> **人工听感与最终循环点仍由用户决定。**
+>
 > **V0.8.1-RC2：音频演出完成全量验收。** 标题曲与剧情 BGM 共用同一个「音乐槽」，结构上不可能叠两首；
 > 精确循环走 `AudioBufferSourceNode`（正弦 30 次边界实测最长静音 **0.021 ms**），超预算/解码失败自动回退流式；
 > 目录版 `papergame://` 与编辑器预览 `pvres://` 只放开「读自己已登记的素材」，没有关掉任何安全开关。
 > 1.47 GiB 工程、15 分钟浸泡、五种运行环境均已实机跑过，详见 [最终验收报告](docs/V0.8.1_FINAL_ACCEPTANCE_REPORT.md)。
-> **人工听感仍待确认**——技术验收通过不等于音质合格。
 >
 > **V0.8.1 已发布。** 演出从「只动画面」扩展到「画面与声音一起编排」：BGM 淡入淡出与等功率交叉淡化、
 > 循环区间、配音自动压低音乐（Ducking）、独立音效通道，全部按「顺序 / 并行 / 阻塞」与画面动作排在同一条时间线上。

@@ -29,6 +29,7 @@ const SAMPLE = `(() => { const a = window.paperEditorAudio ? window.paperEditorA
       bgm: a.bgm && { id: a.bgm.audioId, time: a.bgm.time, loop: a.bgm.loop && a.bgm.loop.mode },
       mem: a.audioMemory, duck: a.ducking && { active: a.ducking.active, factor: a.ducking.factor },
       cache: a.cache && { entries: a.cache.entries, bytes: a.cache.bytes }, gen: a.generation,
+      dualBgm: !!a.dualBgm,
       errors: (a.errors || []).map(e => e.title + ':' + (e.label || e.audioId || '')),
       ps: a.playbackStats || null } : null,
     js: performance.memory ? performance.memory.usedJSHeapSize : null,
@@ -169,6 +170,9 @@ async function clickReal(cdp, selector) {
     else ok('实际运行 ≥ ' + DURATION + ' 秒', { seconds: report.summary.seconds, passes, steps });
     if (maxInst > 1) bad('音乐实例泄漏', '最大 ' + maxInst);
     else ok('音乐实例始终 ≤ 1', { max: maxInst, maxRetiring, maxSfx });
+    const dualSamples = samples.filter((s) => s.audio && s.audio.dualBgm).length;
+    if (dualSamples > 0) bad('双 BGM 叠加', dualSamples + ' / ' + samples.length + ' 个采样点同时存在精确与流式 BGM');
+    else ok('无精确/流式双 BGM 叠加', { samples: samples.length });
     if (maxCacheMB > 64 * 1.25) bad('解码缓存超预算', maxCacheMB.toFixed(1) + 'MB');
     else ok('解码缓存不超预算', { maxCacheMB: +maxCacheMB.toFixed(1), maxDecoding });
     if (report.summary.heapGrowthAfter25MB > 80) bad('JS 堆增长', '25% 后增长 ' + report.summary.heapGrowthAfter25MB + 'MB');

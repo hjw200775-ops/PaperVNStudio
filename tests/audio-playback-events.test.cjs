@@ -84,5 +84,22 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.equal(s.completed, 1, '自然完成 completed=1');
   }
 
+  /* 5. 错误残留：一句失败后进入下一句，错误应被清掉（Bug A 实机对应的逻辑） */
+  {
+    const { runtime, state } = harness();
+    runtime.voicePlay({ audioId: 'V', volume: 1, duck: false });
+    state.els[0]._playReject(Object.assign(new Error('Format not supported'), { name: 'NotSupportedError' }));
+    await wait(10);
+    assert.equal(runtime.status().errors.length, 1, '失败句记录 1 条错误');
+    // 进入下一句（无音频），错误应清除
+    await runtime.enter({});
+    assert.equal(runtime.status().errors.length, 0, '进入下一句后错误被清除，不残留过期横幅');
+    // 再制造一次新错误，仍能显示
+    runtime.voicePlay({ audioId: 'V', volume: 1, duck: false });
+    state.els[state.els.length - 1]._playReject(Object.assign(new Error('Format not supported'), { name: 'NotSupportedError' }));
+    await wait(10);
+    assert.equal(runtime.status().errors.length, 1, '新的真实错误仍能显示');
+  }
+
   console.log('PASS: 播放事件分类（requested/started/completed/cancelled/failed），合法取消不再污染状态栏');
 })().catch((e) => { console.error('FAIL:', e.message); process.exit(1); });

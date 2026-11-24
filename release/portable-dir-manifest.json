@@ -1,12 +1,12 @@
 {
-  "at": "2026-11-24T16:17:24.466Z",
+  "at": "2026-11-24T17:55:43.950Z",
   "product": "PaperVNStudio",
   "version": "0.8.1",
-  "versionLabel": "V0.8.1-RC2",
+  "versionLabel": "V0.8.1-RC3.1",
   "platform": "win32-x64",
   "electron": "45.3.2",
   "exe": "release/PaperVNStudio-0.8.1-win-x64/PaperVNStudio.exe",
-  "bytes": 399984535,
-  "files": 194,
+  "bytes": 400009834,
+  "files": 195,
   "note": "免安装目录版：解压后双击 PaperVNStudio.exe。运行时为官方 Electron，应用代码在 resources/app/。"
 }

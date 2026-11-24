@@ -1,5 +1,53 @@
 # 更新日志
 
+## V0.8.1-RC3.1 — 播放可靠性修复与循环试听编辑器（2026-11-25）
+
+基线 `0534551`（V0.8.1-RC3）。本轮不进入 V0.8.2。
+
+### M1 · Voice 播放失败根因（已定位并修复）
+
+上一轮 15 分钟浸泡从第 40 秒起持续出现「播放失败（段落 6 · 第 41 句）」的真实根因：
+
+- 那句是 60s / 10.5MB 的 WAV 配音，起播前被切句打断；浏览器 `HTMLAudioElement.play()`
+  以 **AbortError** 拒绝（"interrupted by a call to pause()"）。
+- 旧 `classifyError` 不认识 AbortError，落到 `unknown`，记为「播放失败」并**永久挂横幅**。
+- 修复：`start()` 把「通道已停止 / 代际过期 / AbortError 打断」判为**合法取消**（`play-cancelled`），
+  不再记错误、不再污染状态栏；真正失败（NotSupportedError / 解码失败）照常记 `play-failed` / `decode-failed`。
+- 实机复现（`scripts/v081rc3-voice-verify.cjs`）：track_018 起播延迟 186ms、可正常起播；打断后 `cancelled=1`、`failed=0`、无错误。
+
+### M2 · 验收系统假阳性修复
+
+- `dist/audio.js` 新增播放事件统计 `playbackStats()`：requested / started / completed /
+  cancelled / failed / decodeFailed / fallback；`snapshot()` 暴露 `errors`、`playbackStats`、`dualBgm`。
+- 浸泡脚本 `v081rc2-soak-editor.cjs` 新增严格断言：意外播放失败、解码失败、错误横幅、
+  播放事件数量关系失衡、精确/流式双 BGM 叠加，任一命中即 FAIL。
+- 负向验证 `tests/audio-negative.test.cjs`：缺失素材 / 播放拒绝 / 解码失败必然被发现（FAIL），
+  合法取消与正常起播不误报（PASS）。
+
+### M3 · 编辑器内循环试听工具
+
+- 新增 `dist/loop-audition.js`（轻量组件）：波形、播放头、可拖动 A/B 标记、整曲/区间/不循环、
+  精确起止时间输入、循环边界试听（终点前 3s 起播回跳起点）、候选区间、应用/重置/取消。
+- 运行时新增 `decodeWaveform`（复用 64MiB 缓存，按需生成）与 `loopPreview`
+  （与发布游戏一致的 `AudioBufferSourceNode` + `loopStart/loopEnd`，接同一根 bgm 总线）。
+- 标题音乐面板加入循环模式与区间输入；对《晚风》标题曲提供 A/B/C/D 候选（非通用默认值）。
+  交叉淡化 D 为实验能力，独立试听页可用，编辑器内明确标记。
+
+### M4 · 已修复 Bug 实机复验
+
+- 双 BGM：`enter(rebuild)` 补 `preciseStop(0)`；真实窗口验证 rebuild 后 `dualBgm=false`、
+  单实例。错误横幅：进入下一句清除旧错误、新错误仍能显示（单测覆盖）。
+
+### M7 · 构建
+
+- 重新构建 Windows x64 免安装目录版 `release/PaperVNStudio-0.8.1-win-x64/`（400MB / 195 文件 /
+  Electron 45.3.2，含 vendor/toolchain 与 loop-audition.js）；`packaged-smoke` 通过。
+
+### 未完成 / 待人工复验
+
+- 人工听感与最终循环点仍由用户决定；技术验收完成而艺术方案待定。
+- 完整 900 秒浸泡结果见 `release/audio-soak-15min-rc3.1.json`。
+
 ## V0.8.1-RC3 — 独立审查与实际体验修复（2026-11-25）
 
 基线 `c38188a`（V0.8.1-RC2）。本轮不进入 V0.8.2。**结论：技术修复完成，产品体验待人工复验。**
