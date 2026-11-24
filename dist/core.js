@@ -233,6 +233,11 @@ function createVNCore(){
   if(tm===undefined||tm===null)return;
   if(typeof tm!=='object'||typeof tm.audioId!=='string'||!tm.audioId)throw Error('标题音乐配置格式错误：缺少音源');
   if(!okNum(tm.volume,0,100)||!okNum(tm.fadeIn,0,5)||typeof tm.loop!=='boolean')throw Error('标题音乐参数格式错误');
+  /* V0.8.1：可选循环区间。写了就必须是合法区间，避免播放器读到越界值。 */
+  if(tm.loopStart!==undefined||tm.loopEnd!==undefined){
+   if(!okNum(tm.loopStart,0,86400)||!okNum(tm.loopEnd,0,86400))throw Error('标题音乐循环区间格式错误');
+   if(tm.loopEnd>0&&!(tm.loopEnd>tm.loopStart))throw Error('标题音乐循环区间需结束晚于开始');
+  }
  }
  /* 图片引用面：标题背景 + 所有节点的图层 + 角色表情表。
     按「全部节点」收集而不是当前试玩路线，分支里用到的立绘不会漏；
@@ -261,6 +266,16 @@ function createVNCore(){
    if(c.voice&&c.voice.audioId)ids.add(c.voice.audioId);
   }
   if(p.titleMusic&&p.titleMusic.audioId)ids.add(p.titleMusic.audioId);
+  /* V0.8.1：演出里的音频动作也算引用。漏掉这一步，只在演出中出现的 BGM / 音效
+     会被导出裁剪掉，运行时表现为「素材缺失」而不是报错。 */
+  for(const n of p.nodes||[]){
+   const acts=n&&n.performance&&Array.isArray(n.performance.actions)?n.performance.actions:[];
+   for(const a of acts){
+    if(!a||String(a.type||'').indexOf('audio.')!==0)continue;
+    const id=a.params&&a.params.audioId;
+    if(typeof id==='string'&&id)ids.add(id);
+   }
+  }
   return [...ids];
  }
 

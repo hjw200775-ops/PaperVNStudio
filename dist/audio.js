@@ -36,6 +36,78 @@ function createPaperAudio(){
   if(p.muted)return 0;
   return clamp(p.master*p[cat]*clamp(itemVolume,0,1,1),0,1,0);
  }
+
+ /* ---------------- 纯函数：V0.8.1 音频演出 ---------------- */
+ /* 完整混音：
+      最终音量 = Master × 用户分类音量 × 剧情音量 × 播放音量 × Ducking
+   用户偏好（prefs）与剧情音量（showVolume）是两条独立链路：
+   剧情再大声也不会改写用户在设置里存下的值。 */
+ function mixVolume(prefs,category,itemVolume,showVolume,ducking){
+  const p=normalizePrefs(prefs),cat=CATEGORIES.includes(category)?category:'bgm';
+  if(p.muted)return 0;
+  const duck=cat==='bgm'?clamp(ducking==null?1:ducking,0,1,1):1;
+  return clamp(p.master*p[cat]*clamp(showVolume==null?1:showVolume,0,1,1)*clamp(itemVolume,0,1,1)*duck,0,1,0);
+ }
+ /* 交叉淡化增益曲线：linear 是线性；equalPower 用 sin/cos，保证中途功率不变（听感不塌）。 */
+ function crossfadeGains(progress,curve){
+  const p=clamp(progress,0,1,0);
+  if(curve==='equalPower')return {out:Math.cos(p*Math.PI/2),in:Math.sin(p*Math.PI/2)};
+  return {out:1-p,in:p};
+ }
+ /* 循环区间：off / all（整曲循环）/ region（从曲首进入 start–end 区间后反复）。 */
+ function loopSpec(raw){
+  const r=raw||{};
+  const mode=['off','all','region'].includes(r.mode)?r.mode:(r.enabled===false?'off':(r.end>0?'region':(r.loop?'all':'off')));
+  const start=clamp(r.start,0,86400,0);
+  const end=clamp(r.end,0,86400,0);
+  if(mode==='off')return {mode:'off',start:0,end:0};
+  if(mode==='all')return {mode:'all',start:0,end:0};
+  if(!(end>start))return {mode:'all',start:0,end:0};
+  return {mode:'region',start,end};
+ }
+ /* Ducking 参数：level 是「压低到原来的多少」，0.35 表示降到 35%。 */
+ function duckSpec(raw){
+  const r=raw||{};
+  return {enabled:r.enabled!==false,level:clamp(r.level==null?r.strength:r.level,0,1,.35),
+   attack:clamp(r.attack,0,LIMITS.maxFade,.25),release:clamp(r.release,0,LIMITS.maxFade,.6)};
+ }
+ /* 音频演出动作的归一化：把动作参数变成音频引擎能直接执行的指令。
+    这里只做「值域与缺省」，不读 DOM、不创建播放对象，Node 测试可直接断言。 */
+ function audioActionSpec(type,params){
+  const p=params||{};
+  const spec={type,audioId:typeof p.audioId==='string'?p.audioId:''};
+  switch(type){
+   case 'audio.bgm.play':
+    return {...spec,action:'play',volume:clamp(p.volume,0,1,1),fadeIn:clamp(p.fadeIn,0,LIMITS.maxFade,.8),
+     loop:loopSpec({mode:p.loopMode,start:p.loopStart,end:p.loopEnd})};
+   case 'audio.bgm.stop':
+    return {...spec,action:'stop',fadeOut:clamp(p.fadeOut,0,LIMITS.maxFade,1)};
+   case 'audio.bgm.crossfade':
+    return {...spec,action:'crossfade',volume:clamp(p.volume,0,1,1),duration:clamp(p.duration,0,LIMITS.maxFade,2),
+     curve:p.curve==='equalPower'?'equalPower':'linear',
+     loop:loopSpec({mode:p.loopMode,start:p.loopStart,end:p.loopEnd})};
+   case 'audio.bgm.volume':
+    return {...spec,action:'volume',volume:clamp(p.volume,0,1,1),duration:clamp(p.duration,0,LIMITS.maxFade,.8)};
+   case 'audio.bgm.loop':
+    return {...spec,action:'loop',loop:loopSpec({mode:p.loopMode,start:p.loopStart,end:p.loopEnd})};
+   case 'audio.sfx.play':
+    return {...spec,action:'sfx',volume:clamp(p.volume,0,1,1),delay:clamp(p.delay,0,LIMITS.maxDelay,0),
+     key:typeof p.key==='string'?p.key:''};
+   case 'audio.sfx.stop':
+    return {...spec,action:'sfxStop',key:typeof p.key==='string'?p.key:''};
+   case 'audio.voice.play':
+    return {...spec,action:'voice',volume:clamp(p.volume,0,1,1),duck:p.duck!==false};
+   case 'audio.voice.stop':
+    return {...spec,action:'voiceStop'};
+   case 'audio.bus.volume':
+    return {...spec,action:'bus',bus:CATEGORIES.includes(p.bus)?p.bus:'bgm',
+     volume:clamp(p.volume,0,1,1),duration:clamp(p.duration,0,LIMITS.maxFade,.6)};
+   case 'audio.ducking':
+    return {...spec,action:'ducking',duck:duckSpec({enabled:p.enabled,level:p.level,attack:p.attack,release:p.release})};
+   default:
+    return null;
+  }
+ }
  function formatSeconds(sec){
   const s=Math.max(0,finiteDuration(sec));
   return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+String(Math.floor((s%1)*10));
@@ -186,8 +258,22 @@ function createPaperAudio(){
   const assetData=o.assetData||(()=>'');
   const onStatus=o.onStatus||(()=>{});
   let prefs=normalizePrefs(o.prefs);
+  /* V0.8.1：剧情音量、Ducking 与循环统计。
+     showVolume 只由演出动作改写，prefs 只由玩家设置改写，两者相乘、互不覆盖。 */
+  let showVolume={bgm:1,sfx:1,voice:1};
+  let duck={enabled:true,level:.35,attack:.25,release:.6,active:false,factor:1};
+  let duckTimer=null,duckHold=0;
+  let loopTimer=null,loopStats={jumps:0,lastJumpAt:0,lastGapMs:null,maxGapMs:null,overrunMaxMs:0,overrunSumMs:0};
+  let audioEvents=[];
+  const busVolume=cat=>clamp(showVolume[cat],0,1,1);
+  const duckFactor=cat=>cat==='bgm'?duck.factor:1;
+  function channelVolume(ch,factor){
+   return Math.min(1,mixVolume(prefs,ch.kind,ch.itemVolume,busVolume(ch.kind),duckFactor(ch.kind))*num(factor,1));
+  }
+  const noteAudio=(ev)=>audioEvents=[{at:Date.now(),...ev},...audioEvents].slice(0,40);
   let unlocked=false,generation=0,bgm=null,voice=null,preview=null;
   let sfxChannels=[],sfxTimers=[],fadeTimers=[],pendingSwitch=null,retiring=[];
+  const sfxHandles=new Map();
   let errors=[],lastEnter=null,disposed=false;
   const emit=()=>{try{onStatus(status())}catch{}};
   const record=(kind,audioId,detail,label)=>{
@@ -212,7 +298,7 @@ function createPaperAudio(){
    for(const t of sfxTimers)clearTimeout(t);sfxTimers=[];
    for(const ch of sfxChannels)hardStop(ch);
    sfxChannels=[];
-   if(voice){hardStop(voice);voice=null}
+   if(voice){hardStop(voice);voice=null;if(duckHold>0)duckPop()}
   }
   function stopPreview(silent){
    if(preview){hardStop(preview);preview=null;if(!silent)emit()}
@@ -231,7 +317,7 @@ function createPaperAudio(){
    const ch={kind,audioId,itemVolume:clamp(itemVolume,0,1,1),loop:!!loop,el,label:label||'',done:false,startedAt:0,playVolume:0};
    try{
     el.src=src;el.loop=!!loop;el.currentTime=0;
-    el.volume=finalVolume(prefs,kind,ch.itemVolume);
+    el.volume=channelVolume(ch,1);
    }catch(e){record('decode',audioId,e.message,label);return null}
    ch.playVolume=el.volume;
    return ch;
@@ -265,13 +351,13 @@ function createPaperAudio(){
   function fade(ch,from,to,seconds,myGen,after){
    if(!ch||ch.done)return (after||(()=>{}))();
    const dur=Math.max(0,Math.min(LIMITS.maxFade,num(seconds,0)))*1000;
-   if(dur<20){try{ch.el.volume=finalVolume(prefs,ch.kind,ch.itemVolume)*clamp(to,0,1,1)}catch{};return (after||(()=>{}))()}
+   if(dur<20){try{ch.el.volume=channelVolume(ch,clamp(to,0,1,1))}catch{};return (after||(()=>{}))()}
    const t0=Date.now();let iv=null,tm=null;
    const apply=()=>{
     if(myGen!==generation||ch.done)return;
     const r=Math.min(1,(Date.now()-t0)/dur),factor=from+(to-from)*r;
     ch.fadeFactor=factor;
-    try{ch.el.volume=Math.min(1,finalVolume(prefs,ch.kind,ch.itemVolume)*factor)}catch{}
+    try{ch.el.volume=channelVolume(ch,factor)}catch{}
    };
    iv=setInterval(apply,30);
    tm=setTimeout(()=>{clearInterval(iv);apply();fadeTimers=fadeTimers.filter(x=>x.i!==iv);if(after&&myGen===generation&&!ch.done)after()},dur+20);
@@ -280,7 +366,7 @@ function createPaperAudio(){
   function applyPrefs(){
    const all=[bgm,voice,preview,...sfxChannels,...retiring.map(r=>r.ch)].filter(Boolean);
    for(const ch of all){
-    if(ch.el&&!ch.done)try{ch.el.volume=finalVolume(prefs,ch.kind,ch.itemVolume)*num(ch.fadeFactor,1)}catch{}
+    if(ch.el&&!ch.done)try{ch.el.volume=channelVolume(ch,num(ch.fadeFactor,1))}catch{}
    }
   }
   function startBgm(spec,myGen,label){
@@ -337,6 +423,253 @@ function createPaperAudio(){
   }
   /* 进入一句。cue 为节点指令；rebuild 为真时按 bgmState 从曲首重建（定点试玩/读档/返回/重开）。
      普通推进时 bgm 指令为空 = 沿用，当前播放位置不动；显式 play 一律从头（包括同一首）。 */
+  /* ---------------- V0.8.1：音频演出（交叉淡化 / 循环区间 / Ducking / 独立音效） ----------------
+   * 这一层只做「副作用」，不理解剧情；演出目标状态由 performance.js 计算，
+   * 播放器在动作起点调用这里，跳过动画时用 applyAudioState() 一次性落到终态。 */
+  /* 循环检查同时挂 rAF 与低频定时器：
+     - 窗口可见时 rAF 每帧检查，接缝误差在一帧内；
+     - 窗口被遮挡/后台时 rAF 不触发，定时器兜底（浏览器会把它节流到 ~1s，
+       这是平台限制，实测值如实记录在验收报告里，不宣称采样级无缝）。 */
+  function ensureLoopTicker(){
+   if(loopTimer)return;
+   const check=()=>{
+    const ch=bgm;
+    if(!ch||ch.done||!ch.loopWindow||ch.loopWindow.mode!=='region')return;
+    const w=ch.loopWindow;
+    let t=0;try{t=ch.el.currentTime}catch{return}
+    if(t>=w.end){
+     try{ch.el.currentTime=w.start}catch{return}
+     const now=Date.now();
+     const gap=loopStats.lastJumpAt?now-loopStats.lastJumpAt:null;
+     /* 接缝误差：发现越界时已经超出 loopEnd 多少毫秒（轮询周期决定上限）。 */
+     const overrun=Math.max(0,(t-w.end)*1000);
+     loopStats.jumps++;
+     loopStats.overrunSumMs+=overrun;
+     loopStats.overrunMaxMs=Math.max(loopStats.overrunMaxMs,overrun);
+     loopStats.lastGapMs=gap;
+     if(gap!=null)loopStats.maxGapMs=Math.max(loopStats.maxGapMs||0,gap);
+     loopStats.lastJumpAt=now;
+     noteAudio({kind:'loop',audioId:ch.audioId,from:+t.toFixed(3),to:w.start});
+    }
+   };
+   const handles=[];
+   if(typeof requestAnimationFrame==='function'){
+    let stopped=false;
+    const frame=()=>{ if(stopped)return; check(); if(!stopped)rafId=requestAnimationFrame(frame); };
+    let rafId=requestAnimationFrame(frame);
+    handles.push(()=>{stopped=true;cancelAnimationFrame(rafId)});
+   }
+   const iv=setInterval(check,400);
+   if(iv.unref)iv.unref();
+   handles.push(()=>clearInterval(iv));
+   /* 媒体元素自己的 timeupdate 不受「窗口不可见」的定时器节流影响（约 4Hz），
+      在没有 rAF 的环境里把接缝误差从 1s 拉到 ~250ms。 */
+   const ch=bgm;
+   if(ch&&ch.el&&typeof ch.el.addEventListener==='function'&&!ch.el.__loopBound){
+    ch.el.__loopBound=true;
+    ch.el.addEventListener('timeupdate',()=>{try{check()}catch{}});
+   }
+   loopTimer={stop(){for(const h of handles)try{h()}catch{}},handles};
+  }
+  function stopLoopTicker(){if(loopTimer){try{loopTimer.stop()}catch{}loopTimer=null}}
+  function applyLoop(ch,loop){
+   const w=loop||{mode:'off',start:0,end:0};
+   ch.loopWindow=w;
+   try{ch.el.loop=w.mode==='all'}catch{}
+   if(w.mode==='region')ensureLoopTicker();
+  }
+  /* 剧情音量：只改 showVolume，不写 prefs，玩家在设置里的值永远不会被覆盖。 */
+  function setBusVolume(cat,value,duration){
+   const c=CATEGORIES.includes(cat)?cat:'bgm';
+   const target=clamp(value,0,1,1);
+   const from=busVolume(c);
+   const dur=Math.max(0,num(duration,0))*1000;
+   if(dur<20){showVolume={...showVolume,[c]:target};applyPrefs();return showVolume[c]}
+   const t0=Date.now(),myGen=generation;
+   const iv=setInterval(()=>{
+    if(myGen!==generation){clearInterval(iv);return}
+    const p=Math.min(1,(Date.now()-t0)/dur);
+    showVolume={...showVolume,[c]:from+(target-from)*p};
+    applyPrefs();
+    if(p>=1)clearInterval(iv);
+   },30);
+   fadeTimers.push({i:iv,t:null});
+   return showVolume[c];
+  }
+  function bgmVolume(target,options){
+   const ch=bgm;
+   if(!ch||ch.done)return {ok:false};
+   const to=clamp(target,0,1,1);
+   const from=ch.itemVolume;
+   const dur=Math.max(0,num(options&&options.duration,0))*1000;
+   if(dur<20){ch.itemVolume=to;try{ch.el.volume=channelVolume(ch,num(ch.fadeFactor,1))}catch{};emit();return {ok:true,volume:to}}
+   const t0=Date.now(),myGen=generation;
+   const iv=setInterval(()=>{
+    if(myGen!==generation||ch.done){clearInterval(iv);return}
+    const p=Math.min(1,(Date.now()-t0)/dur);
+    ch.itemVolume=from+(to-from)*p;
+    try{ch.el.volume=channelVolume(ch,num(ch.fadeFactor,1))}catch{}
+    if(p>=1){clearInterval(iv);emit()}
+   },30);
+   fadeTimers.push({i:iv,t:null});
+   return {ok:true,pending:true};
+  }
+  /* 交叉淡化：新旧两个通道同时存在，按曲线此消彼长；旧通道在新曲到位后才销毁。 */
+  function bgmCrossfade(spec,label){
+   const myGen=generation;
+   const target=spec&&spec.audioId;
+   if(!target)return Promise.resolve({ok:false,kind:'missing'});
+   cancelPending();
+   const old=bgm;
+   if(old&&!old.done&&old.audioId===target){
+    /* 同一首：不新建实例、不回到曲首，只做音量过渡——否则会出现双重 BGM。 */
+    bgmVolume(spec.volume==null?1:spec.volume,{duration:spec.duration});
+    if(spec.loop)applyLoop(old,spec.loop);
+    return Promise.resolve({ok:true,same:true});
+   }
+   const ch=channel('bgm',target,spec.volume,false,label);
+   if(!ch)return Promise.resolve({ok:false,kind:'missing'});
+   bgm=ch;
+   if(spec.loop)applyLoop(ch,spec.loop);
+   ch.fadeFactor=0;
+   try{ch.el.volume=0}catch{}
+   if(old)retiring.push({ch:old});
+   const dur=Math.max(0,num(spec.duration,0))*1000;
+   const curve=spec.curve==='equalPower'?'equalPower':'linear';
+   const t0=Date.now();
+   let iv=null;
+   const step=()=>{
+    if(myGen!==generation){clearInterval(iv);return}
+    const p=dur<=0?1:Math.min(1,(Date.now()-t0)/dur);
+    const g=crossfadeGains(p,curve);
+    ch.fadeFactor=g.in;
+    try{ch.el.volume=channelVolume(ch,g.in)}catch{}
+    if(old&&!old.done){
+     old.fadeFactor=g.out;
+     try{old.el.volume=channelVolume(old,g.out)}catch{}
+    }
+    if(p>=1){
+     clearInterval(iv);
+     if(old&&!old.done){hardStop(old);retiring=retiring.filter(x=>x.ch!==old)}
+     noteAudio({kind:'crossfade',to:target,curve,ms:Math.round(dur)});
+     emit();
+    }
+   };
+   iv=setInterval(step,30);
+   fadeTimers.push({i:iv,t:null});
+   noteAudio({kind:'bgm',audioId:target,mode:'crossfade'});
+   return start(ch,myGen).then(r=>{emit();return r.ok?{ok:true}:r});
+  }
+  function duckTarget(){return duck.active&&duck.enabled?duck.level:1}
+  function rampDuck(){
+   const target=duckTarget();
+   const dur=Math.max(0,(duck.active?duck.attack:duck.release))*1000;
+   const from=duck.factor,t0=Date.now(),myGen=generation;
+   if(duckTimer){clearInterval(duckTimer);duckTimer=null}
+   if(dur<20){duck.factor=target;applyPrefs();return}
+   duckTimer=setInterval(()=>{
+    if(myGen!==generation){clearInterval(duckTimer);duckTimer=null;return}
+    const p=Math.min(1,(Date.now()-t0)/dur);
+    duck.factor=from+(target-from)*p;
+    applyPrefs();
+    if(p>=1){clearInterval(duckTimer);duckTimer=null}
+   },30);
+  }
+  /* 连续语音用计数持有，避免每句语音都让 BGM 抖一次。 */
+  function duckPush(){duckHold++;duck.active=true;duck.factor=duck.factor||1;rampDuck()}
+  function duckPop(){duckHold=Math.max(0,duckHold-1);if(!duckHold){duck.active=false;rampDuck()}}
+  function setDucking(spec){
+   duck={...duck,...duckSpec({...duck,...(spec||{})})};
+   if(!duck.enabled){duck.active=false;duckHold=0}
+   rampDuck();emit();return {...duck};
+  }
+  function sfxPlay(spec,label){
+   const myGen=generation;
+   const key=spec&&spec.key;
+   if(key&&sfxHandles.has(key)){
+    const old=sfxHandles.get(key);
+    hardStop(old);sfxChannels=sfxChannels.filter(x=>x!==old);sfxHandles.delete(key);
+   }
+   if(sfxChannels.length>=LIMITS.maxSfx){const drop=sfxChannels.shift();hardStop(drop)}
+   const ch=channel('sfx',spec.audioId,spec.volume,false,label);
+   if(!ch)return {ok:false};
+   sfxChannels.push(ch);
+   if(key)sfxHandles.set(key,ch);
+   ch.el.onended=()=>{hardStop(ch);sfxChannels=sfxChannels.filter(x=>x!==ch);if(key&&sfxHandles.get(key)===ch)sfxHandles.delete(key);emit()};
+   start(ch,myGen).then(r=>{if(!r.ok)sfxChannels=sfxChannels.filter(x=>x!==ch)});
+   noteAudio({kind:'sfx',audioId:spec.audioId,key:key||''});
+   return {ok:true};
+  }
+  function sfxStop(key){
+   if(!key)return {ok:false};
+   const ch=sfxHandles.get(key);
+   if(!ch)return {ok:false};
+   hardStop(ch);sfxChannels=sfxChannels.filter(x=>x!==ch);sfxHandles.delete(key);emit();
+   return {ok:true};
+  }
+  function voicePlay(spec,label){
+   const myGen=generation;
+   if(voice){const old=voice;voice=null;hardStop(old);duckPop()}
+   const ch=channel('voice',spec.audioId,spec.volume,false,label);
+   if(!ch)return {ok:false};
+   voice=ch;
+   ch.el.onended=()=>{if(voice!==ch)return;voice=null;duckPop();emit()};
+   if(spec.duck!==false)duckPush();
+   start(ch,myGen).then(r=>{if(!r.ok&&voice===ch){voice=null;duckPop()}});
+   noteAudio({kind:'voice',audioId:spec.audioId});
+   return {ok:true};
+  }
+  function voiceStop(){
+   if(!voice)return {ok:false};
+   const ch=voice;voice=null;hardStop(ch);duckPop();emit();
+   return {ok:true};
+  }
+  /* 跳过演出 / 快进 / 读档：把「可计算的音频终态」一次性落地。
+     同一首 BGM 只调音量与循环，不重启（否则切换场景就从头响）。 */
+  function applyAudioState(state){
+   const s=state||{};
+   if(s.buses)for(const c of CATEGORIES)if(Number.isFinite(s.buses[c]))showVolume={...showVolume,[c]:clamp(s.buses[c],0,1,1)};
+   if(s.ducking)duck={...duck,...duckSpec({...duck,...s.ducking})};
+   const want=s.bgm;
+   if(want===null){
+    if(bgm){hardStop(bgm);bgm=null}
+    stopLoopTicker();
+   }else if(want&&want.audioId){
+    if(bgm&&!bgm.done&&bgm.audioId===want.audioId){
+     bgm.itemVolume=clamp(want.volume,0,1,1);
+     bgm.fadeFactor=1;
+     if(want.loop)applyLoop(bgm,want.loop);
+     try{bgm.el.volume=channelVolume(bgm,1)}catch{}
+    }else{
+     if(bgm){hardStop(bgm);bgm=null}
+     const ch=channel('bgm',want.audioId,want.volume,false,'');
+     if(ch){
+      bgm=ch;
+      if(want.loop)applyLoop(ch,want.loop);
+      ch.fadeFactor=1;
+      try{ch.el.volume=channelVolume(ch,1)}catch{}
+      start(ch,generation);
+      if(!want.playing)try{ch.el.pause()}catch{}
+     }
+    }
+   }
+   applyPrefs();emit();
+   return snapshot();
+  }
+  function snapshot(){
+   const view=ch=>{
+    if(!ch)return null;
+    let t=0,dur=0,vol=0,paused=true;
+    try{t=ch.el.currentTime||0;dur=Number.isFinite(ch.el.duration)?ch.el.duration:0;vol=ch.el.volume||0;paused=!!ch.el.paused}catch{}
+    return {audioId:ch.audioId,itemVolume:ch.itemVolume,fade:num(ch.fadeFactor,1),volume:vol,time:t,duration:dur,paused,
+     loop:ch.loopWindow?{...ch.loopWindow}:{mode:'off',start:0,end:0}};
+   };
+   return {unlocked,prefs:{...prefs},buses:{...showVolume},ducking:{...duck,hold:duckHold},
+    loop:{...loopStats},bgm:view(bgm),voice:view(voice),sfx:sfxChannels.map(view),
+    instances:{bgm:bgm?1:0,retiring:retiring.length,sfx:sfxChannels.length,voice:voice?1:0},
+    events:audioEvents.slice(0,12),generation};
+  }
+
   function enter(cue,options){
    const c=normalizeCue(cue),opt=options||{},label=opt.label||'';
    const prevSwitch=pendingSwitch;
@@ -415,15 +748,25 @@ function createPaperAudio(){
   function stopAll(){
    generation++;
    cancelPending();clearFades();leave();stopPreview(true);
+   duckHold=0;duck.active=false;duck.factor=1;if(duckTimer){clearInterval(duckTimer);duckTimer=null}
+   stopLoopTicker();sfxHandles.clear();
    if(bgm){hardStop(bgm);bgm=null}
    emit();
   }
   function dispose(){stopAll();disposed=true;emit()}
-  return {enter,retry,unlock,status,setPrefs,getPrefs,previewAsset,stopPreview:()=>{stopPreview()},stopAll,dispose,isUnlocked:()=>unlocked};
+  return {enter,retry,unlock,status,setPrefs,getPrefs,previewAsset,stopPreview:()=>{stopPreview()},stopAll,dispose,isUnlocked:()=>unlocked,
+   /* V0.8.1 音频演出 API */
+   bgmCrossfade,bgmVolume,bgmStop:options=>{const fo=clamp(options&&options.fadeOut,0,LIMITS.maxFade,1);const old=bgm;bgm=null;if(!old)return {ok:false};
+     if(fo>0){retiring.push({ch:old});fade(old,1,0,fo,generation,()=>{hardStop(old);retiring=retiring.filter(x=>x.ch!==old);emit()})}else{hardStop(old)}
+     noteAudio({kind:'bgm-stop',audioId:old.audioId});emit();return {ok:true}},
+   bgmLoop:spec=>{if(!bgm)return {ok:false};applyLoop(bgm,loopSpec(spec));return {ok:true,loop:{...bgm.loopWindow}}},
+   setBusVolume,sfxPlay,sfxStop,voicePlay,voiceStop,setDucking,applyAudioState,snapshot,
+   getLoopStats:()=>({...loopStats})};
  }
 
  return {LIMITS,CATEGORIES,CATEGORY_NAMES,EXT_MIME,DEFAULT_PREFS,DEFAULT_FADE,
-  pure:{normalizePrefs,finalVolume,normalizeCue,emptyCue,decodeDataUrl,wavInfo,extOf,classifyError,errorInfo,checkImport,readMeta,formatSeconds,formatBytes,silenceUrl},
+  pure:{normalizePrefs,finalVolume,normalizeCue,emptyCue,decodeDataUrl,wavInfo,extOf,classifyError,errorInfo,checkImport,readMeta,formatSeconds,formatBytes,silenceUrl,
+   mixVolume,crossfadeGains,loopSpec,duckSpec,audioActionSpec},
   runtime:createRuntime};
 }
 if(typeof module!=='undefined')module.exports=createPaperAudio;

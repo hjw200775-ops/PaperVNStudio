@@ -16,6 +16,10 @@ release/*
 !release/wanfeng-v08-recording.json
 !release/portable-dir-manifest.json
 !release/v080-rc-game-verify.json
+!release/audio-performance-benchmark.json
+!release/v081-audio-window-html.json
+!release/v081-audio-window-game.json
+!release/wanfeng-v081-audio.json
 release-*/
 out-*/
 out/

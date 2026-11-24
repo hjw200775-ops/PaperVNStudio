@@ -1,5 +1,56 @@
 # 更新日志
 
+## V0.8.1 — 音频演出引擎（2026-11-24）
+
+基线 `43ceec4`（V0.8.0-RC）。本地提交，未推送。
+
+### 新增
+
+- **统一音频引擎（M1）**：`dist/audio.js` 在既有 `HTMLAudioElement` 运行层上做加法，不重写播放器。
+  新增 `mixVolume()`：最终音量 = Master × 用户分类音量 × 剧情总线音量 × 播放音量 × Ducking；
+  用户偏好（`prefs`）与剧情音量（`showVolume`）是两条独立链路，剧情再大声也改不了玩家设置。
+- **交叉淡化（M2）**：`bgmCrossfade()` 新旧两个通道并存，支持 `linear` 与 `equalPower`（sin/cos，功率不塌）；
+  新曲立刻开始播、旧曲淡出后才销毁；同一首 BGM 的切换请求不新建实例，只调音量与循环。
+- **循环区间**：`loopSpec` 三态（不循环 / 整曲 / `[start, end]`），到 `loopEnd` 回跳 `loopStart`，
+  记录跳回次数与接缝越界毫秒；标题音乐也支持 `loopStart/loopEnd`（`checkTitleMusic` 校验区间）。
+- **Ducking（M3）**：`duckPush/duckPop` 计数持有，连续语音不抖；`level/attack/release` 可配；
+  语音替换时先停止旧通道再重新持有，不累积。
+- **11 种音频动作（M4）**：`audio.bgm.play/stop/crossfade/volume/loop`、`audio.sfx.play/stop`、
+  `audio.voice.play/stop`、`audio.bus.volume`、`audio.ducking`。参数逐项校验，旧工程 `performance: null` 照常可用。
+- **可计算终态与副作用的分离**：BGM / 总线 / Ducking 写进 `stateAt()` 的 `audio` 目标状态，
+  跳过与快进用 `applyAudioState()` 一次性落地（同一首不重启）；SFX / Voice 是纯副作用，
+  不进终态，跳过与读档一律不补播。
+- **编辑面板（M5）**：新增 7 个音频预设与音频参数控件（素材、音量、淡入淡出、过渡、循环、曲线、总线、压低），
+  以及「♪ 试听这条动作的音频素材」。
+- **样板与验收**：《晚风》音频演出版（40 句 / 8 个音频动作 / 5 段素材 / 36.2 MB 单文件），
+  引擎层与播放器层两个真实运行时验收脚本，报告见 `release/audio-performance-benchmark.json`、
+  `release/v081-audio-window-html.json`。
+
+### 修复
+
+- **导出的音频裁剪漏掉演出引用**：`core.referencedAudioIds()` 只统计逐句音频指令，
+  演出里 `audio.*` 用到的 BGM / 音效会被裁掉，运行时表现为「素材缺失」。已把音频动作计入引用表。
+- **读档后没有 BGM**：`draw()` 的顺序让 `enterAudio(rebuild)` 的 `stopBgm` 把演出刚起的音乐掐掉；
+  改为「逐句音频先落地、演出音频后接管」。同时补上「从 trail 重建出的继承音频状态」——
+  中途继续时先按重建状态恢复 BGM，再挂本句动作。
+- **面板初始化与参数输入**：音频参数里的复选（压低开关）与文本（音效 key）原先会走数字分支，已分别处理。
+
+### 实测
+
+- 引擎层（真实 Chromium 解码）：首次播放 100–246 ms；线性淡入 15 点单调 0→0.80；
+  等功率交叉 12 点 0→0.79、峰值 0.80、过渡期 `retiring=1`、结束后 0；
+  Ducking 0.80→0.28→0.80；100 次切换后 `instances={bgm:1,retiring:0}`、音量 0.80 不漂移；0 异常。
+- 播放器层（单文件 HTML）：标题循环 28 秒 3 个完整循环（越界均 34 ms）；开始游戏 325 ms 可闻；
+  第 14 句换曲终态正确；快进后 `sfx=0/voice=0/bgm=1`；读档恢复夜晚 BGM 与区间循环。
+- 循环接缝：本机验收窗口无前台合成器，rAF 不触发、定时器被节流到 ~1 s，
+  实测平均 330 ms / 最大 984 ms——**如实记录，不宣称采样级无缝**。
+
+### 未完成
+
+- 未做人工试听（技术验收通过，听感待确认）；
+- 目录版游戏 / Windows 版本的音频实机、1 GiB 大型工程音频回归均未跑；
+- Windows 可运行版本仍是 V0.8.0-RC 的构建，需重新打包才能包含本轮改动。
+
 ## V0.8.0-RC — 目录版游戏实机验收（2026-11-24）
 
 补齐 V0.8.0 遗留的硬性缺口：**目录版游戏导出 → 启动独立 EXE → 实际播放舞台演出**。

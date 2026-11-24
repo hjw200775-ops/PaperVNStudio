@@ -284,4 +284,54 @@ const fin = (actions, before) => S(actions, Infinity, before);
   assert.deepEqual(JSON.parse(JSON.stringify(cancelled)), JSON.parse(JSON.stringify(whole)), '中途取消后结算 = 整段播完');
 }
 
-console.log('PASS: 演出数据模型（校验/默认值/持久化/未知类型）、顺序与并行、阻塞点、单动作插值、多角色独立、跳过与重放一致、镜头复位、100 次重复不漂移、7 个预设、非法参数、分支/重开/换章/取消同步');
+/* ---------- V0.8.1：音频动作只写目标状态，不产生副作用 ---------- */
+{
+  const play = PF.make('au1', 'audio.bgm.play', '', { params: { audioId: 'm1', volume: 80, fadeIn: 1, loopMode: 'region', loopStart: 5, loopEnd: 20 }, duration: 1 });
+  assert.equal(PF.isAudioType('audio.bgm.play'), true);
+  assert.equal(PF.isAudioType('character.show'), false);
+  const st = PF.stateAt(PF.emptyState(), [play], Infinity, ctx);
+  assert.deepEqual(st.audio.bgm, { audioId: 'm1', volume: .8, loop: { mode: 'region', start: 5, end: 20 }, playing: true }, '终态记下目标 BGM');
+  assert.deepEqual([st.layers.c1.dx, st.layers.c1.opacity], [0, 1], '音频动作不改变任何图层状态');
+
+  const stop = PF.make('au2', 'audio.bgm.stop', '', { params: { fadeOut: 1 }, duration: 1 });
+  assert.equal(PF.stateAt(st, [stop], Infinity, ctx).audio.bgm, null, '停止后目标 BGM 为空');
+
+  const bus = PF.make('au3', 'audio.bus.volume', '', { params: { bus: 'bgm', volume: 40, duration: 1, easing: 'linear' }, duration: 1, easing: 'linear' });
+  assert.equal(+PF.stateAt(PF.emptyState(), [bus], Infinity, ctx).audio.buses.bgm.toFixed(3), .4, '剧情总线音量进状态');
+
+  const duck = PF.make('au4', 'audio.ducking', '', { params: { enabled: true, level: 30, attack: .2, release: .5 }, duration: .3 });
+  assert.deepEqual(PF.stateAt(PF.emptyState(), [duck], Infinity, ctx).audio.ducking, { enabled: true, level: .3, attack: .2, release: .5 });
+
+  /* 一次性声音（音效 / 配音）没有终态：快进与跳过时不能重放历史声音 */
+  const base = JSON.stringify(PF.stateAt(st, [], Infinity, ctx).audio);
+  const sfx = PF.make('au5', 'audio.sfx.play', '', { params: { audioId: 's1', volume: 100 }, duration: 0 });
+  const voice = PF.make('au6', 'audio.voice.play', '', { params: { audioId: 'v1', volume: 100, duck: true }, duration: 0 });
+  assert.equal(JSON.stringify(PF.stateAt(st, [sfx, voice], Infinity, ctx).audio), base, '音效与配音不写终态');
+
+  /* 音量渐变：中途值在两端之间 */
+  const beforeVol = PF.emptyState();
+  beforeVol.audio.bgm = { audioId: 'm1', volume: 1, loop: { mode: 'all', start: 0, end: 0 }, playing: true };
+  const half = PF.stateAt(beforeVol, [PF.make('au7', 'audio.bgm.volume', '', { params: { volume: 0, duration: 2 }, duration: 2, easing: 'linear' })], 1, ctx);
+  assert(Math.abs(half.audio.bgm.volume - .5) < 1e-6, '中途音量在两端之间：' + half.audio.bgm.volume);
+  assert.equal(st.audio.bgm.volume, .8, '播放动作的终态音量 = 80%');
+
+  /* 非法音频参数在入口拒绝 */
+  assert.throws(() => PF.validate({ version: 1, actions: [PF.make('bad1', 'audio.bgm.loop', '', { params: { loopMode: 'region', loopStart: 20, loopEnd: 4 } })] }), /循环区间/);
+  assert.throws(() => PF.validate({ version: 1, actions: [PF.make('bad2', 'audio.bgm.volume', '', { params: { volume: 120, duration: 1 } })] }), /音量/);
+  assert.throws(() => PF.validate({ version: 1, actions: [PF.make('bad3', 'audio.ducking', '', { params: { enabled: 'yes', level: 30, attack: .2, release: .5 } })] }), /压低开关/);
+  assert.throws(() => PF.validate({ version: 1, actions: [PF.make('bad4', 'audio.bgm.crossfade', '', { params: { audioId: 'm1', volume: 100, duration: 1, curve: 'bounce', loopMode: 'all' } })] }), /曲线/);
+  assert.throws(() => PF.validate({ version: 1, actions: [PF.make('bad5', 'audio.bus.volume', '', { params: { bus: 'reverb', volume: 50, duration: 1 } })] }), /总线/);
+
+  /* 音频预设只生成标准动作 */
+  let n2 = 0;
+  const id2 = () => 'ap' + (++n2);
+  for (const preset of PF.AUDIO_PRESETS) {
+    const actions = preset.build(id2, { audioId: 'm1' });
+    assert.ok(actions.length > 0, preset.name + ' 必须产出动作');
+    assert.doesNotThrow(() => PF.validate({ version: 1, actions }), preset.name + ' 必须是合法动作');
+    for (const a of actions) assert.ok(PF.isAudioType(a.type), preset.name + ' 只能产出音频动作');
+  }
+  assert.equal(PF.AUDIO_PRESETS.length, 7, '任务书要求的 7 个音频预设');
+}
+
+console.log('PASS: 演出数据模型（校验/默认值/持久化/未知类型）、顺序与并行、阻塞点、单动作插值、多角色独立、跳过与重放一致、镜头复位、100 次重复不漂移、7 个预设、非法参数、分支/重开/换章/取消同步、音频动作目标状态与 7 个音频预设');

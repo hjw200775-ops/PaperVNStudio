@@ -30,10 +30,35 @@ function createPaperPerformance() {
     'screen.fade': { name: '全屏渐暗 / 渐亮', target: 'stage', params: { to: 100, color: 'black' }, defDur: 0.8 },
     'screen.flash': { name: '屏幕闪白', target: 'stage', params: { color: 'white' }, defDur: 0.5 },
     'screen.shake': { name: '屏幕震动', target: 'stage', params: { strength: 2 }, defDur: 0.5 },
-    wait: { name: '等待', target: 'stage', params: {}, defDur: 1 }
+    wait: { name: '等待', target: 'stage', params: {}, defDur: 1 },
+    /* ---------- V0.8.1 音频动作 ----------
+       音频是「有外部副作用」的动作，因此这里只声明参数与时间关系；
+       真正的播放/停止由播放器在动作起点调用音频引擎完成，
+       终态由 stateAt() 计算后一次性落地（跳过 / 快进 / 读档）。 */
+    'audio.bgm.play': { name: '播放背景音乐', target: 'stage', audio: true, params: { audioId: '', volume: 100, fadeIn: 0.8, loopMode: 'all', loopStart: 0, loopEnd: 0 }, defDur: 0.8 },
+    'audio.bgm.stop': { name: '停止背景音乐', target: 'stage', audio: true, params: { fadeOut: 1 }, defDur: 1 },
+    'audio.bgm.crossfade': { name: '切换背景音乐', target: 'stage', audio: true, params: { audioId: '', volume: 100, duration: 2, curve: 'equalPower', loopMode: 'all', loopStart: 0, loopEnd: 0 }, defDur: 2 },
+    'audio.bgm.volume': { name: '背景音乐音量', target: 'stage', audio: true, params: { volume: 60, duration: 0.8 }, defDur: 0.8 },
+    'audio.bgm.loop': { name: '背景音乐循环', target: 'stage', audio: true, params: { loopMode: 'region', loopStart: 10, loopEnd: 40 }, defDur: 0.3 },
+    'audio.sfx.play': { name: '播放音效', target: 'stage', audio: true, params: { audioId: '', volume: 100, key: '' }, defDur: 0.3 },
+    'audio.sfx.stop': { name: '停止音效', target: 'stage', audio: true, params: { key: '' }, defDur: 0.1 },
+    'audio.voice.play': { name: '播放配音', target: 'stage', audio: true, params: { audioId: '', volume: 100, duck: true }, defDur: 0.5 },
+    'audio.voice.stop': { name: '停止配音', target: 'stage', audio: true, params: {}, defDur: 0.1 },
+    'audio.bus.volume': { name: '调整总线音量', target: 'stage', audio: true, params: { bus: 'bgm', volume: 70, duration: 0.6 }, defDur: 0.6 },
+    'audio.ducking': { name: '自动压低音乐', target: 'stage', audio: true, params: { enabled: true, level: 35, attack: 0.25, release: 0.6 }, defDur: 0.3 }
   };
   const EASINGS = ['linear', 'easeIn', 'easeOut', 'easeInOut'];
   const MAX_ACTIONS = 200;
+  const AUDIO_BUSES = ['bgm', 'sfx', 'voice'];
+
+  /* 循环区间归一化：region 必须 end > start，否则退化为整曲循环。 */
+  function loopOf(p) {
+    const mode = p.loopMode === 'off' ? 'off' : p.loopMode === 'region' ? 'region' : 'all';
+    const start = num(p.loopStart) ? p.loopStart : 0;
+    const end = num(p.loopEnd) ? p.loopEnd : 0;
+    if (mode === 'region' && end > start) return { mode: 'region', start, end };
+    return { mode: mode === 'off' ? 'off' : 'all', start: 0, end: 0 };
+  }
 
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const num = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -144,6 +169,41 @@ function createPaperPerformance() {
         need(['white', 'black'].includes(p.color), '闪光颜色无效'); break;
       case 'screen.shake':
         need(num(p.strength) && p.strength >= 0.5 && p.strength <= 6, '震动强度需在 0.5–6'); break;
+      /* ---------- 音频动作 ---------- */
+      case 'audio.bgm.play':
+      case 'audio.bgm.crossfade':
+        need(typeof p.audioId === 'string', '音频素材 ID 格式错误');
+        need(num(p.volume) && p.volume >= 0 && p.volume <= 100, '音量需在 0–100');
+        need(['off', 'all', 'region'].includes(p.loopMode), '循环模式无效');
+        if (p.loopMode === 'region') need(num(p.loopStart) && num(p.loopEnd) && p.loopEnd > p.loopStart, '循环区间需结束晚于开始');
+        if (a.type === 'audio.bgm.crossfade') {
+          need(num(p.duration) && p.duration >= 0 && p.duration <= 10, '交叉淡化时长需在 0–10 秒');
+          need(['linear', 'equalPower'].includes(p.curve), '淡入淡出曲线无效');
+        } else need(num(p.fadeIn) && p.fadeIn >= 0 && p.fadeIn <= 10, '淡入时长需在 0–10 秒');
+        break;
+      case 'audio.bgm.stop':
+        need(num(p.fadeOut) && p.fadeOut >= 0 && p.fadeOut <= 10, '淡出时长需在 0–10 秒'); break;
+      case 'audio.bgm.volume':
+        need(num(p.volume) && p.volume >= 0 && p.volume <= 100, '音量需在 0–100');
+        need(num(p.duration) && p.duration >= 0 && p.duration <= 10, '过渡时长需在 0–10 秒'); break;
+      case 'audio.bgm.loop':
+        need(['off', 'all', 'region'].includes(p.loopMode), '循环模式无效');
+        if (p.loopMode === 'region') need(num(p.loopStart) && num(p.loopEnd) && p.loopEnd > p.loopStart, '循环区间需结束晚于开始');
+        break;
+      case 'audio.sfx.play':
+      case 'audio.voice.play':
+        need(typeof p.audioId === 'string', '音频素材 ID 格式错误');
+        need(num(p.volume) && p.volume >= 0 && p.volume <= 100, '音量需在 0–100'); break;
+      case 'audio.sfx.stop':
+        need(typeof p.key === 'string', '音效标识格式错误'); break;
+      case 'audio.bus.volume':
+        need(AUDIO_BUSES.includes(p.bus), '目标总线无效');
+        need(num(p.volume) && p.volume >= 0 && p.volume <= 100, '音量需在 0–100'); break;
+      case 'audio.ducking':
+        need(typeof p.enabled === 'boolean', '压低开关格式错误');
+        need(num(p.level) && p.level >= 0 && p.level <= 100, '压低程度需在 0–100');
+        need(num(p.attack) && p.attack >= 0 && p.attack <= 10, 'Attack 需在 0–10 秒');
+        need(num(p.release) && p.release >= 0 && p.release <= 10, 'Release 需在 0–10 秒'); break;
       default: break;
     }
   }
@@ -169,10 +229,15 @@ function createPaperPerformance() {
 
   /* ---------- 状态 ---------- */
   function emptyState() {
-    return { layers: {}, camera: { x: 0, y: 0, scale: 1 }, screen: { dim: 0, color: 'black' } };
+    return { layers: {}, camera: { x: 0, y: 0, scale: 1 }, screen: { dim: 0, color: 'black' },
+      /* audio 是「目标状态」而不是播放对象：只有数值与素材 ID，可直接比较与序列化 */
+      audio: { bgm: null, buses: { bgm: 1, sfx: 1, voice: 1 }, ducking: null } };
   }
   function cloneState(s) {
-    const out = { layers: {}, camera: { ...s.camera }, screen: { ...s.screen } };
+    const out = { layers: {}, camera: { ...s.camera }, screen: { ...s.screen },
+      audio: s.audio ? { bgm: s.audio.bgm ? { ...s.audio.bgm, loop: { ...s.audio.bgm.loop } } : null,
+        buses: { ...s.audio.buses }, ducking: s.audio.ducking ? { ...s.audio.ducking } : null }
+        : { bgm: null, buses: { bgm: 1, sfx: 1, voice: 1 }, ducking: null } };
     for (const [k, v] of Object.entries(s.layers)) out.layers[k] = { ...v };
     return out;
   }
@@ -314,6 +379,37 @@ function createPaperPerformance() {
         st.screen.shakeY = Math.cos(t * Math.PI * 6) * amp * (1 - t) * 16;
         break;
       }
+      /* ---------- 音频：只写「目标状态」，不碰播放器 ---------- */
+      case 'audio.bgm.play':
+      case 'audio.bgm.crossfade': {
+        st.audio.bgm = { audioId: p.audioId, volume: (p.volume == null ? 100 : p.volume) / 100, loop: loopOf(p), playing: true };
+        break;
+      }
+      case 'audio.bgm.stop': { st.audio.bgm = null; break; }
+      case 'audio.bgm.volume': {
+        if (st.audio.bgm) st.audio.bgm.volume = lerp(st.audio.bgm.volume, (p.volume == null ? 100 : p.volume) / 100, t);
+        break;
+      }
+      case 'audio.bgm.loop': {
+        if (st.audio.bgm) st.audio.bgm.loop = loopOf(p);
+        break;
+      }
+      case 'audio.bus.volume': {
+        const bus = AUDIO_BUSES.includes(p.bus) ? p.bus : 'bgm';
+        const from = st.audio.buses[bus] == null ? 1 : st.audio.buses[bus];
+        st.audio.buses[bus] = lerp(from, (p.volume == null ? 100 : p.volume) / 100, t);
+        break;
+      }
+      case 'audio.ducking': {
+        st.audio.ducking = { enabled: p.enabled !== false, level: (p.level == null ? 35 : p.level) / 100,
+          attack: p.attack, release: p.release };
+        break;
+      }
+      /* 一次性动作（音效 / 配音）没有「终态」可记：跳过与快进时不应重放历史声音。 */
+      case 'audio.sfx.play':
+      case 'audio.sfx.stop':
+      case 'audio.voice.play':
+      case 'audio.voice.stop': break;
       default: break;
     }
   }
@@ -571,6 +667,28 @@ function createPaperPerformance() {
     const who = l ? l.name : (action.target === 'bg' ? '背景' : action.target || '舞台');
     const p = action.params || {};
     const bits = [];
+    /* 音频动作没有图层，摘要里用总线名 + 素材名 + 关键参数 */
+    if (action.type.indexOf('audio.') === 0) {
+      const assets = (P && P.audioAssets) || [];
+      const nameOf = (id) => {
+        const a = assets.find((x) => x.id === id);
+        return a ? a.name : (id ? '素材已失效' : '未选择素材');
+      };
+      const loopText = () => (p.loopMode === 'region' ? '循环 ' + p.loopStart + '–' + p.loopEnd + 's' : p.loopMode === 'off' ? '不循环' : '整曲循环');
+      const bus = action.type.startsWith('audio.bgm') ? '背景音乐' : action.type.startsWith('audio.sfx') ? '音效' : action.type.startsWith('audio.voice') ? '配音' : action.type === 'audio.bus.volume' ? '总线' : '混音';
+      if (action.type === 'audio.bgm.play') bits.push(nameOf(p.audioId) + ' · 音量 ' + p.volume + '% · 淡入 ' + p.fadeIn + 's · ' + loopText());
+      else if (action.type === 'audio.bgm.stop') bits.push('淡出 ' + p.fadeOut + 's');
+      else if (action.type === 'audio.bgm.crossfade') bits.push(nameOf(p.audioId) + ' · ' + p.duration + 's · ' + (p.curve === 'equalPower' ? '等功率' : '线性') + ' · ' + loopText());
+      else if (action.type === 'audio.bgm.volume') bits.push(p.volume + '% · ' + p.duration + 's');
+      else if (action.type === 'audio.bgm.loop') bits.push(loopText());
+      else if (action.type === 'audio.sfx.play') bits.push(nameOf(p.audioId) + ' · ' + p.volume + '%' + (p.key ? ' · ' + p.key : ''));
+      else if (action.type === 'audio.sfx.stop') bits.push(p.key ? '停止 ' + p.key : '停止全部同名音效');
+      else if (action.type === 'audio.voice.play') bits.push(nameOf(p.audioId) + ' · ' + (p.duck !== false ? '压低音乐' : '不压低'));
+      else if (action.type === 'audio.voice.stop') bits.push('停止当前配音');
+      else if (action.type === 'audio.bus.volume') bits.push(p.bus + ' → ' + p.volume + '%');
+      else if (action.type === 'audio.ducking') bits.push((p.enabled === false ? '关闭' : '压低到 ' + p.level + '%') + ' · ' + p.attack + 's / ' + p.release + 's');
+      return { type: meta.name, who: bus, detail: bits.join(' · ') };
+    }
     if (action.type === 'character.show') bits.push({ left: '从左侧进入', right: '从右侧进入', fade: '淡入', none: '直接出现' }[p.side] || '淡入');
     if (action.type === 'character.hide') bits.push(p.mode === 'out' ? '移出舞台' : '淡出');
     if (action.type === 'character.move') bits.push('到 ' + Math.round(p.x) + '% / ' + Math.round(p.y) + '%');
@@ -637,11 +755,33 @@ function createPaperPerformance() {
     }
   ];
 
+  /* ---------- 音频预设（V0.8.1） ----------
+     与视觉预设一样，只生成标准动作；音频素材由 ctx.audioId 带入，
+     没选素材时生成的动作仍然合法，只是播放时会被跳过。 */
+  const AUDIO_PRESETS = [
+    { id: 'bgmFadeIn', name: 'BGM 淡入', build: (id, ctx) => [
+      make(id(), 'audio.bgm.play', '', { params: { audioId: (ctx && ctx.audioId) || '', volume: 80, fadeIn: 2, loopMode: 'all' }, duration: 2 })] },
+    { id: 'bgmFadeOut', name: 'BGM 淡出', build: (id) => [
+      make(id(), 'audio.bgm.stop', '', { params: { fadeOut: 2 }, duration: 2 })] },
+    { id: 'bgmCrossfade', name: '平滑切换 BGM', build: (id, ctx) => [
+      make(id(), 'audio.bgm.crossfade', '', { params: { audioId: (ctx && ctx.audioId) || '', volume: 85, duration: 2.5, curve: 'equalPower', loopMode: 'all' }, duration: 2.5 })] },
+    { id: 'ambienceDown', name: '环境音乐渐弱', build: (id) => [
+      make(id(), 'audio.bus.volume', '', { params: { bus: 'bgm', volume: 35, duration: 3 }, duration: 3 })] },
+    { id: 'duckUnderVoice', name: '配音压低音乐', build: (id) => [
+      make(id(), 'audio.ducking', '', { params: { enabled: true, level: 35, attack: 0.25, release: 0.6 }, duration: 0.3 })] },
+    { id: 'sceneFadeOut', name: '场景结束音乐淡出', build: (id) => [
+      make(id(), 'audio.bgm.stop', '', { params: { fadeOut: 3 }, duration: 3 })] },
+    { id: 'musicSwell', name: '音乐渐强', build: (id) => [
+      make(id(), 'audio.bus.volume', '', { params: { bus: 'bgm', volume: 100, duration: 2 }, duration: 2 }),
+      make(id(), 'audio.bgm.volume', '', { params: { volume: 100, duration: 2 }, duration: 2, mode: 'parallel' })] }
+  ];
+
   return {
-    VERSION, TYPES, EASINGS, PRESETS, MAX_ACTIONS,
+    VERSION, TYPES, EASINGS, PRESETS, AUDIO_PRESETS, MAX_ACTIONS, AUDIO_BUSES,
+    isAudioType: (t) => String(t || '').indexOf('audio.') === 0,
     make, empty, normalize, validate, schedule, totalDuration, blockUntil,
     emptyState, cloneState, stateAt, replay, commit, applyDOM, clearOverlays, play,
-    resolveTarget, describe, expressionAsset, ease
+    resolveTarget, describe, expressionAsset, ease, loopOf
   };
 }
 if (typeof module !== 'undefined') module.exports = createPaperPerformance;

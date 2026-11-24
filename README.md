@@ -1,7 +1,7 @@
 # 纸间 PaperVNStudio
 
 <p>
-  <img alt="version" src="https://img.shields.io/badge/version-0.8.0-2F6F5E?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-0.8.1-2F6F5E?style=flat-square">
   <img alt="electron" src="https://img.shields.io/badge/Electron-45-47848F?style=flat-square&logo=electron&logoColor=white">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D4?style=flat-square">
@@ -11,16 +11,19 @@
 
 <img src="docs/screenshots/v076-editor-assets.png" alt="编辑器：左侧剧情脚本、中间舞台、右侧剧情与画面">
 
-> **V0.8.0 已发布。** 新增「舞台演出」：角色登场 / 离场 / 移动 / 缩放 / 表情、背景转场、镜头推拉、闪白与震动，
+> **V0.8.1 已发布。** 演出从「只动画面」扩展到「画面与声音一起编排」：BGM 淡入淡出与等功率交叉淡化、
+> 循环区间、配音自动压低音乐（Ducking）、独立音效通道，全部按「顺序 / 并行 / 阻塞」与画面动作排在同一条时间线上。
+> 上一版 V0.8.0 的「舞台演出」：角色登场 / 离场 / 移动 / 缩放 / 表情、背景转场、镜头推拉、闪白与震动，
 > 用「顺序 · 并行 · 阻塞」编排成一段动作序列。跳过动画与正常播完必然是同一个终态，编辑器、完整预览、
 > 单文件 HTML、独立游戏共用同一套运行时。
-> [下载最新版](https://github.com/hjw200775-ops/PaperVNStudio/releases/latest) · [更新日志](CHANGELOG.md) · [演出架构](docs/V0.8.0_STAGE_PERFORMANCE.md) · [编辑器教程](docs/STAGE_PERFORMANCE_GUIDE.md) · [验收报告](docs/V0.8.0_ACCEPTANCE_REPORT.md)
+> [下载最新版](https://github.com/hjw200775-ops/PaperVNStudio/releases/latest) · [更新日志](CHANGELOG.md) · [音频架构](docs/V0.8.1_AUDIO_PERFORMANCE.md) · [演出架构](docs/V0.8.0_STAGE_PERFORMANCE.md) · [音频验收](docs/V0.8.1_ACCEPTANCE_REPORT.md) · [演出验收](docs/V0.8.0_ACCEPTANCE_REPORT.md)
 
 ## 下载
 
 | 版本 | 你能拿到什么 | 入口 |
 | --- | --- | --- |
-| **V0.8.0（最新）** | 演出系统的源码、测试与《晚风》演出优化试玩版构建脚本 | [Releases › v0.8.0](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.8.0) |
+| **V0.8.1（最新）** | 音频演出引擎源码、测试与《晚风》音频演出版构建脚本 | 本地提交（未打 tag） |
+| V0.8.0 | 舞台演出系统与《晚风》三场景样板 | [Releases › v0.8.0](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.8.0) |
 | V0.7.6 | 源码、流式素材测试、1 GiB 生成脚本与验收数据 | [Releases › v0.7.6](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.6) |
 | V0.7.5 | 《晚风》第一章节选单文件试玩 HTML（23.6 MB） | [Releases › v0.7.5](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.5) |
 | V0.7.3 | 纸间便携版 EXE（126 MB）+ 试玩 HTML | [Releases › v0.7.3](https://github.com/hjw200775-ops/PaperVNStudio/releases/tag/v0.7.3) |
@@ -28,6 +31,32 @@
 | V0.6.2 及更早 | 便携版 ZIP + 示例 HTML | [全部版本](https://github.com/hjw200775-ops/PaperVNStudio/releases) |
 
 产物面向 Windows 10/11 x64；**未代码签名**，首次运行若出现 SmartScreen 提示，选「更多信息 → 仍要运行」。不想下载二进制就从源码跑：`npm install && npm run desktop`。
+
+## V0.8.1 新增：音频演出引擎
+
+画面能演出了，声音也需要能被“编排”，而不只是逐句切歌。
+
+- **统一混音**：最终音量 = Master × 用户分类音量 × 剧情总线音量 × 播放音量 × Ducking。
+  剧情把音乐压到 20%，玩家在设置里存的 80% 依旧是 80%，不会被剧情改写。
+- **交叉淡化**：新旧两个通道并存，`linear` 或 `equalPower`（功率不塌）；新曲立刻开始播，旧曲淡完才销毁；
+  同一首重复请求不新建实例——从机制上排除双重 BGM。
+- **循环区间**：不循环 / 整曲 / `[loopStart, loopEnd]`，到点回跳并记录接缝误差。**不宣称采样级无缝**：实测精度见验收报告。
+- **配音 Ducking**：语音开始时平滑压低、结束恢复，连续语音用计数持有，不会每句抖一次。
+- **11 种音频动作**：BGM 播放 / 停止 / 切换 / 音量 / 循环，音效播放 / 停止，配音播放 / 停止，
+  总线音量与 Ducking 参数；与角色、背景、镜头动作共用同一条时间线，可顺序、可并行、可阻塞。
+- **可计算的目标状态 + 副作用分离**：跳过与快进时 BGM 直接落到终态（同一首不重启），
+  但历史音效与配音**不会**被重放。
+
+| 实测（真实 Chromium 解码） | 结果 |
+| --- | --- |
+| 线性淡入 1.6 s | 15 个采样点单调 0 → 0.80 |
+| 等功率交叉 1.5 s | 12 点 0 → 0.79，峰值 0.80，过渡期旧曲并存 |
+| Ducking | 0.80 → 0.28 → 0.80 |
+| 连续 100 次切换 | 实例 `{bgm:1, retiring:0}`，音量不漂移，用户偏好未被改写 |
+| 标题音乐循环 | 28 秒 3 个完整循环，跳回越界均 34 ms |
+
+《晚风》音频演出版（40 句 / 8 个音频动作）与原始版可直接对听：
+`release/wanfeng-v081/晚风经过二楼走廊·音频演出版.html`。
 
 ## V0.8.0 新增：舞台演出（Stage Performance Engine）
 

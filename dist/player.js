@@ -22,6 +22,26 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory,performanceFactory
     独立于剧情 BGM 的播放通道：进入游戏时暂停、返回标题时从暂停点继续，
     两者不共用 audio.js 的 BGM 槽位，避免标题曲与场景曲相互叠加。 */
  let titleAudio=null;
+ /* 标题音乐循环区间的实测统计：跳回时刻相对 loopEnd 的超出量就是接缝误差。 */
+ let titleLoopStats={loops:0,overrunMaxMs:0,overrunSumMs:0,region:null},titleLoopTimer=0;
+ function stopTitleLoopTimer(){if(titleLoopTimer){clearInterval(titleLoopTimer);titleLoopTimer=0}}
+ function startTitleLoopTimer(el,cfg){
+  const start=Number(cfg.loopStart)||0,end=Number(cfg.loopEnd)||0;
+  stopTitleLoopTimer();
+  if(!(end>start))return;
+  titleLoopStats.region={start,end};
+  titleLoopTimer=setInterval(()=>{
+   if(!titleAudio||titleAudio!==el||titleAudio.paused)return;
+   let t=0;try{t=titleAudio.currentTime}catch{return}
+   if(t>=end){
+    const overrun=Math.max(0,(t-end)*1000);
+    try{titleAudio.currentTime=start}catch{return}
+    titleLoopStats.loops++;
+    titleLoopStats.overrunSumMs+=overrun;
+    titleLoopStats.overrunMaxMs=Math.max(titleLoopStats.overrunMaxMs,overrun);
+   }
+  },60);
+ }
  function titleTrack(){
   const tm=P.titleMusic;if(!tm||!tm.audioId)return null;
   const a=(P.audioAssets||[]).find(x=>x.id===tm.audioId);
@@ -32,7 +52,9 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory,performanceFactory
   if(titleAudio&&titleAudio.dataset.id===t.asset.id)return titleAudio;
   releaseTitleMusic();
   const el=document.createElement('audio');
-  el.src=t.asset.data;el.loop=t.cfg.loop!==false;el.preload='auto';
+  /* 有循环区间时不能开原生 loop：整曲循环会盖掉 [loopStart, loopEnd] 的意图。 */
+  const region=Number(t.cfg.loopEnd)>Number(t.cfg.loopStart||0);
+  el.src=t.asset.data;el.loop=!region&&t.cfg.loop!==false;el.preload='auto';
   el.volume=Math.min(1,Math.max(0,(Number(t.cfg.volume)||0)/100));
   el.dataset.id=t.asset.id;
   el.addEventListener('error',()=>{if(E('titleNote'))E('titleNote').textContent='标题音乐无法播放：'+(t.asset.name||'素材已损坏')+'。'});
@@ -44,14 +66,18 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory,performanceFactory
  function playTitleMusic(){
   const t=titleTrack();if(!t)return;
   const el=titleMusicEl();if(!el||!el.paused)return;
+  const t2=titleTrack();
+  if(t2&&el.loop===false&&Number(t2.cfg.loopEnd)>Number(t2.cfg.loopStart||0))startTitleLoopTimer(el,t2.cfg);
   const pr=el.play();
   /* 自动播放被拒时不报错：第一次点击开始/继续会再试一次。 */
   if(pr&&pr.catch)pr.catch(()=>{});
  }
  function pauseTitleMusic(){
   if(titleAudio&&!titleAudio.paused){try{titleAudio.pause()}catch{}}
+  stopTitleLoopTimer();
  }
  function releaseTitleMusic(){
+  stopTitleLoopTimer();
   if(!titleAudio)return;
   try{titleAudio.pause()}catch{}
   titleAudio.removeAttribute('src');
@@ -150,6 +176,61 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory,performanceFactory
   }
   return st;
  }
+ /* ---------- 音频演出执行器（V0.8.1） ----------
+  * performance.js 只算「目标状态」，这里负责副作用：在动作起点调用音频引擎，
+  * 跳过 / 快进 / 换句时取消未执行的定时器，并把目标状态一次性落地。
+  * 一次性声音（SFX / Voice）永远不参与「落地」——快进不能重放历史音效。 */
+ let perfAudioTimers=[],perfAudioTarget=null,perfAudioRebuild=false,perfAudioDebug={acts:0,slots:0,animate:null,err:''};
+ function clearPerfAudio(){for(const t of perfAudioTimers)clearTimeout(t);perfAudioTimers=[]}
+ function perfAudioAction(a){
+  if(!audio||!A||!A.pure||!A.pure.audioActionSpec)return;
+  const spec=A.pure.audioActionSpec(a.type,a.params);
+  if(!spec)return;
+  switch(spec.action){
+   case 'play':
+   case 'crossfade':
+    if(!spec.audioId)return;
+    if(spec.action==='play')audio.bgmCrossfade({audioId:spec.audioId,volume:spec.volume,duration:spec.fadeIn||0,curve:'linear',loop:spec.loop});
+    else audio.bgmCrossfade({audioId:spec.audioId,volume:spec.volume,duration:spec.duration,curve:spec.curve,loop:spec.loop});
+    break;
+   case 'stop': audio.bgmStop({fadeOut:spec.fadeOut}); break;
+   case 'volume': audio.bgmVolume(spec.volume,{duration:spec.duration}); break;
+   case 'loop': audio.bgmLoop(spec.loop); break;
+   case 'sfx': if(spec.audioId)audio.sfxPlay({audioId:spec.audioId,volume:spec.volume,key:spec.key||a.id},'演出音效'); break;
+   case 'sfxStop': audio.sfxStop(spec.key||a.id); break;
+   case 'voice': if(spec.audioId)audio.voicePlay({audioId:spec.audioId,volume:spec.volume,duck:spec.duck},'演出配音'); break;
+   case 'voiceStop': audio.voiceStop(); break;
+   case 'bus': audio.setBusVolume(spec.bus,spec.volume,spec.duration); break;
+   case 'ducking': audio.setDucking(spec.duck); break;
+   default: break;
+  }
+ }
+ /* animate=false（读档 / 返回 / 跳章 / 减少动态效果）：直接落到终态，不放一次性声音。 */
+ function runAudioPerformance(acts,before,after,animate){
+  clearPerfAudio();
+  perfAudioTarget=after&&after.audio?after.audio:null;
+  perfAudioDebug={acts:acts.length,slots:-1,animate:animate,err:''};
+  if(!audio||!A||!A.pure||!perfAudioTarget)return;
+  /* 读档 / 返回后继续：先把「这一句继承下来的音频状态」落地（同一首不重启），
+     再挂本句自己的音频动作。漏掉这一步，从中途继续会没有 BGM。 */
+  if(perfAudioRebuild){
+   perfAudioRebuild=false;
+   if(before&&before.audio&&audio.applyAudioState)audio.applyAudioState(before.audio);
+  }
+  let slots=[];
+  try{slots=PF.schedule(acts).filter(s=>PF.isAudioType(s.action.type));}
+  catch(e){perfAudioDebug.err=String(e&&e.message||e);return}
+  perfAudioDebug.slots=slots.length;
+  if(!slots.length)return;
+  if(!animate){audio.applyAudioState(perfAudioTarget);return}
+  for(const s of slots){
+   const t=setTimeout(()=>{
+    if(state!=='playing')return;
+    perfAudioAction(s.action);
+   },Math.max(0,s.start)*1000);
+   perfAudioTimers.push(t);
+  }
+ }
  function runPerformance(n,layers,animate){
   if(!PF)return;
   if(perfCtl){perfCtl.cancel();perfCtl=null}
@@ -159,7 +240,8 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory,performanceFactory
   const after=acts.length?PF.stateAt(before,acts,Infinity,{P,layers}):before;
   /* 立刻记账：即使动画没播完就跳句 / 快进，后续节点也从终态接着算，不会位置漂移。 */
   perfState=after;
-  if(!acts.length){PF.applyDOM(E('layers'),layers,before,{P});return}
+  if(!acts.length){PF.applyDOM(E('layers'),layers,before,{P});perfAudioTarget=before&&before.audio?before.audio:null;return}
+  runAudioPerformance(acts,before,after,!animate||prefersReduced());
   perfCtl=PF.play({container:E('layers'),layers,actions:acts,before,P,reduced:!animate||prefersReduced(),
    onDone:()=>{perfState=after;perfCtl=null;if(perfHint)E('hint').textContent=perfHint}});
   perfHint=E('hint').textContent;
@@ -167,12 +249,22 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory,performanceFactory
  }
  /* 阻塞演出未播完时，点击先把演出结算到终态，再点才推进剧情。 */
  function perfBlocking(){return !!(perfCtl&&perfCtl.running&&perfCtl.blockAt>0)}
- function perfSkip(){if(perfCtl)perfCtl.finish()}
+ function perfSkip(){
+  if(perfCtl)perfCtl.finish();
+  /* 跳过 = 立刻到终态：未执行的音频动作全部取消，BGM 落到目标状态。 */
+  clearPerfAudio();
+  if(audio&&audio.applyAudioState&&perfAudioTarget)audio.applyAudioState(perfAudioTarget);
+ }
 
  /* ---------- 舞台绘制 ---------- */
  function draw(animate,audioMode){
   cancelEffect();
   if(perfCtl){perfCtl.cancel();perfCtl=null}
+  /* 换句前先把上一句的音频演出收口：未执行的定时器作废，
+     非阻塞的淡变按目标状态落地，避免「换句后音乐停在半音量」。 */
+  clearPerfAudio();
+  if(audioMode==='rebuild'){perfAudioTarget=null;perfAudioRebuild=true}
+  else if(audio&&audio.applyAudioState&&perfAudioTarget)audio.applyAudioState(perfAudioTarget);
   const n=P.nodes[i];
   const layers=E('layers');
   if(layers)layers.replaceChildren();
@@ -195,8 +287,10 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory,performanceFactory
   E('back').disabled=!trail.length;
   const ls=C.stage(P,n.id,trail);
   if(animate)cancelEffect=F.animate(P,C,n.id,trail,E('layers'),ls);else F.apply(E('layers'),ls,F.frame(P,C,n.id,trail));
-  runPerformance(n,ls,animate);
+  /* 顺序很关键：逐句音频先落地（含 rebuild 时的 stopBgm），演出音频后接管覆盖。
+     反过来会让 startSession 的「清空 BGM」把演出刚起的音乐掐掉。 */
   if(audioMode!=='none')enterAudio(audioMode);
+  runPerformance(n,ls,animate);
  }
 
  /* ---------- 存档：单槽，保留节点 ID 与实际 trail ---------- */
@@ -374,6 +468,7 @@ function applyTitleBackground(){
  /* 返回标题：取消演出、停止全部声音与延迟任务、清空本次会话；保留存档与偏好。 */
  function returnTitle(){
   cancelEffect();cancelEffect=()=>{};
+  clearPerfAudio();perfAudioTarget=null;
   if(audio)audio.stopAll();
   i=0;trail=[];
   const layers=E('layers');if(layers)layers.replaceChildren();
@@ -508,7 +603,12 @@ function applyTitleBackground(){
  /* 只读状态，供离线 HTML 的自动化验收断言，不暴露运行对象。 */
  if(typeof window!=='undefined')window.paperGameState=()=>({state,i,trail:trail.slice(),
   saveOk:!!saveInfo.ok,saveReason:saveInfo.reason||'',nodes:P.nodes.length,hasAudio,
-  titleBg:titleBgOk,audio:audio?audio.status():null});
+  titleBg:titleBgOk,audio:audio?audio.status():null,
+  /* 音频演出取证：活动实例、总线/Ducking、标题循环实测 */
+  audioPerf:audio&&audio.snapshot?audio.snapshot():null,titleLoop:{...titleLoopStats},
+  /* 只读诊断：为什么音频动作没有执行时，一眼能看出卡在哪一层 */
+  audioDebug:{timers:perfAudioTimers.length,hasAudio:!!audio,hasA:!!A,api:!!(audio&&typeof audio.bgmCrossfade),
+   target:perfAudioTarget?{bgm:perfAudioTarget.bgm&&perfAudioTarget.bgm.audioId,ducking:!!perfAudioTarget.ducking}:null,state,reduced:prefersReduced(),run:perfAudioDebug}});
 
  const cleanup=()=>{cancelEffect();cancelEffect=()=>{};if(audio){audio.stopAll();audio.dispose()}};
  if(typeof window!=='undefined'&&window.addEventListener){

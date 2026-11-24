@@ -1,0 +1,90 @@
+{
+  "at": "2026-11-24T13:20:12.516Z",
+  "version": "0.8.1",
+  "project": "release/wanfeng-v081/audio",
+  "trial": "release/wanfeng-v081/晚风经过二楼走廊·音频演出版.html",
+  "nodes": 40,
+  "audioActions": 8,
+  "byType": {
+    "audio.bgm.play": 1,
+    "audio.ducking": 1,
+    "audio.bgm.crossfade": 2,
+    "audio.sfx.play": 1,
+    "audio.voice.play": 1,
+    "audio.voice.stop": 1,
+    "audio.bgm.stop": 1
+  },
+  "audio": [
+    {
+      "id": "bgm_ost_01_title",
+      "name": "晚风经过二楼走廊",
+      "ext": "ogg",
+      "bytes": 1269067,
+      "duration": 37.794,
+      "source": "晚风 OST"
+    },
+    {
+      "id": "bgm_ost_02_morning",
+      "name": "九月的早晨",
+      "ext": "ogg",
+      "bytes": 1346631,
+      "duration": 41.4,
+      "source": "晚风 OST"
+    },
+    {
+      "id": "bgm_ost_03_school_road",
+      "name": "桂花香的小路",
+      "ext": "ogg",
+      "bytes": 1382944,
+      "duration": 39.942,
+      "source": "晚风 OST"
+    },
+    {
+      "id": "bgm_ost_05_after_school",
+      "name": "放学后的走廊",
+      "ext": "ogg",
+      "bytes": 1016706,
+      "duration": 36.068,
+      "source": "晚风 OST"
+    },
+    {
+      "id": "bgm_ost_06_night",
+      "name": "灯还亮着",
+      "ext": "ogg",
+      "bytes": 1017932,
+      "duration": 38.059,
+      "source": "晚风 OST"
+    },
+    {
+      "id": "sfx_chime",
+      "name": "风铃（合成占位）",
+      "ext": "wav",
+      "bytes": 52964,
+      "duration": 1.2,
+      "source": "晚风 OST"
+    },
+    {
+      "id": "voice_placeholder",
+      "name": "林悠·独白（合成占位，仅验 Ducking）",
+      "ext": "wav",
+      "bytes": 102444,
+      "duration": 3.2,
+      "source": "晚风 OST"
+    }
+  ],
+  "audioBytes": 6188688,
+  "titleMusic": {
+    "audioId": "bgm_ost_01_title",
+    "volume": 65,
+    "fadeIn": 1.5,
+    "loop": true,
+    "loopStart": 6,
+    "loopEnd": 14
+  },
+  "export": {
+    "bytes": 37973405,
+    "ms": 231,
+    "scriptTags": 1,
+    "hasEngine": true
+  }
+}

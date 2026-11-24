@@ -1,0 +1,461 @@
+{
+  "at": "2026-11-24T13:18:31.596Z",
+  "version": "0.8.1",
+  "runtime": "Electron 45.3.2",
+  "ok": true,
+  "stages": {
+    "首次播放（真实 OGG 解码）": {
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "ms": 100,
+        "time": 0,
+        "duration": 41.402667
+      }
+    },
+    "淡入曲线（线性 1.6s）": {
+      "ok": true,
+      "detail": {
+        "samples": 15,
+        "from": 0,
+        "to": 0.8,
+        "monotonic": true
+      }
+    },
+    "等功率交叉淡化（1.5s）": {
+      "ok": true,
+      "detail": {
+        "midSamples": 12,
+        "midVolumes": [
+          0,
+          0.1,
+          0.2,
+          0.29,
+          0.39,
+          0.49,
+          0.57,
+          0.63,
+          0.69,
+          0.74,
+          0.78,
+          0.79
+        ],
+        "peak": 0.8,
+        "end": 0.8
+      }
+    },
+    "Ducking 压低与恢复": {
+      "ok": true,
+      "detail": {
+        "base": 0.8,
+        "min": 0.28,
+        "restored": 0.8,
+        "active": false
+      }
+    },
+    "循环区间（1–4s，8 秒内多次回跳）": {
+      "ok": true,
+      "detail": {
+        "jumps": 3,
+        "overrunMaxMs": 984,
+        "avgOverrunMs": 330,
+        "note": "验收窗口无前台合成器：rAF 不触发，定时器被节流到 ~1s，接缝为平台下限，不是采样级无缝"
+      }
+    },
+    "连续 100 次切换不泄漏": {
+      "ok": true,
+      "detail": {
+        "instances": {
+          "bgm": 1,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0
+        },
+        "volume": 0.8,
+        "item": 0.8,
+        "buses": {
+          "bgm": 1,
+          "sfx": 1,
+          "voice": 1
+        },
+        "prefs": {
+          "master": 1,
+          "bgm": 1,
+          "sfx": 1,
+          "voice": 1,
+          "muted": false
+        }
+      }
+    },
+    "运行时资源": {
+      "ok": true,
+      "detail": {
+        "heapUsedBytes": 795504,
+        "audioElements": 1
+      }
+    },
+    "运行时异常": {
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    }
+  },
+  "problems": [],
+  "heap": {
+    "usedBytes": 795504
+  },
+  "curves": {
+    "fadeIn": [
+      {
+        "t": 0,
+        "bgm": 0,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 152,
+        "bgm": 0.075,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 312,
+        "bgm": 0.1505,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 469,
+        "bgm": 0.24,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 623,
+        "bgm": 0.315,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 776,
+        "bgm": 0.391,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 931,
+        "bgm": 0.4655,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 1088,
+        "bgm": 0.5405,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 1249,
+        "bgm": 0.63,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 1400,
+        "bgm": 0.7055,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 1550,
+        "bgm": 0.7805,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 1709,
+        "bgm": 0.8,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 1863,
+        "bgm": 0.8,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 2017,
+        "bgm": 0.8,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      },
+      {
+        "t": 2175,
+        "bgm": 0.8,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "duck": 1
+      }
+    ],
+    "crossfade": [
+      {
+        "t": 0,
+        "v": 0,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 121,
+        "v": 0.1011,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 241,
+        "v": 0.1998,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 371,
+        "v": 0.2945,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 494,
+        "v": 0.3861,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 631,
+        "v": 0.491,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 751,
+        "v": 0.5663,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 883,
+        "v": 0.6326,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 1009,
+        "v": 0.689,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 1140,
+        "v": 0.7441,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 1262,
+        "v": 0.7753,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 1395,
+        "v": 0.7938,
+        "retiring": 1,
+        "id": "bgm_b"
+      },
+      {
+        "t": 1518,
+        "v": 0.8,
+        "retiring": 0,
+        "id": "bgm_b"
+      },
+      {
+        "t": 1643,
+        "v": 0.8,
+        "retiring": 0,
+        "id": "bgm_b"
+      },
+      {
+        "t": 1767,
+        "v": 0.8,
+        "retiring": 0,
+        "id": "bgm_b"
+      },
+      {
+        "t": 1891,
+        "v": 0.8,
+        "retiring": 0,
+        "id": "bgm_b"
+      },
+      {
+        "t": 2016,
+        "v": 0.8,
+        "retiring": 0,
+        "id": "bgm_b"
+      }
+    ],
+    "ducking": [
+      {
+        "t": 0,
+        "bgm": 0.8,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 1
+      },
+      {
+        "t": 104,
+        "bgm": 0.4845,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.6056666666666666
+      },
+      {
+        "t": 212,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      },
+      {
+        "t": 322,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      },
+      {
+        "t": 429,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      },
+      {
+        "t": 539,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      },
+      {
+        "t": 645,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      },
+      {
+        "t": 754,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      },
+      {
+        "t": 861,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      },
+      {
+        "t": 971,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      },
+      {
+        "t": 1078,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      },
+      {
+        "t": 1187,
+        "bgm": 0.28,
+        "item": 0.8,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 1,
+        "duck": 0.35
+      }
+    ]
+  }
+}

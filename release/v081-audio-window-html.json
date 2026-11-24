@@ -1,0 +1,122 @@
+{
+  "at": "2026-11-24T13:20:12.651Z",
+  "version": "0.8.1",
+  "target": "html",
+  "ok": true,
+  "stages": {
+    "运行时启动（html）": {
+      "ok": true,
+      "detail": {
+        "page": "file://",
+        "prefs": {
+          "master": 1,
+          "bgm": 1,
+          "sfx": 1,
+          "voice": 1,
+          "muted": false
+        }
+      }
+    },
+    "标题音乐循环（3 个完整循环）": {
+      "ok": true,
+      "detail": {
+        "loops": 3,
+        "region": {
+          "start": 6,
+          "end": 14
+        },
+        "overrunMaxMs": 37,
+        "avgOverrunMs": 34,
+        "waitedSec": 28
+      }
+    },
+    "BGM 淡入（首个可闻时刻）": {
+      "ok": true,
+      "detail": {
+        "audioId": "bgm_ost_02_morning",
+        "ms": 325,
+        "volume": 0.7,
+        "loop": "all"
+      }
+    },
+    "BGM 交叉淡化与新背景同步（终态）": {
+      "ok": true,
+      "detail": {
+        "from": "bgm_ost_02_morning",
+        "to": "bgm_ost_03_school_road",
+        "midOld": 0,
+        "endVolume": 0.72,
+        "loop": "all"
+      }
+    },
+    "音效动作不产生残留": {
+      "ok": true,
+      "detail": {
+        "sfx": 0,
+        "note": "实时触发见引擎层 crossfade/sfx 采样"
+      }
+    },
+    "Ducking 参数与音量基线": {
+      "ok": true,
+      "detail": {
+        "level": 0.35,
+        "voice": 0,
+        "base": 0.68,
+        "now": 0.68,
+        "note": "实时压低曲线见 audio-performance-benchmark.json（引擎层）"
+      }
+    },
+    "Ducking 不残留": {
+      "ok": true,
+      "detail": {
+        "active": false,
+        "factor": 1
+      }
+    },
+    "快进不重放历史声音": {
+      "ok": true,
+      "detail": {
+        "instances": {
+          "bgm": 1,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0
+        },
+        "bgm": "bgm_ost_06_night"
+      }
+    },
+    "读档恢复 BGM 且不重放一次性声音": {
+      "ok": true,
+      "detail": {
+        "bgm": "bgm_ost_06_night",
+        "loop": "region",
+        "sfx": 0,
+        "voice": 0
+      }
+    },
+    "渲染进程堆": {
+      "ok": true,
+      "detail": {
+        "usedBytes": 4380064,
+        "jsHeapBytes": 4380064
+      }
+    },
+    "运行时异常": {
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    }
+  },
+  "problems": [],
+  "shots": [
+    "docs/screenshots/v081-title-loop.png",
+    "docs/screenshots/v081-scene2-crossfade.png",
+    "docs/screenshots/v081-scene3-ducking.png"
+  ],
+  "exceptions": [],
+  "heap": {
+    "usedBytes": 4380064,
+    "jsHeapBytes": 4380064
+  }
+}

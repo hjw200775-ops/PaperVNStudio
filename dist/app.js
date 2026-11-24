@@ -1826,15 +1826,23 @@ if(H)window.__pvnM3={
 function perfList() { const n = active(); return (n && n.performance && Array.isArray(n.performance.actions)) ? n.performance.actions : []; }
 function perfNode() { return perfList().find(a => a.id === perfId) || null; }
 function perfEnsure() { const n = node(); if (!n) return null; if (!n.performance || !Array.isArray(n.performance.actions)) n.performance = { version: 1, actions: [] }; return n.performance; }
-const PERF_LABEL = { side: '进入方式', mode: '离场方式', x: 'X（舞台 %）', y: 'Y（舞台 %）', scale: '缩放 %', opacity: '透明度 %', expressionId: '表情', amplitude: '幅度', times: '次数', assetId: '背景素材', transition: '转场方式', color: '颜色', to: '程度 %', strength: '强度' };
+const PERF_LABEL = { side: '进入方式', mode: '离场方式', x: 'X（舞台 %）', y: 'Y（舞台 %）', scale: '缩放 %', opacity: '透明度 %', expressionId: '表情', amplitude: '幅度', times: '次数', assetId: '背景素材', transition: '转场方式', color: '颜色', to: '程度 %', strength: '强度',
+  audioId: '音频素材', volume: '音量 %', fadeIn: '淡入（秒）', fadeOut: '淡出（秒）', duration: '过渡（秒）', curve: '曲线', loopMode: '循环', loopStart: '循环起点（秒）', loopEnd: '循环终点（秒）', key: '音效标识', duck: '压低音乐', enabled: '启用压低', level: '压低到 %', attack: 'Attack（秒）', release: 'Release（秒）', bus: '目标总线' };
 const PERF_OPTIONS = {
   side: [['fade', '淡入'], ['left', '从左侧进入'], ['right', '从右侧进入'], ['none', '直接出现']],
   mode: [['fade', '淡出'], ['out', '移出舞台']],
   transition: [['cut', '直接切换'], ['crossfade', '交叉淡化'], ['fadeBlack', '黑屏过渡'], ['fadeWhite', '白屏过渡'], ['slideLeft', '自右向左滑入'], ['slideRight', '自左向右滑入']],
-  color: [['black', '黑'], ['white', '白']]
+  color: [['black', '黑'], ['white', '白']],
+  loopMode: [['off', '不循环'], ['all', '整曲循环'], ['region', '区间循环']],
+  curve: [['linear', '线性'], ['equalPower', '等功率']],
+  bus: [['bgm', '背景音乐'], ['sfx', '音效'], ['voice', '配音']]
 };
+/* 音频参数范围与性能无关，但越界会写坏混音，统一在这里夹住。 */
+const AUDIO_BOUNDS = { volume: [0, 100, 1], fadeIn: [0, 10, .1], fadeOut: [0, 10, .1], duration: [0, 10, .1],
+  loopStart: [0, 3600, 1], loopEnd: [0, 3600, 1], level: [0, 100, 1], attack: [0, 10, .1], release: [0, 10, .1] };
 
 function perfBounds(type, key) {
+  if (AUDIO_BOUNDS[key]) return { min: AUDIO_BOUNDS[key][0], max: AUDIO_BOUNDS[key][1], step: AUDIO_BOUNDS[key][2] };
   if (type === 'camera.move' && (key === 'x' || key === 'y')) return { min: -50, max: 50, step: 1 };
   if (key === 'x' || key === 'y') return { min: -200, max: 200, step: 1 };
   if (key === 'scale') return { min: 10, max: 400, step: 5 };
@@ -1872,6 +1880,17 @@ function perfControl(action, key) {
     const list = c ? c.expressions : [];
     return '<select data-param="expressionId">' + list.map(e => '<option value="' + esc(e.id) + '"' + (e.id === val ? ' selected' : '') + '>' + esc(e.name) + '</option>').join('') + (list.length ? '' : '<option value="">该图层未绑定角色</option>') + '</select>';
   }
+  if (key === 'audioId') {
+    const list = p.audioAssets || [];
+    return '<select data-param="audioId"><option value=""' + (val ? '' : ' selected') + '>未选择素材</option>' +
+      list.map(a => '<option value="' + esc(a.id) + '"' + (a.id === val ? ' selected' : '') + '>' + esc(a.name) + '</option>').join('') + '</select>';
+  }
+  if (key === 'duck' || key === 'enabled') {
+    return '<label class="perf-param-check"><input data-param="' + key + '" type="checkbox"' + (val !== false ? ' checked' : '') + '> ' + (PERF_LABEL[key] || key) + '</label>';
+  }
+  if (key === 'key') {
+    return '<input data-param="key" type="text" maxlength="40" value="' + esc(val == null ? '' : val) + '" placeholder="同 key 的音效只会响一条">';
+  }
   if (PERF_OPTIONS[key]) {
     return '<select data-param="' + key + '">' + PERF_OPTIONS[key].map(([v, t]) => '<option value="' + v + '"' + (v === val ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
   }
@@ -1888,24 +1907,36 @@ function renderPerfUI() {
   if (perfId && !acts.some(a => a.id === perfId)) perfId = null;
   $('#perfCount').textContent = acts.length;
 
-  /* 预设：只生成标准动作，不引入第二套机制 */
+  /* 预设：视觉与音频分两组，都只生成标准动作，不引入第二套机制 */
   const presetBox = $('#perfPresets');
   if (!presetBox.children.length) {
-    presetBox.innerHTML = PF.PRESETS.map(pr => '<button data-perf-preset="' + pr.id + '">' + esc(pr.name) + '</button>').join('');
+    const group = (title, list, kind) => '<span class="perf-preset-group">' + title + '</span>' +
+      list.map(pr => '<button data-perf-preset="' + esc(pr.id) + '" data-preset-kind="' + kind + '">' + esc(pr.name) + '</button>').join('');
+    presetBox.innerHTML = group('画面', PF.PRESETS, 'visual') + group('音频', PF.AUDIO_PRESETS, 'audio');
     presetBox.querySelectorAll('[data-perf-preset]').forEach(b => {
       b.onclick = () => {
-        const pr = PF.PRESETS.find(x => x.id === b.dataset.perfPreset);
+        const kind = b.dataset.presetKind;
+        const pr = (kind === 'audio' ? PF.AUDIO_PRESETS : PF.PRESETS).find(x => x.id === b.dataset.perfPreset);
         if (!pr) return;
-        const targetType = pr.id.startsWith('char') ? 'char' : 'stage';
         const ls = displayed();
-        const target = targetType === 'char'
-          ? (ls.find(l => l.id === selectedLayer && l.kind === 'char') || ls.find(l => l.kind === 'char') || {})
-          : '';
-        if (targetType === 'char' && !target.id) return toast('先选一个角色图层，再套用这个预设');
-        const key = target.characterId ? 'char:' + target.characterId : target.id;
+        let target = '', key = '';
+        if (kind === 'audio') {
+          const first = (p.audioAssets || [])[0];
+          if (!first) return toast('先导入音频素材，再套用音频预设');
+          target = '';
+        } else {
+          const targetType = pr.id.startsWith('char') ? 'char' : 'stage';
+          const layerPick = targetType === 'char'
+            ? (ls.find(l => l.id === selectedLayer && l.kind === 'char') || ls.find(l => l.kind === 'char') || {})
+            : {};
+          if (targetType === 'char' && !layerPick.id) return toast('先选一个角色图层，再套用这个预设');
+          target = layerPick.characterId ? 'char:' + layerPick.characterId : layerPick.id;
+        }
+        const cur = perfNode();
+        const ctxAudio = (cur && cur.params && cur.params.audioId) || ((p.audioAssets || [])[0] || {}).id || '';
         edit(() => {
           const perf = perfEnsure();
-          const built = pr.build(() => C.id(), target.characterId ? key : target.id, { assetId: p.assets.find(a => a.kind === 'bg')?.id || '', scale: 140 });
+          const built = pr.build(() => C.id(), target, { assetId: p.assets.find(a => a.kind === 'bg')?.id || '', scale: 140, audioId: ctxAudio });
           perf.actions.push(...built);
           perfId = built[built.length - 1].id;
         });
@@ -1956,10 +1987,14 @@ function renderPerfUI() {
     input.addEventListener(evt, () => {
       const cur = perfNode(); if (!cur || playing) return;
       let v = input.value;
-      if (input.tagName !== 'SELECT') {
-        v = +v;
-        const b = perfBounds(cur.type, key);
-        if (!Number.isFinite(v) || v < b.min || v > b.max) return;
+      if (input.type === 'checkbox') v = !!input.checked;
+      else if (input.tagName !== 'SELECT') {
+        if (input.type === 'text') v = String(v).slice(0, 40);
+        else {
+          v = +v;
+          const b = perfBounds(cur.type, key);
+          if (!Number.isFinite(v) || v < b.min || v > b.max) return;
+        }
       }
       checkpoint('perf-' + cur.id + '-' + key);
       cur.params[key] = v;
@@ -2074,6 +2109,16 @@ $('#perfAdd').onclick = () => {
 };
 $('#perfPreviewAll').onclick = () => perfPlay(perfList());
 $('#perfPreviewOne').onclick = () => { const a = perfNode(); if (a) perfPlay([a]); };
+/* 试听：只听素材本身，不推进剧情、不改工程；与试玩互斥（预览会先停掉试玩中的声音）。 */
+$('#perfAudition').onclick = () => {
+  const a = perfNode();
+  if (!a || !PF.isAudioType(a.type)) return toast('先选中一条音频动作');
+  if (!a.params.audioId) return toast('这条动作还没选音频素材');
+  const cat = a.type.indexOf('audio.bgm') === 0 ? 'bgm' : a.type.indexOf('audio.sfx') === 0 ? 'sfx' : 'voice';
+  Promise.resolve(runtime().previewAsset(a.params.audioId, cat, 1)).then(r => {
+    if (!r || r.ok === false) toast('试听失败：' + ((r && r.info && r.info.title) || '浏览器拒绝了播放'));
+  });
+};
 $('#perfEnd').onclick = () => perfApplyEnd(perfList());
 $('#perfDelete').onclick = () => { const a = perfNode(); if (a) perfRemove(a.id); };
 for (const [id, key, kind] of [['perfDuration', 'duration', 'num'], ['perfDelay', 'delay', 'num'], ['perfEasing', 'easing', 'str'], ['perfMode', 'mode', 'str']]) {
