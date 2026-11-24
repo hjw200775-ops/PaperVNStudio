@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-24T16:11:26.209Z",
+  "at": "2026-11-24T16:23:06.628Z",
   "version": "0.8.1-rc2",
   "policy": {
     "budgetBytes": 67108864,
@@ -64,6 +64,16 @@
       }
     },
     "titleAndGame": {
+      "title": {
+        "ok": true,
+        "detail": {
+          "rms": 0.0432,
+          "samples": 266240,
+          "maxStep": 0.0654,
+          "maxSilenceMs": 104.88,
+          "gaps": 0
+        }
+      },
       "game": {
         "ok": true,
         "detail": {
@@ -106,9 +116,9 @@
             },
             "bgm": {
               "id": "bgm_ost_02_morning",
-              "time": 0.312,
+              "time": 0.2906666666666667,
               "loop": "all",
-              "vol": 0.09599359631538391
+              "vol": 0.08942949175834657
             },
             "instances": {
               "bgm": 1,
@@ -205,9 +215,9 @@
             },
             "bgm": {
               "id": "bgm_ost_02_morning",
-              "time": 0.32,
+              "time": 0.30933333333333335,
               "loop": "all",
-              "vol": 0.09845513105392456
+              "vol": 0.09517307877540589
             },
             "instances": {
               "bgm": 1,

@@ -252,7 +252,13 @@ const SNAP = `(() => { const s = window.paperGameState(); return {
     kill(proc);
   }
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
-  fs.writeFileSync(OUT, JSON.stringify(report, null, 2));
+  /* 这份文件是「五种环境」的合集，各脚本只写自己那一段，不要互相覆盖。 */
+  let prev = {};
+  try { prev = JSON.parse(fs.readFileSync(OUT, 'utf8')); } catch {}
+  prev.title = report;
+  prev.at = new Date().toISOString();
+  prev.ok = !!((prev.game ? prev.game.ok : true) && (prev.editor ? prev.editor.ok : true) && report.ok);
+  fs.writeFileSync(OUT, JSON.stringify(prev, null, 2));
   console.log('\n' + (report.ok ? 'PASS' : 'FAIL') + ' 标题音乐接入音频引擎（M1）');
   if (!report.ok) console.log(report.problems.join('\n'));
   process.exit(report.ok ? 0 : 1);
