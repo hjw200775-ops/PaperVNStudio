@@ -23,11 +23,13 @@ const ALLOWED = {
   '/style.css': 'text/css; charset=utf-8',
   '/core.js': 'text/javascript; charset=utf-8',
   '/effects.js': 'text/javascript; charset=utf-8',
+  '/performance.js': 'text/javascript; charset=utf-8',
   '/player.js': 'text/javascript; charset=utf-8',
   '/app.js': 'text/javascript; charset=utf-8',
   '/export.js': 'text/javascript; charset=utf-8',
   '/game-html.js': 'text/javascript; charset=utf-8',
   '/audio.js': 'text/javascript; charset=utf-8',
+  '/loop-audition.js': 'text/javascript; charset=utf-8',
   '/desktop-bridge.js': 'text/javascript; charset=utf-8'
 };
 

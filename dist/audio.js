@@ -265,12 +265,25 @@ function createPaperAudio(){
   let duckTimer=null,duckHold=0;
   let loopTimer=null,loopStats={jumps:0,lastJumpAt:0,lastGapMs:null,maxGapMs:null,overrunMaxMs:0,overrunSumMs:0};
   let audioEvents=[];
+  /* 播放事件计数（M2：严格验收用）。区分「请求/开始/完成/合法取消/真正失败/解码失败/回退」，
+     合法取消与预期回退不算失败，真正播放失败必须可被验收脚本发现。 */
+  let playStats={requested:0,started:0,completed:0,cancelled:0,failed:0,decodeFailed:0,fallback:0};
   const busVolume=cat=>clamp(showVolume[cat],0,1,1);
   const duckFactor=cat=>cat==='bgm'?duck.factor:1;
   function channelVolume(ch,factor){
    return Math.min(1,mixVolume(prefs,ch.kind,ch.itemVolume,busVolume(ch.kind),duckFactor(ch.kind))*num(factor,1));
   }
-  const noteAudio=(ev)=>audioEvents=[{at:Date.now(),...ev},...audioEvents].slice(0,40);
+  const noteAudio=(ev)=>{
+   audioEvents=[{at:Date.now(),...ev},...audioEvents].slice(0,40);
+   const k=ev&&ev.kind;
+   if(k==='play-requested')playStats.requested++;
+   else if(k==='play-started')playStats.started++;
+   else if(k==='play-completed')playStats.completed++;
+   else if(k==='play-cancelled')playStats.cancelled++;
+   else if(k==='play-failed')playStats.failed++;
+   else if(k==='decode-failed')playStats.decodeFailed++;
+   else if(k==='precise-fallback'||k==='title-fallback')playStats.fallback++;
+  };
   let unlocked=false,generation=0,bgm=null,voice=null,preview=null;
   let sfxChannels=[],sfxTimers=[],fadeTimers=[],pendingSwitch=null,retiring=[];
   const sfxHandles=new Map();
@@ -292,6 +305,7 @@ function createPaperAudio(){
   let decodePeakBytes = 0, decodeCancelled = 0, decodeRejected = 0;
   let preciseBgm = null;
   let preciseReason = '';
+  let loopPreviewState = null;  /* M3：循环试听专用 scratch 播放器，独立于 BGM/语音/预览槽 */
 
   function ensureGraph() {
     if (graph || graphError) return graph;
@@ -472,22 +486,35 @@ function createPaperAudio(){
    ch.playVolume=el.volume;
    return ch;
   }
-  /* 返回真实播放 Promise 的结果；失败不把状态留在「正在播放」。 */
+  /* 返回真实播放 Promise 的结果；失败不把状态留在「正在播放」。
+     合法取消（切句/换曲/停音打断 play() 导致的 AbortError）与真正播放失败要分开：
+     取消不记错误、不计失败，否则一句被正常打断就会污染状态栏并被误判为播放失败。 */
   function start(ch,myGen){
    if(!ch)return Promise.resolve({ok:false,kind:'missing'});
    const el=ch.el;
+   noteAudio({kind:'play-requested',cat:ch.kind,audioId:ch.audioId,label:ch.label});
    let pr;
    try{pr=el.play()}catch(e){return Promise.resolve(onFail(ch,e))}
    return Promise.resolve(pr).then(()=>{
-    if(myGen!==generation||ch.done){hardStop(ch);return {ok:true,cancelled:true,ch}}
+    if(myGen!==generation||ch.done){hardStop(ch);noteAudio({kind:'play-cancelled',cat:ch.kind,audioId:ch.audioId,reason:'generation'});return {ok:true,cancelled:true,ch}}
     ch.startedAt=Date.now();
-    el.onerror=()=>{if(ch.done)return;const err=(el.error&&el.error.message)||'播放中出现解码错误';record('decode',ch.audioId,err,ch.label);hardStop(ch);emit()};
+    noteAudio({kind:'play-started',cat:ch.kind,audioId:ch.audioId});
+    el.onerror=()=>{if(ch.done)return;const err=(el.error&&el.error.message)||'播放中出现解码错误';noteAudio({kind:'decode-failed',cat:ch.kind,audioId:ch.audioId});record('decode',ch.audioId,err,ch.label);hardStop(ch);emit()};
     emit();
     return {ok:true,ch};
-   }).catch(e=>onFail(ch,e));
+   }).catch(e=>{
+    /* play() 被打断：自己 stop 过（ch.done）、代际过期、或浏览器报 AbortError——都是合法取消。 */
+    if(ch.done||myGen!==generation||/AbortError|interrupted|interruption|play\(\) request/i.test(String((e&&e.name)||'')+' '+String((e&&e.message)||''))){
+     hardStop(ch);
+     noteAudio({kind:'play-cancelled',cat:ch.kind,audioId:ch.audioId,reason:'abort'});
+     return {ok:true,cancelled:true,ch};
+    }
+    return onFail(ch,e);
+   });
    function onFail(ch2,e){
     const kind=classifyError(e).code;
     const info=record(kind,ch2.audioId,(e&&e.message)||'',ch2.label);
+    noteAudio({kind:'play-failed',cat:ch2.kind,audioId:ch2.audioId,reason:kind});
     hardStop(ch2);
     if(bgm===ch2)bgm=null;
     if(voice===ch2)voice=null;
@@ -567,7 +594,7 @@ function createPaperAudio(){
     const ch=channel('sfx',s.audioId,s.volume,false,label);
     if(!ch)return;
     sfxChannels.push(ch);
-    ch.el.onended=()=>{hardStop(ch);sfxChannels=sfxChannels.filter(x=>x!==ch);emit()};
+    ch.el.onended=()=>{hardStop(ch);sfxChannels=sfxChannels.filter(x=>x!==ch);noteAudio({kind:'play-completed',cat:'sfx',audioId:ch.audioId});emit()};
     start(ch,myGen).then(r=>{if(!r.ok)sfxChannels=sfxChannels.filter(x=>x!==ch)});
    };
    const delay=Math.max(0,Math.min(LIMITS.maxDelay,num(s.delay,0)))*1000;
@@ -1066,7 +1093,7 @@ function createPaperAudio(){
    if(!ch)return {ok:false};
    sfxChannels.push(ch);
    if(key)sfxHandles.set(key,ch);
-   ch.el.onended=()=>{hardStop(ch);sfxChannels=sfxChannels.filter(x=>x!==ch);if(key&&sfxHandles.get(key)===ch)sfxHandles.delete(key);emit()};
+   ch.el.onended=()=>{hardStop(ch);sfxChannels=sfxChannels.filter(x=>x!==ch);if(key&&sfxHandles.get(key)===ch)sfxHandles.delete(key);noteAudio({kind:'play-completed',cat:'sfx',audioId:ch.audioId});emit()};
    start(ch,myGen).then(r=>{if(!r.ok)sfxChannels=sfxChannels.filter(x=>x!==ch)});
    noteAudio({kind:'sfx',audioId:spec.audioId,key:key||''});
    return {ok:true};
@@ -1084,7 +1111,7 @@ function createPaperAudio(){
    const ch=channel('voice',spec.audioId,spec.volume,false,label);
    if(!ch)return {ok:false};
    voice=ch;
-   ch.el.onended=()=>{if(voice!==ch)return;voice=null;duckPop();emit()};
+   ch.el.onended=()=>{if(voice!==ch)return;voice=null;duckPop();noteAudio({kind:'play-completed',cat:'voice',audioId:ch.audioId});emit()};
    if(spec.duck!==false)duckPush();
    start(ch,myGen).then(r=>{if(!r.ok&&voice===ch){voice=null;duckPop()}});
    noteAudio({kind:'voice',audioId:spec.audioId});
@@ -1142,6 +1169,58 @@ function createPaperAudio(){
     decodePeakBytes,decodeCancelled,decodeRejected,streamChannels:streams,
     workingSetBytes:decodeCacheBytes+decodeInFlightBytes};
   }
+  /* M2：播放事件统计。验收脚本据此判断「请求/开始/完成/合法取消/真正失败/解码失败/回退」，
+     而不是只看「有没有 JS 异常」。合法取消与预期回退不计失败。 */
+  function playbackStats(){return {...playStats}}
+  /* M3：循环试听工具。解码缓冲复用 64MiB 缓存与串行化，不绕预算、不无条件解码全工程。 */
+  async function decodeWaveform(audioId, bins){
+   if(!ensureGraph())return {ok:false,reason:'no-graph'};
+   const token=++loadSeq;
+   const r=await loadBuffer(audioId,token);
+   if(!r||!r.ok||!r.buffer)return {ok:false,reason:(r&&r.reason)||'no-buffer'};
+   const ch=r.buffer.getChannelData(0);
+   const n=Math.max(16,Math.min(bins||800,4000));
+   const step=Math.max(1,Math.floor(ch.length/n));
+   const peaks=new Array(n);let peak=0;
+   for(let b=0;b<n;b++){let m=0;const s=b*step;for(let i=0;i<step&&s+i<ch.length;i++){const v=Math.abs(ch[s+i]);if(v>m)m=v;}peaks[b]=m;if(m>peak)peak=m;}
+   if(peak>0)for(let b=0;b<n;b++)peaks[b]=+((peaks[b]/peak).toFixed(4));
+   return {ok:true,duration:r.buffer.duration,sampleRate:r.buffer.sampleRate,channels:r.buffer.numberOfChannels,peaks};
+  }
+  /* M3：循环试听播放。走与发布游戏完全相同的 AudioBufferSourceNode + loopStart/loopEnd，
+     接同一根 bgm 总线（音量 / Ducking / master 语义一致），但不占用 BGM 槽、不影响当前工程播放状态。
+     startOffset 用于「试听循环接缝」：从 loopEnd 前数秒起播，穿过边界回跳 loopStart 继续。 */
+  function loopPreview(audioId,loop,volume,startOffset){
+   loopPreviewStop();
+   const g0=ensureGraph();
+   if(!g0)return Promise.resolve({ok:false,reason:'no-graph',loop:loopSpec(loop)});
+   const token=++loadSeq;
+   return loadBuffer(audioId,token).then(r=>{
+    if(!r||!r.ok||!r.buffer)return {ok:false,reason:(r&&r.reason)||'no-buffer',loop:loopSpec(loop)};
+    const g=g0;
+    const w=loopSpec(loop);
+    const src=g.ctx.createBufferSource();src.buffer=r.buffer;
+    src.loop=w.mode!=='off';
+    if(w.mode==='region'){src.loopStart=w.start;src.loopEnd=w.end;}
+    const gain=g.ctx.createGain();gain.gain.value=Math.min(1,num(volume,1));
+    src.connect(gain);gain.connect(g.buses.bgm);
+    const dur=r.buffer.duration;
+    const off=num(startOffset, w.mode==='region'?w.start:0);
+    const startAt=g.ctx.currentTime+0.04;
+    src.start(startAt,Math.max(0,Math.min(off,dur-0.01)));
+    loopPreviewState={src,gain};
+    const time=()=>{const t=g.ctx.currentTime-startAt;
+     if(w.mode==='region'){const span=Math.max(.001,w.end-w.start);return w.start+((t%span)+span)%span;}
+     if(w.mode==='all'){return ((t%dur)+dur)%dur;}
+     return Math.min(t,dur);};
+    const loops=()=>{const t=g.ctx.currentTime-startAt;
+     if(w.mode==='region'){const span=Math.max(.001,w.end-w.start);return Math.floor(t/span);}
+     if(w.mode==='all')return Math.floor(t/dur);return 0;};
+    return {ok:true,mode:'precise',loop:{...w},duration:dur,startAt,
+     time,loops,
+     stop:()=>{try{src.stop()}catch{};try{gain.disconnect()}catch{};if(loopPreviewState&&loopPreviewState.src===src)loopPreviewState=null;}};
+   });
+  }
+  function loopPreviewStop(){if(loopPreviewState){try{loopPreviewState.src.stop()}catch{};try{loopPreviewState.gain.disconnect()}catch{};loopPreviewState=null;}}
   function snapshot(){
    const view=ch=>{
     if(!ch)return null;
@@ -1158,7 +1237,8 @@ function createPaperAudio(){
     instances:{bgm:(precise||bgm)?1:0,retiring:retiring.length,sfx:sfxChannels.length,voice:voice?1:0,title:(precise&&precise.owner==='title')||titleEl?1:0},
     mode:precise?'precise':'stream',modePref,preciseReason,graphError,
     cache:cacheStats(),graph:graph?{state:graph.ctx.state,sampleRate:graph.ctx.sampleRate,baseLatency:graph.ctx.baseLatency}:null,
-    events:audioEvents.slice(0,12),generation};
+    events:audioEvents.slice(0,12),generation,
+    errors:errors.slice(0,8),playbackStats:playbackStats()};
   }
 
   function enter(cue,options){
@@ -1202,7 +1282,7 @@ function createPaperAudio(){
    for(const s of c.sfx)scheduleSfx(s,myGen,label);
    if(c.voice){
     const ch=channel('voice',c.voice.audioId,c.voice.volume,false,label);
-    if(ch){voice=ch;ch.el.onended=()=>{if(voice===ch)voice=null;emit()};tasks.push(start(ch,myGen))}
+    if(ch){voice=ch;ch.el.onended=()=>{if(voice===ch)voice=null;noteAudio({kind:'play-completed',cat:'voice',audioId:ch.audioId});emit()};tasks.push(start(ch,myGen))}
    }
    emit();
    return Promise.all(tasks).then(results=>({ok:results.every(r=>!r||r.ok!==false),results,errors:errors.slice(0,3)}));
@@ -1248,6 +1328,7 @@ function createPaperAudio(){
    duckHold=0;duck.active=false;duck.factor=1;if(duckTimer){clearInterval(duckTimer);duckTimer=null}
    stopLoopTicker();sfxHandles.clear();
    if(preciseBgm)preciseStop(0);
+   loopPreviewStop();
    stopTitleStream(0);titleCfg=null;titlePaused=false;titleOffset=0;
    if(bgm){hardStop(bgm);bgm=null}
    emit();
@@ -1279,7 +1360,7 @@ function createPaperAudio(){
     applyLoop(bgm,w);
     return {ok:true,loop:{...bgm.loopWindow}}},
    setBusVolume,sfxPlay,sfxStop,voicePlay,voiceStop,setDucking,applyAudioState,snapshot,
-   getLoopStats:()=>({...loopStats})};
+   playbackStats,decodeWaveform,loopPreview,loopPreviewStop,getLoopStats:()=>({...loopStats})};
  }
 
  return {LIMITS,CATEGORIES,CATEGORY_NAMES,EXT_MIME,DEFAULT_PREFS,DEFAULT_FADE,

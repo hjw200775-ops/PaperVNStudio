@@ -1453,10 +1453,17 @@ function renderTitleTab(){
  const volEl=$('#titleMusicVolume'),fadeEl=$('#titleMusicFade');
  if(volEl&&document.activeElement!==volEl)volEl.value=tm?tm.volume:80;
  if(fadeEl&&document.activeElement!==fadeEl)fadeEl.value=tm?tm.fadeIn:1.2;
+ const loopModeEl=$('#titleMusicLoop'),lsEl=$('#titleMusicLoopStart'),leEl=$('#titleMusicLoopEnd');
+ const loopMode=tm?(tm.loop===false?'off':(tm.loopStart!=null&&tm.loopEnd>tm.loopStart?'region':'all')):'all';
+ if(loopModeEl&&document.activeElement!==loopModeEl)loopModeEl.value=loopMode;
+ const regionOn=loopMode==='region';
+ if(lsEl){lsEl.disabled=!regionOn;if(document.activeElement!==lsEl)lsEl.value=(tm&&tm.loopStart)?tm.loopStart:''}
+ if(leEl){leEl.disabled=!regionOn;if(document.activeElement!==leEl)leEl.value=(tm&&tm.loopEnd)?tm.loopEnd:''}
+ if(loopModeEl)loopModeEl.onchange=()=>{const on=loopModeEl.value==='region';if(lsEl)lsEl.disabled=!on;if(leEl)leEl.disabled=!on};
  if($('#titleMusicNote')){
   const ta=tm?C.audioAsset(p,tm.audioId):null;
   $('#titleMusicNote').textContent=tm
-   ?('当前：'+(ta?ta.name:'素材缺失（不会播放）')+' · '+(tm.loop===false?'单次':'循环')+' · 音量 '+tm.volume+'%')
+   ?('当前：'+(ta?ta.name:'素材缺失（不会播放）')+' · '+({all:'整曲循环',region:'区间循环 '+(tm.loopStart||0)+'–'+(tm.loopEnd||0)+'s',off:'单次播放'}[loopMode])+' · 音量 '+tm.volume+'%')
    :'未配置标题音乐：标题界面保持安静。';
  }
 }
@@ -1479,8 +1486,13 @@ $('#titleMusicApply').onclick=()=>{
  if(!a)return toast('这个素材已经不存在，请重新选择');
  const vol=Math.max(0,Math.min(100,Math.round(Number($('#titleMusicVolume').value)||0)));
  const fade=Math.max(0,Math.min(5,Number($('#titleMusicFade').value)||0));
- edit(()=>{p.titleMusic={audioId:id,volume:vol,fadeIn:fade,loop:true}},'标题音乐');
- toast('标题音乐已设为「'+a.name+'」（循环播放，进入游戏时暂停）');
+ const loopMode=$('#titleMusicLoop').value;
+ const ls=Number($('#titleMusicLoopStart').value)||0,le=Number($('#titleMusicLoopEnd').value)||0;
+ if(loopMode==='region'&&!(le>ls))return toast('循环区间非法：终点必须大于起点');
+ edit(()=>{const tm2={audioId:id,volume:vol,fadeIn:fade,loop:loopMode!=='off'};
+  if(loopMode==='region'){tm2.loopStart=ls;tm2.loopEnd=le}
+  p.titleMusic=tm2;},'标题音乐');
+ toast('标题音乐已设为「'+a.name+'」（'+(loopMode==='all'?'整曲循环':loopMode==='region'?('区间 '+ls+'–'+le+'s'):'单次')+'）');
  renderTitleTab();
 };
 $('#titleMusicClear').onclick=()=>{
@@ -1488,6 +1500,39 @@ $('#titleMusicClear').onclick=()=>{
  edit(()=>{p.titleMusic=null},'清除标题音乐');
  toast('已清除标题音乐，标题界面保持安静');
  renderTitleTab();
+};
+/* M3：循环试听组件（标题音乐 / BGM / 演出循环配置复用）。 */
+const LoopAudition=typeof createLoopAudition==='function'?createLoopAudition():null;
+function titleMusicCandidates(a){
+ /* 只针对《晚风》标题曲提供候选，不硬编码成所有工程的通用默认值。 */
+ if(!a)return null;
+ if(a.id!=='audio_ost_01_title'&&a.name!=='晚风经过二楼走廊')return null;
+ return [
+  {key:'A',label:'A 现有 6.0–14.0s',loop:{mode:'region',start:6.0,end:14.0}},
+  {key:'B',label:'B 整曲循环',loop:{mode:'all',start:0,end:0}},
+  {key:'C',label:'C 乐句 6.4–30.5s',loop:{mode:'region',start:6.4,end:30.5}},
+  {key:'D',label:'D 交叉淡化（独立试听页）',loop:{mode:'all',start:0,end:0},experimental:true}
+ ];
+}
+$('#titleMusicAudition').onclick=()=>{
+ if(!LoopAudition)return toast('循环试听组件未加载');
+ const id=$('#titleMusicAsset').value;
+ if(!id)return toast('先选一个背景音乐素材');
+ const a=C.audioAsset(p,id);if(!a)return toast('这个素材已经不存在，请重新选择');
+ const loopMode=$('#titleMusicLoop').value;
+ const ls=Number($('#titleMusicLoopStart').value)||0,le=Number($('#titleMusicLoopEnd').value)||0;
+ const loop=loopMode==='region'?{mode:'region',start:ls,end:le}:loopMode==='off'?{mode:'off',start:0,end:0}:{mode:'all',start:0,end:0};
+ const candidates=titleMusicCandidates(a);
+ const rt=runtime();
+ LoopAudition.open({
+  title:'标题音乐循环试听',assetId:id,audioName:a.name,duration:a.duration||0,loop,candidates,
+  runtime:()=>rt,
+  onApply:(l)=>{const m=l&&l.mode==='off'?'off':(l&&l.mode==='all'?'all':'region');
+   $('#titleMusicLoop').value=m;const on=m==='region';
+   $('#titleMusicLoopStart').disabled=!on;$('#titleMusicLoopEnd').disabled=!on;
+   if(on){$('#titleMusicLoopStart').value=(l&&l.start)||0;$('#titleMusicLoopEnd').value=(l&&l.end)||0}
+   toast('循环区间已应用，点「设为标题音乐」保存');}
+ });
 };
 $('#audioMood').onchange=()=>renderAudioTab();
 $('#audioClearBgm').onclick=()=>bindSceneBgm(null);

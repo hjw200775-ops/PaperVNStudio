@@ -17,10 +17,10 @@ const { ROOT, ELECTRON, sleep, freePort, waitPage, connect, kill } = require('./
 
 const DURATION = Number(process.argv[2] || process.env.PVN_SOAK_SECONDS || 900);
 const PROJECT = path.join(ROOT, 'release', 'bench-project');
-const REPORT = path.join(ROOT, 'release', 'audio-soak-15min.json');
+const REPORT = path.join(ROOT, 'release', 'audio-soak-15min-rc3.1.json');
 const SHOTS = path.join(ROOT, 'docs', 'screenshots');
 
-const report = { at: new Date().toISOString(), version: '0.8.1-rc2', env: 'editor-trial@1.47GiB', durationPlanned: DURATION, ok: true, stages: {}, problems: [], samples: [], summary: null };
+const report = { at: new Date().toISOString(), version: '0.8.1-rc3.1', env: 'editor-trial@1.47GiB', durationPlanned: DURATION, ok: true, stages: {}, problems: [], samples: [], summary: null };
 const ok = (n, d) => { report.stages[n] = { ok: true, detail: d || null }; console.log('  ok  ' + n + (d ? ' — ' + JSON.stringify(d).slice(0, 200) : '')); };
 const bad = (n, m, d) => { report.ok = false; report.stages[n] = { ok: false, message: m, ...(d || {}) }; report.problems.push(n + '：' + m); console.log('  FAIL ' + n + ' — ' + m); };
 
@@ -28,7 +28,9 @@ const SAMPLE = `(() => { const a = window.paperEditorAudio ? window.paperEditorA
   return { audio: a ? { mode: a.mode, reason: a.preciseReason, instances: a.instances,
       bgm: a.bgm && { id: a.bgm.audioId, time: a.bgm.time, loop: a.bgm.loop && a.bgm.loop.mode },
       mem: a.audioMemory, duck: a.ducking && { active: a.ducking.active, factor: a.ducking.factor },
-      cache: a.cache && { entries: a.cache.entries, bytes: a.cache.bytes }, gen: a.generation } : null,
+      cache: a.cache && { entries: a.cache.entries, bytes: a.cache.bytes }, gen: a.generation,
+      errors: (a.errors || []).map(e => e.title + ':' + (e.label || e.audioId || '')),
+      ps: a.playbackStats || null } : null,
     js: performance.memory ? performance.memory.usedJSHeapSize : null,
     dom: document.getElementsByTagName('*').length,
     pos: (document.querySelector('#position') || {}).textContent || '',
@@ -180,6 +182,22 @@ async function clickReal(cdp, selector) {
     const duckSeen = await cdp.ev(`({ seen: window.__duckSeen, min: window.__duckMin })`).catch(() => null);
     if (!duckSeen || !duckSeen.seen) bad('Ducking', '整段没有观察到压低状态');
     else ok('观察到配音 Ducking（200ms 轮询）', { minFactor: +Number(duckSeen.min).toFixed(3) });
+
+    /* M2：严格播放断言——真正播放失败 / 解码失败 / 错误横幅必须导致验收失败。
+       播放事件统计是运行时累计值，取最后一个采样点即为全程总计。 */
+    const finalPs = (last.audio && last.audio.ps) || { requested: 0, started: 0, completed: 0, cancelled: 0, failed: 0, decodeFailed: 0, fallback: 0 };
+    const errBannerSamples = samples.filter((s) => /播放失败|无法解码|素材缺失|找不到这个音频/.test(s.status || '')).length;
+    const req = finalPs.requested, started = finalPs.started, canc = finalPs.cancelled, failed = finalPs.failed;
+    report.summary.playbackStats = finalPs;
+    report.summary.errBannerSamples = errBannerSamples;
+    if (failed > 0) bad('意外播放失败', 'playbackStats.failed=' + failed + '（合法取消不计入，回退不计入）', finalPs);
+    else ok('无意外播放失败', { ...finalPs, note: 'requested≈started+cancelled(+在途)，cancelled 是合法打断' });
+    if (finalPs.decodeFailed > 0) bad('素材解码失败', finalPs.decodeFailed + ' 次');
+    else ok('无素材解码失败', finalPs);
+    if (errBannerSamples > 0) bad('出现音频错误横幅', errBannerSamples + ' / ' + samples.length + ' 个采样点显示音频错误');
+    else ok('全程无音频错误横幅', { samples: samples.length });
+    if (req > 0 && (started + canc + failed) < req - 2) bad('播放事件关系异常', 'requested=' + req + ' 但 started+cancelled+failed=' + (started + canc + failed) + '，存在被静默丢弃的播放请求');
+    else ok('播放事件数量关系自洽', { requested: req, started, completed: finalPs.completed, cancelled: canc, failed, fallback: finalPs.fallback });
     const errs = cdp.errors.filter((e) => !/Autoplay|user gesture/i.test(e.text));
     if (errs.length) bad('运行时异常', errs.slice(0, 3).map((e) => e.text).join(' | ').slice(0, 300));
     else ok('0 运行时异常');
