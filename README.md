@@ -1,7 +1,7 @@
 # 纸间 PaperVNStudio
 
 <p>
-  <img alt="version" src="https://img.shields.io/badge/version-0.8.1-2F6F5E?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-0.8.1--RC-2F6F5E?style=flat-square">
   <img alt="electron" src="https://img.shields.io/badge/Electron-45-47848F?style=flat-square&logo=electron&logoColor=white">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D4?style=flat-square">
@@ -11,6 +11,10 @@
 
 <img src="docs/screenshots/v076-editor-assets.png" alt="编辑器：左侧剧情脚本、中间舞台、右侧剧情与画面">
 
+> **V0.8.1-RC：音频循环已改为精确模式。** 需要精确循环的 BGM 走 `AudioBufferSourceNode`，
+> 边界由音频线程处理，不再靠定时器命中；淡变/Ducking 全部排到 `AudioParam`。解码缓存有 64 MiB 预算与 LRU 淘汰，
+> 超预算或解码失败自动回退流式。**1 GiB 工程与五端全量音频验收本轮未完成**，详见 [RC 验收报告](docs/V0.8.1_RC_ACCEPTANCE_REPORT.md)。
+>
 > **V0.8.1 已发布。** 演出从「只动画面」扩展到「画面与声音一起编排」：BGM 淡入淡出与等功率交叉淡化、
 > 循环区间、配音自动压低音乐（Ducking）、独立音效通道，全部按「顺序 / 并行 / 阻塞」与画面动作排在同一条时间线上。
 > 上一版 V0.8.0 的「舞台演出」：角色登场 / 离场 / 移动 / 缩放 / 表情、背景转场、镜头推拉、闪白与震动，

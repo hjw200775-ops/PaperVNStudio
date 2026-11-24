@@ -274,6 +274,97 @@ function createPaperAudio(){
   let unlocked=false,generation=0,bgm=null,voice=null,preview=null;
   let sfxChannels=[],sfxTimers=[],fadeTimers=[],pendingSwitch=null,retiring=[];
   const sfxHandles=new Map();
+
+  /* ---------------- V0.8.1-RC：Web Audio 图与精确循环 ----------------
+   * 两套播放模式共存：
+   *   stream  —— 现有 HTMLAudioElement，适合大文件与长语音，不预解码；
+   *   precise —— AudioBufferSourceNode + 音频时钟循环，接缝由浏览器在音频线程处理，
+   *              不依赖 rAF / 定时器命中边界。
+   * 选择依据：显式偏好 > 内存预算 > 解码结果；失败一律回退 stream 并给出 reason。 */
+  const AC = (typeof globalThis !== 'undefined') && (globalThis.AudioContext || globalThis.webkitAudioContext);
+  const modePref = ['stream', 'precise', 'auto'].indexOf(o.loopMode) >= 0 ? o.loopMode : 'auto';
+  const memoryBudgetBytes = Math.max(8 * 1024 * 1024, Number(o.memoryBudgetBytes) || 64 * 1024 * 1024);
+  const decodeCache = new Map();
+  let decodeCacheBytes = 0, graph = null, graphError = '', loadSeq = 0;
+  let preciseBgm = null;
+  let preciseReason = '';
+
+  function ensureGraph() {
+    if (graph || graphError) return graph;
+    /* 允许外部注入上下文（离线渲染 / 测试替身）；没有原生构造器也没有注入才放弃。 */
+    if (!AC && !o.audioContext) return null;
+    try {
+      /* 允许外部注入 AudioContext：离线渲染（OfflineAudioContext）可以用同一套图做确定性验收。 */
+      const ctx = o.audioContext || new AC({ latencyHint: 'interactive' });
+      const master = ctx.createGain(), duckNode = ctx.createGain(), tap = ctx.createGain();
+      const buses = { bgm: ctx.createGain(), sfx: ctx.createGain(), voice: ctx.createGain() };
+      buses.bgm.connect(duckNode); duckNode.connect(master);
+      buses.sfx.connect(master); buses.voice.connect(master);
+      master.connect(ctx.destination);
+      /* tap 接在各总线之后、master 之前：验收可以拿到真实输出波形，
+         同时把 master 调 0 就能静音测试而不影响采集。 */
+      buses.bgm.connect(tap); buses.sfx.connect(tap); buses.voice.connect(tap);
+      graph = { ctx, master, duckNode, tap, buses };
+      applyGraphGains();
+      if (o.onGraph) { try { o.onGraph({ ctx, tap }); } catch (e) {} }
+      if (ctx.state === 'suspended' && o.autoResume !== false && typeof ctx.resume === 'function') {
+        Promise.resolve(ctx.resume()).catch(() => {});
+      }
+      return graph;
+    } catch (e) { graphError = String((e && e.message) || e); return null; }
+  }
+  function applyGraphGains() {
+    if (!graph) return;
+    const g = graph;
+    g.master.gain.value = prefs.muted ? 0 : prefs.master;
+    for (const c of CATEGORIES) g.buses[c].gain.value = busVolume(c) * (prefs[c] == null ? 1 : prefs[c]);
+    g.duckNode.gain.value = duck.factor;
+  }
+  function cacheGet(id) { const c = decodeCache.get(id); if (c) c.at = Date.now(); return c || null; }
+  function cachePut(id, buffer, bytes) {
+    const old = decodeCache.get(id);
+    if (old) { decodeCacheBytes -= old.bytes; decodeCache.delete(id); }
+    decodeCache.set(id, { buffer, bytes, at: Date.now() });
+    decodeCacheBytes += bytes;
+    const playing = preciseBgm ? preciseBgm.audioId : '';
+    while (decodeCacheBytes > memoryBudgetBytes && decodeCache.size > 1) {
+      let victim = '', oldest = Infinity;
+      for (const [k, v] of decodeCache) { if (k === playing) continue; if (v.at < oldest) { oldest = v.at; victim = k; } }
+      if (!victim) break;
+      decodeCacheBytes -= decodeCache.get(victim).bytes;
+      decodeCache.delete(victim);
+    }
+  }
+  function cacheClear() { decodeCache.clear(); decodeCacheBytes = 0; }
+  function cacheStats() { return { entries: decodeCache.size, bytes: decodeCacheBytes, budget: memoryBudgetBytes,
+    ids: [...decodeCache.keys()], mode: preciseBgm ? 'precise' : (modePref === 'stream' ? 'stream' : 'stream') }; }
+
+  /* 解码一段素材；token 用于识别过期请求，慢的旧结果不能覆盖新状态。 */
+  async function loadBuffer(audioId, token) {
+    const hit = cacheGet(audioId);
+    if (hit) return { ok: true, buffer: hit.buffer, bytes: hit.bytes, cached: true };
+    const src = assetData(audioId);
+    if (!src) return { ok: false, reason: 'missing' };
+    let arr;
+    try {
+      const res = await fetch(src);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      arr = await res.arrayBuffer();
+    } catch (e) {
+      return { ok: false, reason: 'fetch: ' + ((e && e.message) || e) };
+    }
+    if (token !== loadSeq) return { ok: false, reason: 'stale' };
+    try {
+      const buffer = await graph.ctx.decodeAudioData(arr.slice(0));
+      if (token !== loadSeq) return { ok: false, reason: 'stale' };
+      const est = buffer.length * buffer.numberOfChannels * 4;
+      if (est > memoryBudgetBytes) return { ok: false, reason: 'budget', bytes: est };
+      cachePut(audioId, buffer, est);
+      return { ok: true, buffer, bytes: est, cached: false };
+    } catch (e) {
+      return { ok: false, reason: 'decode: ' + ((e && e.message) || e) };
+    }
+  }
   let errors=[],lastEnter=null,disposed=false;
   const emit=()=>{try{onStatus(status())}catch{}};
   const record=(kind,audioId,detail,label)=>{
@@ -364,6 +455,7 @@ function createPaperAudio(){
    fadeTimers.push({i:iv,t:tm});
   }
   function applyPrefs(){
+   applyGraphGains();
    const all=[bgm,voice,preview,...sfxChannels,...retiring.map(r=>r.ch)].filter(Boolean);
    for(const ch of all){
     if(ch.el&&!ch.done)try{ch.el.volume=channelVolume(ch,num(ch.fadeFactor,1))}catch{}
@@ -478,6 +570,84 @@ function createPaperAudio(){
    try{ch.el.loop=w.mode==='all'}catch{}
    if(w.mode==='region')ensureLoopTicker();
   }
+  /* 精确模式下的 BGM 交叉淡化：增益曲线全部排到 AudioParam 上，与渲染帧率无关。 */
+  async function bgmCrossfadePrecise(spec, label) {
+    const g = ensureGraph();
+    if (!g) { preciseReason = 'no-graph'; return { ok: false, mode: 'precise', reason: preciseReason }; }
+    const token = ++loadSeq;
+    const loaded = await loadBuffer(spec.audioId, token);
+    if (!loaded.ok) { preciseReason = loaded.reason; return { ok: false, mode: 'precise', reason: loaded.reason }; }
+    if (token !== loadSeq) return { ok: false, mode: 'precise', reason: 'stale' };
+    const now = g.ctx.currentTime;
+    const dur = Math.max(.02, clamp(spec.duration, 0, 10, .4));
+    const old = preciseBgm;
+    const node = g.ctx.createGain();
+    node.gain.setValueAtTime(0, now);
+    node.connect(g.buses.bgm);
+    const src = g.ctx.createBufferSource();
+    src.buffer = loaded.buffer;
+    const loop = spec.loop || { mode: 'off' };
+    src.loop = loop.mode !== 'off';
+    if (loop.mode === 'region') { src.loopStart = loop.start; src.loopEnd = loop.end; }
+    src.connect(node);
+    src.start(now, 0);
+    preciseBgm = { src, node, audioId: spec.audioId, startedAt: now, offset: 0, buffer: loaded.buffer, loop, label: label || '' };
+    const targetVol = clamp(spec.volume, 0, 1, 1);
+    const n = 48, inCurve = new Float32Array(n), outCurve = new Float32Array(n);
+    const base = old ? old.node.gain.value : 0;
+    for (let i = 0; i < n; i++) {
+      const p = i / (n - 1);
+      const gains = spec.curve === 'equalPower'
+        ? { out: Math.cos(p * Math.PI / 2), in: Math.sin(p * Math.PI / 2) }
+        : { out: 1 - p, in: p };
+      inCurve[i] = targetVol * gains.in;
+      outCurve[i] = base * gains.out;
+    }
+    try {
+      node.gain.setValueCurveAtTime(inCurve, now, dur);
+      if (old) old.node.gain.setValueCurveAtTime(outCurve, now, dur);
+    } catch (e) {
+      node.gain.setValueAtTime(targetVol, now + dur);
+    }
+    if (old) {
+      const victim = old;
+      setTimeout(() => { try { victim.src.stop(); } catch (e) {} try { victim.node.disconnect(); } catch (e) {} }, Math.ceil(dur * 1000) + 60);
+      noteAudio({ kind: 'precise-crossfade', to: spec.audioId, ms: Math.round(dur * 1000), curve: spec.curve || 'linear' });
+    }
+    preciseReason = '';
+    return { ok: true, mode: 'precise', bytes: loaded.bytes, cached: !!loaded.cached };
+  }
+  function preciseStop(fadeOut) {
+    const cur = preciseBgm;
+    if (!cur || !graph) return false;
+    const now = graph.ctx.currentTime, dur = Math.max(.02, clamp(fadeOut, 0, 10, .4));
+    try {
+      cur.node.gain.setValueAtTime(cur.node.gain.value, now);
+      cur.node.gain.linearRampToValueAtTime(0, now + dur);
+    } catch (e) {}
+    setTimeout(() => { try { cur.src.stop(); } catch (e) {} try { cur.node.disconnect(); } catch (e) {} }, Math.ceil(dur * 1000) + 40);
+    preciseBgm = null;
+    return true;
+  }
+  function preciseSnapshot() {
+    if (!preciseBgm || !graph) return null;
+    const g = graph;
+    const elapsed = g.ctx.currentTime - preciseBgm.startedAt;
+    const loop = preciseBgm.loop || { mode: 'off' };
+    let time = preciseBgm.offset + elapsed;
+    if (loop.mode === 'region' && loop.end > loop.start) {
+      const span = loop.end - loop.start;
+      time = time <= loop.end ? time : loop.start + ((time - loop.start) % span);
+    } else if (loop.mode === 'all' && preciseBgm.buffer.duration > 0) {
+      time = time % preciseBgm.buffer.duration;
+    }
+    return {
+      audioId: preciseBgm.audioId, itemVolume: preciseBgm.node.gain.value, fade: 1,
+      volume: preciseBgm.node.gain.value * busVolume('bgm') * prefs.bgm * prefs.master * duck.factor,
+      time, duration: preciseBgm.buffer.duration, paused: false, loop, mode: 'precise'
+    };
+  }
+
   /* 剧情音量：只改 showVolume，不写 prefs，玩家在设置里的值永远不会被覆盖。 */
   function setBusVolume(cat,value,duration){
    const c=CATEGORIES.includes(cat)?cat:'bgm';
@@ -497,6 +667,12 @@ function createPaperAudio(){
    return showVolume[c];
   }
   function bgmVolume(target,options){
+   if(preciseBgm&&graph){
+    const now=graph.ctx.currentTime;
+    const to=clamp(target,0,1,1),dur=Math.max(.02,num(options&&options.duration,0));
+    try{preciseBgm.node.gain.linearRampToValueAtTime(to,now+dur)}catch(e){}
+    return {ok:true,mode:'precise',volume:to};
+   }
    const ch=bgm;
    if(!ch||ch.done)return {ok:false};
    const to=clamp(target,0,1,1);
@@ -515,11 +691,41 @@ function createPaperAudio(){
    return {ok:true,pending:true};
   }
   /* 交叉淡化：新旧两个通道同时存在，按曲线此消彼长；旧通道在新曲到位后才销毁。 */
+  /* 对外入口：按模式偏好决定走精确循环还是流式；精确失败自动回退并记原因。 */
   function bgmCrossfade(spec,label){
+   const target=spec&&spec.audioId;
+   if(!target)return Promise.resolve({ok:false,kind:'missing'});
+   if(modePref!=='stream'){
+    const g=ensureGraph();
+    if(g){
+     if(preciseBgm&&preciseBgm.audioId===target&&spec.loop&&spec.loop.mode!=='off'){
+      const now=g.ctx.currentTime;
+      try{preciseBgm.node.gain.linearRampToValueAtTime(clamp(spec.volume,0,1,1),now+Math.max(.02,num(spec.duration,0)))}
+      catch(e){try{preciseBgm.node.gain.value=clamp(spec.volume,0,1,1)}catch(e2){}}
+      preciseBgm.loop=spec.loop;
+      try{
+       preciseBgm.src.loop=spec.loop.mode!=='off';
+       if(spec.loop.mode==='region'){preciseBgm.src.loopStart=spec.loop.start;preciseBgm.src.loopEnd=spec.loop.end}
+      }catch(e){}
+      return Promise.resolve({ok:true,same:true,mode:'precise'});
+     }
+     return bgmCrossfadePrecise(spec,label).then(r=>{
+      if(r&&r.ok)return r;
+      /* 过期请求只丢弃，绝不能回退成流式播放——否则旧请求会把新音乐盖掉。 */
+      if(r&&r.reason==='stale')return {ok:false,mode:'precise',reason:'stale',cancelled:true};
+      noteAudio({kind:'precise-fallback',reason:(r&&r.reason)||''});
+      return streamCrossfade(spec,label).then(x=>Object.assign({},x,{fallback:(r&&r.reason)||''}));
+     });
+    }
+   }
+   return streamCrossfade(spec,label);
+  }
+  function streamCrossfade(spec,label){
    const myGen=generation;
    const target=spec&&spec.audioId;
    if(!target)return Promise.resolve({ok:false,kind:'missing'});
    cancelPending();
+   if(preciseBgm)preciseStop(0.2);
    const old=bgm;
    if(old&&!old.done&&old.audioId===target){
     /* 同一首：不新建实例、不回到曲首，只做音量过渡——否则会出现双重 BGM。 */
@@ -581,7 +787,13 @@ function createPaperAudio(){
   function setDucking(spec){
    duck={...duck,...duckSpec({...duck,...(spec||{})})};
    if(!duck.enabled){duck.active=false;duckHold=0}
-   rampDuck();emit();return {...duck};
+   rampDuck();
+   if(graph){
+    const now=graph.ctx.currentTime,target=duckTarget();
+    const dur=Math.max(.02,duck.active?duck.attack:duck.release);
+    try{graph.duckNode.gain.setValueAtTime(graph.duckNode.gain.value,now);graph.duckNode.gain.linearRampToValueAtTime(target,now+dur)}catch(e){}
+   }
+   emit();return {...duck};
   }
   function sfxPlay(spec,label){
    const myGen=generation;
@@ -632,10 +844,16 @@ function createPaperAudio(){
    if(s.ducking)duck={...duck,...duckSpec({...duck,...s.ducking})};
    const want=s.bgm;
    if(want===null){
+    if(preciseBgm)preciseStop(0);
     if(bgm){hardStop(bgm);bgm=null}
     stopLoopTicker();
    }else if(want&&want.audioId){
-    if(bgm&&!bgm.done&&bgm.audioId===want.audioId){
+    /* 有 Web Audio 图时走精确模式：跳过/快进后的终态同样应该是采样级循环。
+       解码是异步的，期间旧的流式通道仍在播，解码完成后精确源接管（同曲只调音量）。 */
+    if(modePref!=='stream'&&(graph||ensureGraph())){
+     bgmCrossfade({audioId:want.audioId,volume:want.volume,duration:0,curve:'linear',
+      loop:want.loop||{mode:'off',start:0,end:0}});
+    }else if(bgm&&!bgm.done&&bgm.audioId===want.audioId){
      bgm.itemVolume=clamp(want.volume,0,1,1);
      bgm.fadeFactor=1;
      if(want.loop)applyLoop(bgm,want.loop);
@@ -664,9 +882,12 @@ function createPaperAudio(){
     return {audioId:ch.audioId,itemVolume:ch.itemVolume,fade:num(ch.fadeFactor,1),volume:vol,time:t,duration:dur,paused,
      loop:ch.loopWindow?{...ch.loopWindow}:{mode:'off',start:0,end:0}};
    };
+   const precise=preciseSnapshot();
    return {unlocked,prefs:{...prefs},buses:{...showVolume},ducking:{...duck,hold:duckHold},
-    loop:{...loopStats},bgm:view(bgm),voice:view(voice),sfx:sfxChannels.map(view),
-    instances:{bgm:bgm?1:0,retiring:retiring.length,sfx:sfxChannels.length,voice:voice?1:0},
+    loop:{...loopStats},bgm:precise||view(bgm),voice:view(voice),sfx:sfxChannels.map(view),
+    instances:{bgm:(precise||bgm)?1:0,retiring:retiring.length,sfx:sfxChannels.length,voice:voice?1:0},
+    mode:precise?'precise':'stream',modePref,preciseReason,graphError,
+    cache:cacheStats(),graph:graph?{state:graph.ctx.state,sampleRate:graph.ctx.sampleRate,baseLatency:graph.ctx.baseLatency}:null,
     events:audioEvents.slice(0,12),generation};
   }
 
@@ -756,10 +977,22 @@ function createPaperAudio(){
   function dispose(){stopAll();disposed=true;emit()}
   return {enter,retry,unlock,status,setPrefs,getPrefs,previewAsset,stopPreview:()=>{stopPreview()},stopAll,dispose,isUnlocked:()=>unlocked,
    /* V0.8.1 音频演出 API */
-   bgmCrossfade,bgmVolume,bgmStop:options=>{const fo=clamp(options&&options.fadeOut,0,LIMITS.maxFade,1);const old=bgm;bgm=null;if(!old)return {ok:false};
+   bgmCrossfade,bgmVolume,bgmStop:options=>{const fo=clamp(options&&options.fadeOut,0,LIMITS.maxFade,1);
+    if(preciseBgm){preciseStop(fo);noteAudio({kind:'bgm-stop'});emit();return {ok:true,mode:'precise'}}
+    const old=bgm;bgm=null;if(!old)return {ok:false};
      if(fo>0){retiring.push({ch:old});fade(old,1,0,fo,generation,()=>{hardStop(old);retiring=retiring.filter(x=>x.ch!==old);emit()})}else{hardStop(old)}
      noteAudio({kind:'bgm-stop',audioId:old.audioId});emit();return {ok:true}},
-   bgmLoop:spec=>{if(!bgm)return {ok:false};applyLoop(bgm,loopSpec(spec));return {ok:true,loop:{...bgm.loopWindow}}},
+   bgmLoop:spec=>{
+    const w=loopSpec(spec);
+    if(preciseBgm){try{
+      preciseBgm.loop=w;
+      preciseBgm.src.loop=w.mode!=='off';
+      if(w.mode==='region'){preciseBgm.src.loopStart=w.start;preciseBgm.src.loopEnd=w.end}
+      return {ok:true,loop:{...w},mode:'precise'};
+    }catch(e){}}
+    if(!bgm)return {ok:false};
+    applyLoop(bgm,w);
+    return {ok:true,loop:{...bgm.loopWindow}}},
    setBusVolume,sfxPlay,sfxStop,voicePlay,voiceStop,setDucking,applyAudioState,snapshot,
    getLoopStats:()=>({...loopStats})};
  }

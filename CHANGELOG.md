@@ -1,5 +1,46 @@
 # 更新日志
 
+## V0.8.1-RC — 音频循环稳定性与发布验证（2026-11-24）
+
+基线 `4516825`（V0.8.1），回退点 `43ceec4`（V0.8.0-RC）。本地提交，未推送。
+
+### 新增
+
+- **精确循环模式（M2）**：`dist/audio.js` 增加第二套播放模式 `precise`——`AudioBufferSourceNode` +
+  `loopStart/loopEnd`，边界由音频线程处理，不再依赖 rAF / 定时器。淡变、交叉淡化、Ducking
+  全部改为 `AudioParam` 曲线（`linearRampToValueAtTime` / `setValueCurveAtTime`），与帧率无关。
+- **解码缓存与内存预算**：默认 64 MiB，按 `length × channels × 4` 估算；LRU 淘汰，正在播的不淘汰；
+  `cacheStats()` 暴露 `entries/bytes/budget/ids`。
+- **异步竞态防护**：每个解码请求带 `loadSeq`，过期结果标记 `stale` 并**丢弃**（不回退成流式，
+  避免旧请求把新音乐盖掉）。
+- **自动选择与透明回退**：`modePref = stream | precise | auto`；无 `AudioContext`、超预算、解码失败
+  都会回退流式，并在快照里给出 `mode / preciseReason / graphError / cache / graph`。
+- **可注入上下文**：`audioContext` 支持 `OfflineAudioContext`，同一套图可做确定性离线验收。
+- 新增 `tests/audio-precise.test.cjs`（7 组）、`scripts/v081rc-loop-offline.cjs`（50 次 PCM 循环验收）、
+  `docs/V0.8.1_RC_ACCEPTANCE_REPORT.md`。
+
+### 修复
+
+- **精确源未接入终态落地**：`applyAudioState()` 只走流式 `channel()`，跳过/快进后仍是定时器循环；
+  改为优先 `bgmCrossfade()`（精确），解码期间旧流式通道继续播，完成后接管。
+- **过期请求被当成播放**：`stale` 结果原先会回退成流式并真的播出来，等于旧请求盖掉新音乐；
+  改为直接丢弃。
+- **`applyAudioState({bgm:null})` 没停精确源**：只停了元素通道，精确源仍在响。
+
+### 实测
+
+- 离线渲染 50 次（正弦 30 + OST 区域 10 + OST 整曲 10）：循环边界 ±40 ms 内最长静音
+  **正弦 0.02 ms / OST 0 ms**，P95 远超 20 ms 指标；相邻样本最大跳变 0.0281（正弦理论极限 0.029）。
+- 单文件 HTML 实测进入 `precise`：缓存 1 条 / 15.9 MB / 64 MB，播放器层 11 项全过、0 异常。
+- Windows x64 重建：396,813,135 bytes，packaged-smoke 通过（仅启动验证）。
+
+### 未完成
+
+- 1 GiB 大型工程音频回归、15 分钟浸泡、五种运行环境全量音频验收均未做；
+- 标题音乐仍是流式 + ticker（越界 41–70 ms），未接入精确模式；
+- 目录版游戏 CSP `connect-src 'none'` 会阻止精确模式解码，未放开复测；
+- 人工试听未做，标记「技术验收通过、听感待确认」。
+
 ## V0.8.1 — 音频演出引擎（2026-11-24）
 
 基线 `43ceec4`（V0.8.0-RC）。本地提交，未推送。

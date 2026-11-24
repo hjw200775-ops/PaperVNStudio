@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-24T13:20:12.651Z",
+  "at": "2026-11-24T14:36:09.059Z",
   "version": "0.8.1",
   "target": "html",
   "ok": true,
@@ -25,8 +25,8 @@
           "start": 6,
           "end": 14
         },
-        "overrunMaxMs": 37,
-        "avgOverrunMs": 34,
+        "overrunMaxMs": 52,
+        "avgOverrunMs": 41,
         "waitedSec": 28
       }
     },
@@ -34,7 +34,7 @@
       "ok": true,
       "detail": {
         "audioId": "bgm_ost_02_morning",
-        "ms": 325,
+        "ms": 444,
         "volume": 0.7,
         "loop": "all"
       }
@@ -97,8 +97,8 @@
     "渲染进程堆": {
       "ok": true,
       "detail": {
-        "usedBytes": 4380064,
-        "jsHeapBytes": 4380064
+        "usedBytes": 4518080,
+        "jsHeapBytes": 4518080
       }
     },
     "运行时异常": {
@@ -116,7 +116,7 @@
   ],
   "exceptions": [],
   "heap": {
-    "usedBytes": 4380064,
-    "jsHeapBytes": 4380064
+    "usedBytes": 4518080,
+    "jsHeapBytes": 4518080
   }
 }

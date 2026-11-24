@@ -1,0 +1,712 @@
+{
+  "at": "2026-11-24T14:37:20.073Z",
+  "version": "0.8.1-rc",
+  "offlinePrecise": {
+    "at": "2026-11-24T14:32:33.262Z",
+    "mode": "precise-offline",
+    "groups": {
+      "sine-region": {
+        "count": 30,
+        "gapTotal": 0,
+        "atMs": [
+          1213,
+          1463,
+          2213,
+          2963,
+          3713,
+          4463,
+          5213,
+          3163,
+          3913,
+          4663,
+          1913,
+          2663,
+          3413,
+          4163,
+          2113,
+          2863,
+          3613,
+          4363,
+          5113,
+          0,
+          3113,
+          1063,
+          1813,
+          2563,
+          3313,
+          4063,
+          4813,
+          5563,
+          3513,
+          4263
+        ],
+        "silenceP95": 0.02,
+        "silenceMax": 0.02,
+        "stepMax": 0.0281
+      },
+      "ost-region": {
+        "count": 10,
+        "gapTotal": 0,
+        "atMs": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "silenceP95": 0,
+        "silenceMax": 0,
+        "stepMax": 0.0498
+      },
+      "ost-all": {
+        "count": 10,
+        "gapTotal": 0,
+        "atMs": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "silenceP95": 0,
+        "silenceMax": 0,
+        "stepMax": 0.0498
+      }
+    },
+    "iterations": 50,
+    "passed": 50,
+    "failed": 0,
+    "failures": [],
+    "maxSilenceMs": {
+      "p50": 0.02,
+      "p95": 0.92,
+      "max": 0.92
+    },
+    "maxStep": {
+      "p50": 0.0281,
+      "p95": 0.0498,
+      "max": 0.0498
+    },
+    "target": {
+      "silenceP95Ms": 20,
+      "stepLimit": 0.08
+    },
+    "meets": true,
+    "rows": [
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.25,
+          0.75
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 11
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.65,
+          1.5
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 5
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.05,
+          2.25
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 3
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.45,
+          3
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 2
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.85,
+          3.75
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          2.25,
+          4.5
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          2.65,
+          5.25
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.25,
+          3.2
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.65,
+          3.95
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.05,
+          4.7
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.45,
+          1.95
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 8
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.85,
+          2.7
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 4
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          2.25,
+          3.45
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 2
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          2.65,
+          4.2
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.25,
+          2.15
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 2
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.65,
+          2.9
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.05,
+          3.65
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.45,
+          4.4
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.85,
+          5.15
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          2.25,
+          5.9
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          2.65,
+          3.15
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 6
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.25,
+          1.1
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 6
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.65,
+          1.85
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 3
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.05,
+          2.6
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 2
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.45,
+          3.35
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          1.85,
+          4.1
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          2.25,
+          4.85
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          2.65,
+          5.6
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.25,
+          3.55
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 1
+      },
+      {
+        "asset": "sine",
+        "mode": "region",
+        "loop": [
+          0.65,
+          4.3
+        ],
+        "maxSilenceMs": 0.02,
+        "maxStep": 0.0281,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          12
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          13
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          14
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          12
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          13
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          14
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          12
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          13
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          14
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "region",
+        "loop": [
+          4,
+          12
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": 0
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      },
+      {
+        "asset": "ost",
+        "mode": "all",
+        "loop": [
+          0,
+          0
+        ],
+        "maxSilenceMs": 0.92,
+        "maxStep": 0.0498,
+        "gaps": 0,
+        "expectedLoops": null
+      }
+    ]
+  },
+  "online": {
+    "attempted": true,
+    "note": "在线场景探针（AudioWorklet 抓总线 PCM）本轮未能取到有效采样：页面侧 worklet 初始化在 file:// 下失败，采集为空，因此在线数据不作为结论，已从报告移除，避免把空采样当通过。"
+  }
+}
