@@ -47,8 +47,10 @@ const APP_URL = SCHEME + '://game/index.html';
  * script-src 的 'unsafe-inline' 是「单文件、零请求」的实现代价：导出的播放器把
  * player.js 与工程数据内联在同一个 <script> 里，页面来源固定，注入面不随内容变化。 */
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
-  "img-src 'self' data:; media-src 'self' data:; font-src data:; connect-src 'none'; " +
+  "img-src 'self' data:; media-src 'self' data:; font-src data:; connect-src 'self'; " +
   "base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'";
+/* connect-src 'self' = 只允许 fetch 本作自己的 papergame://game/…（handler 白名单到 content/assets），
+   仍然没有任何网络能力：http(s)/ws 由 lockDownSession 一律取消，也没有通配符。 */
 
 /* 每个作品一个独立目录：%APPDATA%\PaperVNStudio-Game-<releaseId>。
  * releaseId 由工程的发行标识决定，与安装路径无关，所以移动游戏目录、换 ZIP/单文件版
@@ -62,7 +64,9 @@ app.setAppUserModelId(CFG.appId || 'cn.papervnstudio.game.' + RELEASE_ID);
 
 protocol.registerSchemesAsPrivileged([{
   scheme: SCHEME,
-  privileges: { standard: true, secure: true, supportFetchAPI: false, corsEnabled: false, stream: true }
+  /* supportFetchAPI：精确循环需要把已登记的音频读成 ArrayBuffer。
+     放开的是「fetch 这个协议」，不是文件系统：下面的 handler 只服务 content/ 白名单路径。 */
+  privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: false, stream: true }
 }]);
 
 let win = null;

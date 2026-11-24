@@ -286,6 +286,10 @@ function createPaperAudio(){
   const memoryBudgetBytes = Math.max(8 * 1024 * 1024, Number(o.memoryBudgetBytes) || 64 * 1024 * 1024);
   const decodeCache = new Map();
   let decodeCacheBytes = 0, graph = null, graphError = '', loadSeq = 0;
+  /* 解码串行化与在途统计：并发 decodeAudioData 会把峰值推到 N 倍预算，
+     串行之后任何时候最多只有一段音频处于解码中，预算才真的是预算。 */
+  let decodeChain = Promise.resolve(), decodeInFlight = 0, decodeInFlightBytes = 0;
+  let decodePeakBytes = 0, decodeCancelled = 0, decodeRejected = 0;
   let preciseBgm = null;
   let preciseReason = '';
 
@@ -320,6 +324,17 @@ function createPaperAudio(){
     for (const c of CATEGORIES) g.buses[c].gain.value = busVolume(c) * (prefs[c] == null ? 1 : prefs[c]);
     g.duckNode.gain.value = duck.factor;
   }
+  /* AudioParam 不允许重叠排程：一次交叉淡化还没走完又切歌时，
+     setValueCurveAtTime / setValueAtTime 会抛 NotSupportedError（15 分钟浸泡抓到的真问题）。
+     统一做法：先取消该参数上未走完的事件，把当前值钉在 now，再排新曲线。 */
+  function retarget(param, now) {
+    try {
+      const v = typeof param.value === 'number' ? param.value : 1;
+      if (typeof param.cancelScheduledValues === 'function') param.cancelScheduledValues(now);
+      param.setValueAtTime(v, now);
+      return v;
+    } catch (e) { return 1; }
+  }
   function cacheGet(id) { const c = decodeCache.get(id); if (c) c.at = Date.now(); return c || null; }
   function cachePut(id, buffer, bytes) {
     const old = decodeCache.get(id);
@@ -337,32 +352,76 @@ function createPaperAudio(){
   }
   function cacheClear() { decodeCache.clear(); decodeCacheBytes = 0; }
   function cacheStats() { return { entries: decodeCache.size, bytes: decodeCacheBytes, budget: memoryBudgetBytes,
-    ids: [...decodeCache.keys()], mode: preciseBgm ? 'precise' : (modePref === 'stream' ? 'stream' : 'stream') }; }
+    ids: [...decodeCache.keys()], mode: preciseBgm ? 'precise' : 'stream' }; }
+  /* 预算前置：先按压缩体积估算解码后内存（压缩音频约 20–25 倍），
+     放不下就先淘汰，再不行就直接回退，不把内存赌在解码完成之后。 */
+  function decodeEstimate(srcLen, tail) {
+    const compressed = Math.max(0, Number(srcLen) || 0);
+    const wav = /\.wav(\?|$)/i.test(String(tail || '')) || /^data:audio\/(x-)?wav/i.test(String(tail || ''));
+    return Math.round(compressed * (wav ? 2.2 : 24));
+  }
+  function cacheMakeRoom(need, keepId) {
+    while (decodeCacheBytes + need > memoryBudgetBytes && decodeCache.size) {
+      let victim = '', oldest = Infinity;
+      for (const [k, v] of decodeCache) { if (k === keepId || k === (preciseBgm && preciseBgm.audioId)) continue; if (v.at < oldest) { oldest = v.at; victim = k; } }
+      if (!victim) return false;
+      decodeCacheBytes -= decodeCache.get(victim).bytes;
+      decodeCache.delete(victim);
+    }
+    return decodeCacheBytes + need <= memoryBudgetBytes;
+  }
 
   /* 解码一段素材；token 用于识别过期请求，慢的旧结果不能覆盖新状态。 */
   async function loadBuffer(audioId, token) {
     const hit = cacheGet(audioId);
     if (hit) return { ok: true, buffer: hit.buffer, bytes: hit.bytes, cached: true };
+    /* 排队：同一时刻只允许一段在解，过期请求在真正开始前就丢弃。 */
+    const prev = decodeChain;
+    let release;
+    decodeChain = new Promise((r) => { release = r; });
+    await prev;
+    try {
+      if (token !== loadSeq) { decodeCancelled++; return { ok: false, reason: 'stale' }; }
+      return await loadBufferSerial(audioId, token);
+    } finally { release(); }
+  }
+  async function loadBufferSerial(audioId, token) {
     const src = assetData(audioId);
     if (!src) return { ok: false, reason: 'missing' };
-    let arr;
-    try {
-      const res = await fetch(src);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      arr = await res.arrayBuffer();
-    } catch (e) {
-      return { ok: false, reason: 'fetch: ' + ((e && e.message) || e) };
+    const estimate = decodeEstimate(src.length, src.slice(0, 64));
+    if (estimate > memoryBudgetBytes) {
+      decodeRejected++;
+      return { ok: false, reason: 'budget', bytes: estimate };
     }
-    if (token !== loadSeq) return { ok: false, reason: 'stale' };
+    let arr;
+    decodeInFlight++; decodeInFlightBytes += estimate;
+    decodePeakBytes = Math.max(decodePeakBytes, decodeInFlightBytes);
     try {
-      const buffer = await graph.ctx.decodeAudioData(arr.slice(0));
-      if (token !== loadSeq) return { ok: false, reason: 'stale' };
-      const est = buffer.length * buffer.numberOfChannels * 4;
-      if (est > memoryBudgetBytes) return { ok: false, reason: 'budget', bytes: est };
-      cachePut(audioId, buffer, est);
-      return { ok: true, buffer, bytes: est, cached: false };
-    } catch (e) {
-      return { ok: false, reason: 'decode: ' + ((e && e.message) || e) };
+      try {
+        const res = await fetch(src);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        arr = await res.arrayBuffer();
+      } catch (e) {
+        return { ok: false, reason: 'fetch: ' + ((e && e.message) || e) };
+      }
+      if (token !== loadSeq) { decodeCancelled++; return { ok: false, reason: 'stale' }; }
+      if (!cacheMakeRoom(estimate, audioId)) {
+        decodeRejected++;
+        return { ok: false, reason: 'budget', bytes: estimate };
+      }
+      try {
+        const buffer = await graph.ctx.decodeAudioData(arr.slice(0));
+        if (token !== loadSeq) { decodeCancelled++; return { ok: false, reason: 'stale' }; }
+        const est = buffer.length * buffer.numberOfChannels * 4;
+        if (est > memoryBudgetBytes) { decodeRejected++; return { ok: false, reason: 'budget', bytes: est }; }
+        cachePut(audioId, buffer, est);
+        return { ok: true, buffer, bytes: est, cached: false };
+      } catch (e) {
+        return { ok: false, reason: 'decode: ' + ((e && e.message) || e) };
+      }
+    } finally {
+      decodeInFlight = Math.max(0, decodeInFlight - 1);
+      decodeInFlightBytes = Math.max(0, decodeInFlightBytes - estimate);
     }
   }
   let errors=[],lastEnter=null,disposed=false;
@@ -462,6 +521,8 @@ function createPaperAudio(){
    }
   }
   function startBgm(spec,myGen,label){
+   /* 剧情要起音乐：标题曲（无论精确还是流式）一律让位，结构上排除叠加。 */
+   if(titleEl)yieldTitleForStory(0.3);
    const ch=channel('bgm',spec.audioId,spec.volume,spec.loop,label);
    if(!ch)return Promise.resolve({ok:false});
    bgm=ch;
@@ -571,7 +632,7 @@ function createPaperAudio(){
    if(w.mode==='region')ensureLoopTicker();
   }
   /* 精确模式下的 BGM 交叉淡化：增益曲线全部排到 AudioParam 上，与渲染帧率无关。 */
-  async function bgmCrossfadePrecise(spec, label) {
+  async function bgmCrossfadePrecise(spec, label, owner) {
     const g = ensureGraph();
     if (!g) { preciseReason = 'no-graph'; return { ok: false, mode: 'precise', reason: preciseReason }; }
     const token = ++loadSeq;
@@ -590,11 +651,14 @@ function createPaperAudio(){
     src.loop = loop.mode !== 'off';
     if (loop.mode === 'region') { src.loopStart = loop.start; src.loopEnd = loop.end; }
     src.connect(node);
-    src.start(now, 0);
-    preciseBgm = { src, node, audioId: spec.audioId, startedAt: now, offset: 0, buffer: loaded.buffer, loop, label: label || '' };
+    /* offset 用于「从暂停点继续」：标题音乐返回标题页时不希望从头炸响。 */
+    const offset = Math.max(0, Number(spec.offset) || 0);
+    try { src.start(now, offset); } catch (e) { src.start(now); }
+    preciseBgm = { src, node, audioId: spec.audioId, startedAt: now, offset, buffer: loaded.buffer, loop,
+      label: label || '', owner: owner === 'title' ? 'title' : 'story' };
     const targetVol = clamp(spec.volume, 0, 1, 1);
     const n = 48, inCurve = new Float32Array(n), outCurve = new Float32Array(n);
-    const base = old ? old.node.gain.value : 0;
+    const base = old ? retarget(old.node.gain, now) : 0;
     for (let i = 0; i < n; i++) {
       const p = i / (n - 1);
       const gains = spec.curve === 'equalPower'
@@ -607,7 +671,8 @@ function createPaperAudio(){
       node.gain.setValueCurveAtTime(inCurve, now, dur);
       if (old) old.node.gain.setValueCurveAtTime(outCurve, now, dur);
     } catch (e) {
-      node.gain.setValueAtTime(targetVol, now + dur);
+      /* 兜底也要先取消：新节点上可能已经排了一半的曲线。 */
+      try { retarget(node.gain, now); node.gain.linearRampToValueAtTime(targetVol, now + dur); } catch (e2) {}
     }
     if (old) {
       const victim = old;
@@ -617,9 +682,10 @@ function createPaperAudio(){
     preciseReason = '';
     return { ok: true, mode: 'precise', bytes: loaded.bytes, cached: !!loaded.cached };
   }
-  function preciseStop(fadeOut) {
+  function preciseStop(fadeOut, owner) {
     const cur = preciseBgm;
     if (!cur || !graph) return false;
+    if (owner && cur.owner !== owner) return false;
     const now = graph.ctx.currentTime, dur = Math.max(.02, clamp(fadeOut, 0, 10, .4));
     try {
       cur.node.gain.setValueAtTime(cur.node.gain.value, now);
@@ -643,9 +709,197 @@ function createPaperAudio(){
     }
     return {
       audioId: preciseBgm.audioId, itemVolume: preciseBgm.node.gain.value, fade: 1,
-      volume: preciseBgm.node.gain.value * busVolume('bgm') * prefs.bgm * prefs.master * duck.factor,
-      time, duration: preciseBgm.buffer.duration, paused: false, loop, mode: 'precise'
+      volume: mixVolume(prefs, 'bgm', preciseBgm.node.gain.value, busVolume('bgm'), duck.factor),
+      time, duration: preciseBgm.buffer.duration, paused: false, loop, mode: 'precise',
+      owner: preciseBgm.owner || 'story', startedAt: preciseBgm.startedAt
     };
+  }
+  /* ---------------- 标题音乐（V0.8.1-RC2） ----------------
+   * 不再是「另一条独立通道」：与剧情 BGM 共用同一个音乐槽。preciseBgm.owner 只有
+   * story / title 两种取值，新的一首起来时旧的必然被淡出并销毁，所以结构上不可能出现
+   * 双 BGM 或标题曲与场景曲叠加。
+   * 精确模式走 AudioBufferSourceNode（与剧情 BGM 同一套图、同一套 prefs）；
+   * 无图 / 超预算 / 解码失败时回退 HTMLAudioElement，并如实给出 preciseReason。 */
+  let titleEl = null, titleCfg = null, titleOffset = 0, titlePaused = false, titleTicker = null;
+  let titleLoopStats = { jumps: 0, overrunMaxMs: 0, overrunSumMs: 0 };
+
+  function titleLoopOf(spec) {
+    if (spec && spec.loop) return loopSpec(spec.loop);
+    return loopSpec({ mode: spec && spec.loopMode, start: spec && spec.loopStart, end: spec && spec.loopEnd });
+  }
+  function stopTitleTicker() { if (titleTicker) { clearInterval(titleTicker.t); titleTicker = null; } }
+  /* 流式回退下的区间循环：精确模式永远不走这里，因此不再依赖定时器命中边界。 */
+  function startTitleTicker(ch, loop) {
+    stopTitleTicker();
+    if (!(loop.mode === 'region' && loop.end > loop.start)) return;
+    titleTicker = { t: setInterval(() => {
+      if (!titleEl || titleEl !== ch || !ch.el || ch.el.paused) return;
+      let t = 0; try { t = ch.el.currentTime; } catch (e) { return; }
+      if (t >= loop.end) {
+        const overrun = Math.max(0, (t - loop.end) * 1000);
+        try { ch.el.currentTime = loop.start; } catch (e) { return; }
+        titleLoopStats.jumps++;
+        titleLoopStats.overrunSumMs += overrun;
+        titleLoopStats.overrunMaxMs = Math.max(titleLoopStats.overrunMaxMs, overrun);
+      }
+    }, 60) };
+  }
+  function stopTitleStream(fadeOut) {
+    stopTitleTicker();
+    const ch = titleEl;
+    titleEl = null;
+    if (!ch) return false;
+    const fo = Math.max(0, Number(fadeOut) || 0);
+    if (fo > 0) {
+      retiring.push({ ch });
+      fade(ch, num(ch.fadeFactor, 1), 0, fo, generation, () => {
+        hardStop(ch); retiring = retiring.filter((x) => x.ch !== ch);
+      });
+    } else hardStop(ch);
+    return true;
+  }
+  /* 标题曲还占着精确槽位时，剧情要起音乐必须先让它走——这就是「不重叠」的保证。 */
+  function yieldTitleForStory(fadeOut) {
+    if (preciseBgm && preciseBgm.owner === 'title') { preciseStop(fadeOut == null ? .4 : fadeOut, 'title'); titleCfg = null; titlePaused = false; titleOffset = 0; }
+    if (titleEl) { stopTitleStream(fadeOut == null ? .4 : fadeOut); titleCfg = null; titlePaused = false; titleOffset = 0; }
+  }
+  function preciseTitleTime() {
+    if (!preciseBgm || !graph) return 0;
+    const elapsed = graph.ctx.currentTime - preciseBgm.startedAt;
+    const loop = preciseBgm.loop || { mode: 'off' };
+    let t = (preciseBgm.offset || 0) + elapsed;
+    if (loop.mode === 'region' && loop.end > loop.start) {
+      t = t <= loop.end ? t : loop.start + ((t - loop.start) % (loop.end - loop.start));
+    } else if (loop.mode === 'all' && preciseBgm.buffer.duration > 0) {
+      t = t % preciseBgm.buffer.duration;
+    }
+    return t;
+  }
+  /* 循环次数由音频时钟推导（不是采样统计）；接缝毫秒必须以 PCM 为准，见验收报告。 */
+  function titleLoopCount() {
+    if (!preciseBgm || !graph || preciseBgm.owner !== 'title') return 0;
+    const l = preciseBgm.loop || { mode: 'off' };
+    const t = (preciseBgm.offset || 0) + (graph.ctx.currentTime - preciseBgm.startedAt);
+    if (l.mode === 'region' && l.end > l.start) {
+      return t <= l.end ? 0 : Math.max(0, Math.floor((t - l.start) / (l.end - l.start)));
+    }
+    if (l.mode === 'all' && preciseBgm.buffer.duration > 0) return Math.max(0, Math.floor(t / preciseBgm.buffer.duration));
+    return 0;
+  }
+  async function titlePlay(spec) {
+    const audioId = spec && spec.audioId;
+    if (!audioId) return { ok: false, reason: 'missing' };
+    const loop = titleLoopOf(spec);
+    const vol = clamp(spec.volume, 0, 1, 1);
+    const fadeIn = Math.max(0, Math.min(LIMITS.maxFade, Number(spec.fadeIn) || 0));
+    const offset = Math.max(0, Number(spec.offset) || 0);
+    const g = modePref !== 'stream' ? ensureGraph() : null;
+    if (g) {
+      const token = ++loadSeq;
+      const loaded = await loadBuffer(audioId, token);
+      if (loaded.ok && token === loadSeq) {
+        const now = g.ctx.currentTime;
+        const old = preciseBgm;
+        const node = g.ctx.createGain();
+        node.gain.setValueAtTime(fadeIn > 0 ? 0 : vol, now);
+        node.connect(g.buses.bgm);
+        const src = g.ctx.createBufferSource();
+        src.buffer = loaded.buffer;
+        src.loop = loop.mode !== 'off';
+        if (loop.mode === 'region') { src.loopStart = loop.start; src.loopEnd = loop.end; }
+        src.connect(node);
+        try { src.start(now, offset); } catch (e) { try { src.start(now); } catch (e2) {} }
+        preciseBgm = { src, node, audioId, startedAt: now, offset, buffer: loaded.buffer, loop, label: 'title', owner: 'title' };
+        if (fadeIn > 0) { try { node.gain.linearRampToValueAtTime(vol, now + fadeIn); } catch (e) { node.gain.value = vol; } }
+        if (old) {
+          const fo = Math.max(.05, fadeIn || .4);
+          try {
+            retarget(old.node.gain, now);
+            old.node.gain.linearRampToValueAtTime(0, now + fo);
+          } catch (e) {}
+          const victim = old;
+          setTimeout(() => { try { victim.src.stop(); } catch (e) {} try { victim.node.disconnect(); } catch (e) {} }, Math.ceil(fo * 1000) + 60);
+        }
+        titleCfg = { audioId, volume: vol, loop, fadeIn };
+        titlePaused = false; titleOffset = 0; preciseReason = '';
+        noteAudio({ kind: 'title-play', audioId, mode: 'precise', loop: loop.mode, offset });
+        emit();
+        return { ok: true, mode: 'precise', bytes: loaded.bytes, cached: !!loaded.cached, loops: 0 };
+      }
+      preciseReason = (loaded && loaded.reason) || 'unavailable';
+      noteAudio({ kind: 'title-fallback', reason: preciseReason });
+    } else {
+      preciseReason = modePref === 'stream' ? 'stream-pref' : (graphError || 'no-graph');
+    }
+    /* ---- 流式回退 ---- */
+    yieldTitleForStory(0);
+    if (preciseBgm) preciseStop(0);
+    const ch = channel('bgm', audioId, vol, loop.mode === 'all');
+    if (!ch) return { ok: false, reason: 'load' };
+    titleEl = ch;
+    titleCfg = { audioId, volume: vol, loop, fadeIn };
+    titlePaused = false;
+    if (fadeIn > 0) { try { ch.el.volume = 0; } catch (e) {} }
+    if (offset > 0) { try { ch.el.currentTime = offset; } catch (e) {} }
+    if (loop.mode === 'region') startTitleTicker(ch, loop);
+    const started = await start(ch, generation);
+    if (!started.ok) { titleEl = null; return { ok: false, reason: started.kind || 'play' }; }
+    if (fadeIn > 0) fade(ch, 0, 1, fadeIn, generation);
+    noteAudio({ kind: 'title-play', audioId, mode: 'stream', loop: loop.mode, reason: preciseReason });
+    emit();
+    return { ok: true, mode: 'stream', reason: preciseReason, offset };
+  }
+  function titlePause(fadeOut) {
+    const fo = fadeOut == null ? .35 : Math.max(0, Math.min(LIMITS.maxFade, Number(fadeOut) || 0));
+    if (preciseBgm && preciseBgm.owner === 'title') {
+      titleOffset = Math.max(0, preciseTitleTime());
+      preciseStop(fo, 'title');
+      titlePaused = true;
+      noteAudio({ kind: 'title-pause', mode: 'precise', offset: +titleOffset.toFixed(3) });
+      emit();
+      return { ok: true, mode: 'precise', offset: +titleOffset.toFixed(3) };
+    }
+    if (titleEl) {
+      try { titleOffset = Math.max(0, titleEl.el.currentTime || 0); } catch (e) {}
+      stopTitleStream(fo);
+      titlePaused = true;
+      noteAudio({ kind: 'title-pause', mode: 'stream', offset: +titleOffset.toFixed(3) });
+      emit();
+      return { ok: true, mode: 'stream', offset: +titleOffset.toFixed(3) };
+    }
+    return { ok: false };
+  }
+  function titleResume(fadeOut) {
+    if (!titleCfg) return Promise.resolve({ ok: false, reason: 'no-cfg' });
+    return titlePlay({ audioId: titleCfg.audioId, volume: titleCfg.volume, loop: titleCfg.loop,
+      fadeIn: fadeOut == null ? .4 : fadeOut, offset: titleOffset });
+  }
+  function titleStop(fadeOut) {
+    const fo = fadeOut == null ? .35 : Math.max(0, Number(fadeOut) || 0);
+    let stopped = false;
+    if (preciseBgm && preciseBgm.owner === 'title') stopped = preciseStop(fo, 'title') || stopped;
+    if (stopTitleStream(fo)) stopped = true;
+    titleCfg = null; titlePaused = false; titleOffset = 0;
+    if (stopped) { noteAudio({ kind: 'title-stop' }); emit(); }
+    return { ok: stopped };
+  }
+  function titleSnapshot() {
+    const cfg = titleCfg;
+    if (preciseBgm && preciseBgm.owner === 'title') {
+      const time = preciseTitleTime();
+      return { playing: true, paused: false, audioId: preciseBgm.audioId, mode: 'precise',
+        volume: mixVolume(prefs, 'bgm', preciseBgm.node.gain.value, busVolume('bgm'), duck.factor),
+        itemVolume: preciseBgm.node.gain.value, time, duration: preciseBgm.buffer.duration,
+        loop: preciseBgm.loop, loops: titleLoopCount(), offset: 0, owner: 'title' };
+    }
+    if (titleEl) {
+      return { playing: true, paused: false, audioId: titleEl.audioId, mode: 'stream',
+        volume: channelVolume(titleEl, num(titleEl.fadeFactor, 1)), itemVolume: titleEl.itemVolume,
+        time: titleEl.el.currentTime, loop: cfg && cfg.loop, loops: titleLoopStats.jumps, offset: 0,
+        reason: preciseReason, owner: 'title' };
+    }
+    return { playing: false, paused: titlePaused, audioId: cfg ? cfg.audioId : '',
+      mode: '', loop: cfg ? cfg.loop : null, offset: titlePaused ? +titleOffset.toFixed(3) : 0, loops: 0 };
   }
 
   /* 剧情音量：只改 showVolume，不写 prefs，玩家在设置里的值永远不会被覆盖。 */
@@ -670,7 +924,7 @@ function createPaperAudio(){
    if(preciseBgm&&graph){
     const now=graph.ctx.currentTime;
     const to=clamp(target,0,1,1),dur=Math.max(.02,num(options&&options.duration,0));
-    try{preciseBgm.node.gain.linearRampToValueAtTime(to,now+dur)}catch(e){}
+    try{retarget(preciseBgm.node.gain,now);preciseBgm.node.gain.linearRampToValueAtTime(to,now+dur)}catch(e){}
     return {ok:true,mode:'precise',volume:to};
    }
    const ch=bgm;
@@ -700,7 +954,7 @@ function createPaperAudio(){
     if(g){
      if(preciseBgm&&preciseBgm.audioId===target&&spec.loop&&spec.loop.mode!=='off'){
       const now=g.ctx.currentTime;
-      try{preciseBgm.node.gain.linearRampToValueAtTime(clamp(spec.volume,0,1,1),now+Math.max(.02,num(spec.duration,0)))}
+      try{retarget(preciseBgm.node.gain,now);preciseBgm.node.gain.linearRampToValueAtTime(clamp(spec.volume,0,1,1),now+Math.max(.02,num(spec.duration,0)))}
       catch(e){try{preciseBgm.node.gain.value=clamp(spec.volume,0,1,1)}catch(e2){}}
       preciseBgm.loop=spec.loop;
       try{
@@ -726,6 +980,11 @@ function createPaperAudio(){
    if(!target)return Promise.resolve({ok:false,kind:'missing'});
    cancelPending();
    if(preciseBgm)preciseStop(0.2);
+   if(titleEl){
+    const tc=titleEl;titleEl=null;titleCfg=null;titlePaused=false;titleOffset=0;stopTitleTicker();
+    retiring.push({ch:tc});
+    fade(tc,num(tc.fadeFactor,1),0,Math.max(.2,num(spec.duration,.4)),generation,()=>{hardStop(tc);retiring=retiring.filter(x=>x.ch!==tc)});
+   }
    const old=bgm;
    if(old&&!old.done&&old.audioId===target){
     /* 同一首：不新建实例、不回到曲首，只做音量过渡——否则会出现双重 BGM。 */
@@ -791,7 +1050,7 @@ function createPaperAudio(){
    if(graph){
     const now=graph.ctx.currentTime,target=duckTarget();
     const dur=Math.max(.02,duck.active?duck.attack:duck.release);
-    try{graph.duckNode.gain.setValueAtTime(graph.duckNode.gain.value,now);graph.duckNode.gain.linearRampToValueAtTime(target,now+dur)}catch(e){}
+    try{retarget(graph.duckNode.gain,now);graph.duckNode.gain.linearRampToValueAtTime(target,now+dur)}catch(e){}
    }
    emit();return {...duck};
   }
@@ -874,6 +1133,15 @@ function createPaperAudio(){
    applyPrefs();emit();
    return snapshot();
   }
+  /* 内存画像：缓存、在播解码缓冲、在途解码、流式通道分别统计，不把缓存预算当峰值。 */
+  function audioMemory(){
+   const active=preciseBgm?preciseBgm.buffer.length*preciseBgm.buffer.numberOfChannels*4:0;
+   const streams=(bgm?1:0)+(voice?1:0)+(titleEl?1:0)+sfxChannels.length+retiring.length+(preview?1:0);
+   return {budgetBytes:memoryBudgetBytes,cacheBytes:decodeCacheBytes,cacheEntries:decodeCache.size,
+    activeBufferBytes:active,decoding:decodeInFlight,decodingBytes:decodeInFlightBytes,
+    decodePeakBytes,decodeCancelled,decodeRejected,streamChannels:streams,
+    workingSetBytes:decodeCacheBytes+decodeInFlightBytes};
+  }
   function snapshot(){
    const view=ch=>{
     if(!ch)return null;
@@ -885,7 +1153,9 @@ function createPaperAudio(){
    const precise=preciseSnapshot();
    return {unlocked,prefs:{...prefs},buses:{...showVolume},ducking:{...duck,hold:duckHold},
     loop:{...loopStats},bgm:precise||view(bgm),voice:view(voice),sfx:sfxChannels.map(view),
-    instances:{bgm:(precise||bgm)?1:0,retiring:retiring.length,sfx:sfxChannels.length,voice:voice?1:0},
+    title:titleSnapshot(),music:{owner:precise?precise.owner:(bgm?'story':(titleEl?'title':null))},
+    audioMemory:audioMemory(),
+    instances:{bgm:(precise||bgm)?1:0,retiring:retiring.length,sfx:sfxChannels.length,voice:voice?1:0,title:(precise&&precise.owner==='title')||titleEl?1:0},
     mode:precise?'precise':'stream',modePref,preciseReason,graphError,
     cache:cacheStats(),graph:graph?{state:graph.ctx.state,sampleRate:graph.ctx.sampleRate,baseLatency:graph.ctx.baseLatency}:null,
     events:audioEvents.slice(0,12),generation};
@@ -971,11 +1241,20 @@ function createPaperAudio(){
    cancelPending();clearFades();leave();stopPreview(true);
    duckHold=0;duck.active=false;duck.factor=1;if(duckTimer){clearInterval(duckTimer);duckTimer=null}
    stopLoopTicker();sfxHandles.clear();
+   if(preciseBgm)preciseStop(0);
+   stopTitleStream(0);titleCfg=null;titlePaused=false;titleOffset=0;
    if(bgm){hardStop(bgm);bgm=null}
    emit();
   }
-  function dispose(){stopAll();disposed=true;emit()}
+  function dispose(){
+   stopAll();disposed=true;
+   /* 自己创建的上下文要关掉；注入的（离线渲染 / 测试）由调用方负责。 */
+   if(graph&&!o.audioContext&&typeof graph.ctx.close==='function'){try{graph.ctx.close()}catch{}}
+   graph=null;cacheClear();emit();
+  }
   return {enter,retry,unlock,status,setPrefs,getPrefs,previewAsset,stopPreview:()=>{stopPreview()},stopAll,dispose,isUnlocked:()=>unlocked,
+   /* V0.8.1-RC2：标题音乐走同一个音乐槽与同一套 prefs */
+   titlePlay,titlePause,titleResume,titleStop,titleSnapshot,audioMemory,
    /* V0.8.1 音频演出 API */
    bgmCrossfade,bgmVolume,bgmStop:options=>{const fo=clamp(options&&options.fadeOut,0,LIMITS.maxFade,1);
     if(preciseBgm){preciseStop(fo);noteAudio({kind:'bgm-stop'});emit();return {ok:true,mode:'precise'}}

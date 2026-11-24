@@ -1,0 +1,187 @@
+{
+  "at": "2026-11-24T16:11:30.402Z",
+  "version": "0.8.1-rc2",
+  "method": "online-audio-graph-pcm (ScriptProcessor after buses, before master)",
+  "note": "与 offlinePrecise(OfflineAudioContext) 是两套证据，不互相替代；操作系统回环输出本轮未采集。",
+  "scenarios": {
+    "foreground-sine": {
+      "asset": "sine",
+      "region": [
+        0.4,
+        1.4
+      ],
+      "seconds": 30.001,
+      "mode": "precise",
+      "ctxState": "running",
+      "hidden": false,
+      "capMode": "audioWorklet",
+      "capError": "",
+      "loops": 30,
+      "sampleRate": 48000,
+      "blocks": 11248,
+      "samples": 1439744,
+      "maxRunAtMs": 16.333333333333332,
+      "graphState": "running",
+      "maxSilenceMs": 0.020833333333333332,
+      "maxStep": 0.017303994856774807,
+      "rms": 0.42425928930494944,
+      "maxBlockDropDb": 0.06494049695060468,
+      "blockGaps": 0,
+      "rafFrames": 3047,
+      "rafGaps": [],
+      "ok": true
+    },
+    "前台 正弦 1s 区间 × 30 次": {
+      "ok": true,
+      "loops": 30,
+      "maxSilenceMs": 0.021,
+      "maxStep": 0.0173,
+      "maxBlockDropDb": 0.06,
+      "samples": 1439744,
+      "rafFrames": 3047
+    },
+    "foreground-ost": {
+      "asset": "ost",
+      "region": [
+        6,
+        8
+      ],
+      "seconds": 26.004,
+      "mode": "precise",
+      "ctxState": "running",
+      "hidden": false,
+      "capMode": "audioWorklet",
+      "capError": "",
+      "loops": 13,
+      "sampleRate": 48000,
+      "blocks": 9744,
+      "samples": 1247232,
+      "maxRunAtMs": 692.0833333333334,
+      "graphState": "running",
+      "maxSilenceMs": 0.0625,
+      "maxStep": 0.11605268344283104,
+      "rms": 0.06390822489047567,
+      "maxBlockDropDb": 8.305207620949886,
+      "blockGaps": 0,
+      "rafFrames": 2663,
+      "rafGaps": [],
+      "ok": true
+    },
+    "前台 OST 6–8s 区间 × 13 次": {
+      "ok": true,
+      "loops": 13,
+      "maxSilenceMs": 0.06,
+      "maxStep": 0.1161,
+      "maxBlockDropDb": 8.31,
+      "note": "OST 自身的弱音段会计入最长静音，故以块级跌幅与波形跳变为主要判据"
+    },
+    "unfocused-sine": {
+      "asset": "sine",
+      "region": [
+        0.4,
+        1.4
+      ],
+      "seconds": 13.001,
+      "mode": "precise",
+      "ctxState": "running",
+      "hidden": false,
+      "capMode": "audioWorklet",
+      "capError": "",
+      "loops": 13,
+      "sampleRate": 48000,
+      "blocks": 4864,
+      "samples": 622592,
+      "maxRunAtMs": 19,
+      "graphState": "running",
+      "maxSilenceMs": 0.020833333333333332,
+      "maxStep": 0.017303994856774807,
+      "rms": 0.42425534280304233,
+      "maxBlockDropDb": 0.06284427434635519,
+      "blockGaps": 0,
+      "rafFrames": 1355,
+      "rafGaps": [],
+      "ok": true
+    },
+    "失焦窗口 正弦 × 12 次": {
+      "ok": true,
+      "loops": 13,
+      "maxSilenceMs": 0.021,
+      "rafFrames": 1355
+    },
+    "minimized-sine": {
+      "asset": "sine",
+      "region": [
+        0.4,
+        1.4
+      ],
+      "seconds": 13.008,
+      "mode": "precise",
+      "ctxState": "running",
+      "hidden": false,
+      "capMode": "audioWorklet",
+      "capError": "",
+      "loops": 13,
+      "sampleRate": 48000,
+      "blocks": 4864,
+      "samples": 622592,
+      "maxRunAtMs": 27,
+      "graphState": "running",
+      "maxSilenceMs": 0.020833333333333332,
+      "maxStep": 0.017303994856774807,
+      "rms": 0.4242589705274153,
+      "maxBlockDropDb": 0.06284427434635519,
+      "blockGaps": 0,
+      "rafFrames": 1327,
+      "rafGaps": [],
+      "ok": true
+    },
+    "最小化窗口 正弦 × 12 次": {
+      "ok": true,
+      "loops": 13,
+      "samples": 622592,
+      "rafFrames": 1327,
+      "note": "采样仍在进行"
+    },
+    "restored-sine": {
+      "asset": "sine",
+      "region": [
+        0.4,
+        1.4
+      ],
+      "seconds": 9.001,
+      "mode": "precise",
+      "ctxState": "running",
+      "hidden": false,
+      "capMode": "audioWorklet",
+      "capError": "",
+      "loops": 9,
+      "sampleRate": 48000,
+      "blocks": 3360,
+      "samples": 430080,
+      "maxRunAtMs": 16.333333333333332,
+      "graphState": "running",
+      "maxSilenceMs": 0.020833333333333332,
+      "maxStep": 0.017303994856774807,
+      "rms": 0.4242509083569048,
+      "maxBlockDropDb": 0.06494049695060468,
+      "blockGaps": 0,
+      "rafFrames": 956,
+      "rafGaps": [],
+      "ok": true
+    },
+    "恢复前台后 正弦 × 8 次": {
+      "ok": true,
+      "loops": 9,
+      "maxSilenceMs": 0.021
+    }
+  },
+  "problems": [],
+  "ok": true,
+  "summary": {
+    "foregroundMaxSilenceMs": 0.021,
+    "foregroundP95Target": 20,
+    "meetsP95": true,
+    "boundariesMeasured": 78,
+    "note": "在线采样是单一场景内的最大值；P95 以逐边界统计的离线数据为准，两者都记录在案。"
+  }
+}

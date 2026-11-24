@@ -1,0 +1,256 @@
+{
+  "at": "2026-11-24T15:27:12.829Z",
+  "version": "0.8.1-rc2",
+  "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\bench-project",
+  "ok": true,
+  "stages": {
+    "大型工程就绪（未去重素材 ≥ 1 GiB）": {
+      "ok": true,
+      "detail": {
+        "nodes": 576,
+        "assets": 100,
+        "audio": 104,
+        "assetMB": 453
+      }
+    },
+    "打开大型工程": {
+      "ok": true,
+      "detail": {
+        "openMs": 682,
+        "nodes": 576,
+        "assets": 100,
+        "audio": 104
+      }
+    },
+    "打开后内存": {
+      "ok": true,
+      "detail": {
+        "tag": "打开后",
+        "at": "2026-11-24T15:27:13.522Z",
+        "totalMB": 440.1,
+        "rendererMB": 0,
+        "mainMB": 165.3,
+        "jsHeapMB": 6,
+        "processes": 4
+      }
+    },
+    "在 1.47 GiB 工程里添加音频动作": {
+      "ok": true,
+      "detail": {
+        "before": 1,
+        "after": 2,
+        "preset": "BGM 淡入",
+        "audioOptions": 105,
+        "count": "2"
+      }
+    },
+    "撤销 / 重做音频动作": {
+      "ok": true,
+      "detail": {
+        "added": 2,
+        "afterUndo": 1,
+        "afterRedo": 2
+      }
+    },
+    "保存工程": {
+      "ok": true,
+      "detail": {
+        "saved": "已自动保存"
+      }
+    },
+    "音频动作写入工程": {
+      "ok": true,
+      "detail": {
+        "type": "audio.bgm.play",
+        "audioId": "au_0089b53247a02d31"
+      }
+    },
+    "关闭重开后音频动作仍在": {
+      "ok": true,
+      "detail": {
+        "count": "2",
+        "items": 2,
+        "text": "1. 播放背景音乐 · 背景音乐track_000 · 音量 80% · 淡入 2s · 整曲循环 · 2s↑↓复制删除2. 播放背景音乐 · 背景音乐trac"
+      }
+    },
+    "完整预览窗口（pvres://）": {
+      "ok": true,
+      "detail": {
+        "openMs": 2814,
+        "origin": "pvres://s-17b81870c97b",
+        "mode": "precise",
+        "bgm": {
+          "id": "au_0089b53247a02d31",
+          "time": 0.05066666666666669,
+          "loop": {
+            "mode": "all",
+            "start": 0,
+            "end": 0
+          }
+        },
+        "mem": {
+          "budgetBytes": 67108864,
+          "cacheBytes": 23040000,
+          "cacheEntries": 1,
+          "activeBufferBytes": 23040000,
+          "decoding": 0,
+          "decodingBytes": 0,
+          "decodePeakBytes": 2352,
+          "decodeCancelled": 0,
+          "decodeRejected": 0,
+          "streamChannels": 0,
+          "workingSetBytes": 23040000
+        }
+      }
+    },
+    "预览中音频动作起播": {
+      "ok": true,
+      "detail": {
+        "firstAudioMs": 5739,
+        "bgm": {
+          "id": "au_0089b53247a02d31",
+          "time": 5.789333333333333,
+          "loop": {
+            "mode": "all",
+            "start": 0,
+            "end": 0
+          }
+        },
+        "instances": {
+          "bgm": 1,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 1
+        }
+      }
+    },
+    "预览音频内存画像": {
+      "ok": true,
+      "detail": {
+        "budgetBytes": 67108864,
+        "cacheBytes": 23040000,
+        "cacheEntries": 1,
+        "activeBufferBytes": 23040000,
+        "decoding": 0,
+        "decodingBytes": 0,
+        "decodePeakBytes": 2352,
+        "decodeCancelled": 0,
+        "decodeRejected": 0,
+        "streamChannels": 0,
+        "workingSetBytes": 23040000
+      }
+    },
+    "导出目录版（大工程）": {
+      "ok": true,
+      "detail": {
+        "dir": "release/v081rc2/large/game/大型工程音频验收-0.8.1-rc2-win-x64-独立游戏",
+        "exportMs": 11927,
+        "sizeMB": 1204.8
+      }
+    },
+    "导出游戏内精确音频": {
+      "ok": true,
+      "detail": {
+        "origin": "papergame://game",
+        "bgm": {
+          "id": "au_0089b53247a02d31",
+          "time": 1.3706666666666667,
+          "loop": {
+            "mode": "all",
+            "start": 0,
+            "end": 0
+          }
+        },
+        "mem": {
+          "budgetBytes": 67108864,
+          "cacheBytes": 23040000,
+          "cacheEntries": 1,
+          "activeBufferBytes": 23040000,
+          "decoding": 0,
+          "decodingBytes": 0,
+          "decodePeakBytes": 2352,
+          "decodeCancelled": 0,
+          "decodeRejected": 0,
+          "streamChannels": 0,
+          "workingSetBytes": 23040000
+        },
+        "instances": {
+          "bgm": 1,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 1
+        }
+      }
+    },
+    "导出游戏：演出音频动作生效": {
+      "ok": true,
+      "detail": {
+        "i": 0,
+        "bgm": {
+          "id": "au_0089b53247a02d31",
+          "time": 7.469333333333333,
+          "loop": {
+            "mode": "all",
+            "start": 0,
+            "end": 0
+          }
+        },
+        "instances": {
+          "bgm": 1,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 1
+        }
+      }
+    },
+    "导出后内存": {
+      "ok": true,
+      "detail": {
+        "tag": "导出后",
+        "at": "2026-11-24T15:27:50.011Z",
+        "totalMB": 635.4,
+        "rendererMB": 0,
+        "mainMB": 121.8,
+        "jsHeapMB": 4.1,
+        "processes": 6
+      }
+    }
+  },
+  "problems": [],
+  "memory": [
+    {
+      "tag": "打开后",
+      "at": "2026-11-24T15:27:13.522Z",
+      "totalMB": 440.1,
+      "rendererMB": 0,
+      "mainMB": 165.3,
+      "jsHeapMB": 6,
+      "processes": 4
+    },
+    {
+      "tag": "导出后",
+      "at": "2026-11-24T15:27:50.011Z",
+      "totalMB": 635.4,
+      "rendererMB": 0,
+      "mainMB": 121.8,
+      "jsHeapMB": 4.1,
+      "processes": 6
+    }
+  ],
+  "artifact": {
+    "dir": "release/v081rc2/large/game/大型工程音频验收-0.8.1-rc2-win-x64-独立游戏",
+    "exportMs": 11927,
+    "sizeMB": 1204.8
+  },
+  "projectMeta": {
+    "nodes": 576,
+    "assets": 100,
+    "audio": 104,
+    "assetMB": 453
+  },
+  "openMs": 682,
+  "previousExport": "release/v081rc2/large/game-prev-1795534049284"
+}

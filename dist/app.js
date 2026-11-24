@@ -1073,6 +1073,9 @@ function runtime(){
  if(!audioRT)audioRT=A.runtime({assetData:id=>{const a=C.audioAsset(p,id);return a?a.data:''},prefs:audioPrefs,onStatus:audioStatus});
  return audioRT;
 }
+/* 只读：编辑器试玩也是五种运行环境之一，验收需要看到真实的播放模式与实例数。
+   必须挂在模块级（而不是 runtime() 里），否则「还没启用声音」时调用会拿到 undefined。 */
+if(typeof window!=='undefined')window.paperEditorAudio=()=>{try{return audioRT?audioRT.snapshot():null}catch{return null}};
 function audioName(id){const a=C.audioAsset(p,id);return a?a.name:(id||'（已删除的素材）')}
 function audioStatus(st){
  const err=st&&st.errors&&st.errors[0];
@@ -1933,10 +1936,16 @@ function renderPerfUI() {
           target = layerPick.characterId ? 'char:' + layerPick.characterId : layerPick.id;
         }
         const cur = perfNode();
-        const ctxAudio = (cur && cur.params && cur.params.audioId) || ((p.audioAssets || [])[0] || {}).id || '';
+        /* 音频预设的签名是 build(id, ctx)：第二个参数就是 ctx，不能再塞图层目标。
+           素材优先级：已选动作的素材 > 本句已有的 BGM > 库里第一首。 */
+        const ctxAudio = (cur && cur.params && cur.params.audioId)
+          || (cur && cur.audio && cur.audio.bgm && cur.audio.bgm.audioId)
+          || ((p.audioAssets || [])[0] || {}).id || '';
         edit(() => {
           const perf = perfEnsure();
-          const built = pr.build(() => C.id(), target, { assetId: p.assets.find(a => a.kind === 'bg')?.id || '', scale: 140, audioId: ctxAudio });
+          const built = kind === 'audio'
+            ? pr.build(() => C.id(), { audioId: ctxAudio })
+            : pr.build(() => C.id(), target, { assetId: p.assets.find(a => a.kind === 'bg')?.id || '', scale: 140 });
           perf.actions.push(...built);
           perfId = built[built.length - 1].id;
         });
@@ -2075,16 +2084,66 @@ function perfReplayState() {
   }
   return st;
 }
+/* ---------- 试玩中的音频演出（V0.8.1-RC2） ----------
+   编辑器试玩原先只跑画面演出，音频动作被完全忽略：作者在面板里加了 BGM，
+   试玩却是静音——这和导出后的表现不一致。这里复用与播放器相同的执行顺序：
+   先按路径落地继承的音频状态，再按 start 时间挂本句动作。 */
+/* 用 var：render() 在模块初始化阶段就会调用 syncPerfStage，let 会撞 TDZ。 */
+var perfAudioTimers = [];
+function clearPerfAudioTimers() { for (const t of perfAudioTimers || []) clearTimeout(t); perfAudioTimers = []; }
+function perfAudioAction(a) {
+  const rt = runtime();
+  const spec = A.pure.audioActionSpec(a.type, a.params);
+  if (!spec) return;
+  switch (spec.action) {
+    case 'play':
+    case 'crossfade':
+      if (!spec.audioId) return;
+      if (spec.action === 'play') rt.bgmCrossfade({ audioId: spec.audioId, volume: spec.volume, duration: spec.fadeIn || 0, curve: 'linear', loop: spec.loop });
+      else rt.bgmCrossfade({ audioId: spec.audioId, volume: spec.volume, duration: spec.duration, curve: spec.curve, loop: spec.loop });
+      break;
+    case 'stop': rt.bgmStop({ fadeOut: spec.fadeOut }); break;
+    case 'volume': rt.bgmVolume(spec.volume, { duration: spec.duration }); break;
+    case 'loop': rt.bgmLoop(spec.loop); break;
+    case 'sfx': if (spec.audioId) rt.sfxPlay({ audioId: spec.audioId, volume: spec.volume, key: spec.key || a.id }, '演出音效'); break;
+    case 'sfxStop': rt.sfxStop(spec.key || a.id); break;
+    case 'voice': if (spec.audioId) rt.voicePlay({ audioId: spec.audioId, volume: spec.volume, duck: spec.duck }, '演出配音'); break;
+    case 'voiceStop': rt.voiceStop(); break;
+    case 'bus': rt.setBusVolume(spec.bus, spec.volume, spec.duration); break;
+    case 'ducking': rt.setDucking(spec.duck); break;
+    default: break;
+  }
+}
+var perfAudioDbg = { calls: 0, slots: 0, fired: 0, last: '', err: '' };
+if (typeof window !== 'undefined') window.paperPerfAudioDebug = () => ({ ...perfAudioDbg });
+function syncPerfAudio(acts, before, after, fresh) {
+  clearPerfAudioTimers();
+  perfAudioDbg.calls++; perfAudioDbg.slots = 0; perfAudioDbg.last = '';
+  const rt = runtime();
+  if (fresh && before && before.audio) rt.applyAudioState(before.audio);
+  if (!after || !after.audio || !acts.length) return;
+  let slots = [];
+  try { slots = PF.schedule(acts).filter((s) => PF.isAudioType(s.action.type)); } catch (e) { return; }
+  perfAudioDbg.slots = slots.length;
+  for (const s of slots) perfAudioTimers.push(setTimeout(() => {
+    if (!playing) return;
+    perfAudioDbg.fired++; perfAudioDbg.last = s.action.type;
+    try { perfAudioAction(s.action); } catch (e) { perfAudioDbg.err = String((e && e.message) || e); }
+  }, Math.max(0, s.start) * 1000));
+}
+
 /* 试玩时自动播放本句演出；编辑时保持布局视图（作者要能继续拖动素材）。 */
 function syncPerfStage() {
-  if (!playing) { if (perfCtl) { perfCtl.cancel(); perfCtl = null; } return; }
+  if (!playing) { clearPerfAudioTimers(); if (perfCtl) { perfCtl.cancel(); perfCtl = null; } return; }
   const acts = perfList();
   if (perfCtl) { perfCtl.cancel(); perfCtl = null; }
+  const fresh = !perfStageState;
   if (!perfStageState) perfStageState = perfReplayState();
   const before = perfStageState;
   const layers = staged();
   const after = acts.length ? PF.stateAt(before, acts, Infinity, { P: p, layers }) : before;
   perfStageState = after;
+  syncPerfAudio(acts, before, after, fresh);
   if (!acts.length) { PF.applyDOM($('#layersCanvas'), layers, before, { P: p }); return; }
   perfCtl = PF.play({
     container: $('#layersCanvas'), layers, actions: acts, before, P: p, reduced: false,

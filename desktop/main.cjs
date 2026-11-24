@@ -64,8 +64,10 @@ let previewWin = null;
 /* 预览会话：每个窗口一个目录，关闭即删；资源按 pvres://<session>/... 读取。 */
 const previewSessions = new Map();
 const previewRoot = () => path.join(app.getPath('userData'), 'preview-sessions');
+/* connect-src 'self'：预览页只允许 fetch 自己这个 pvres://<session>/ 会话目录里的资源，
+   用于精确循环解码；会话关闭即 404，仍然没有网络能力。 */
 const PREVIEW_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
-  "img-src 'self' data:; media-src 'self' data:; font-src data:; connect-src 'none'; " +
+  "img-src 'self' data:; media-src 'self' data:; font-src data:; connect-src 'self'; " +
   "base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'";
 
 function previewProgress(payload) {

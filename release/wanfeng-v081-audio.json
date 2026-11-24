@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-24T14:35:56.226Z",
+  "at": "2026-11-24T15:09:40.268Z",
   "version": "0.8.1",
   "project": "release/wanfeng-v081/audio",
   "trial": "release/wanfeng-v081/晚风经过二楼走廊·音频演出版.html",
@@ -82,8 +82,8 @@
     "loopEnd": 14
   },
   "export": {
-    "bytes": 37985543,
-    "ms": 234,
+    "bytes": 37999833,
+    "ms": 233,
     "scriptTags": 1,
     "hasEngine": true
   }

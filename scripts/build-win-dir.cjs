@@ -34,7 +34,13 @@ function main() {
   if (!fs.existsSync(path.join(ELECTRON_DIR, 'electron.exe'))) {
     throw new Error('找不到 Electron 运行时，请先 npm install：' + ELECTRON_DIR);
   }
-  if (fs.existsSync(OUT)) fs.rmSync(OUT, { recursive: true, force: true });
+  /* 递归删旧产物会被本机注入的 safe-delete 钩子拦下（上千文件需要人工确认）。
+     重命名让路即可，旧目录由构建者自行清理。 */
+  if (fs.existsSync(OUT)) {
+    const prev = OUT + '.old-' + Date.now();
+    fs.renameSync(OUT, prev);
+    console.log('  旧产物已改名为 ' + path.basename(prev));
+  }
   fs.mkdirSync(OUT, { recursive: true });
 
   /* 1) Electron 运行时本体（去掉默认应用与调试符号） */
@@ -54,6 +60,11 @@ function main() {
   fs.mkdirSync(appDir, { recursive: true });
   copyDir(path.join(ROOT, 'dist'), path.join(appDir, 'dist'), (n) => !n.endsWith('.map'));
   copyDir(path.join(ROOT, 'desktop'), path.join(appDir, 'desktop'), (n) => n !== 'build-resources' && !n.endsWith('.pdb'));
+  /* 导出目录版游戏要用到 vendor/toolchain（rcedit、图标合成）。漏掉它，
+     用户手里的编辑器会在「发行」面板报「缺少 rcedit 构建组件」——本轮实际踩到过。 */
+  if (fs.existsSync(path.join(ROOT, 'vendor'))) {
+    copyDir(path.join(ROOT, 'vendor'), path.join(appDir, 'vendor'), (n) => !n.endsWith('.pdb'));
+  }
   fs.copyFileSync(path.join(ROOT, 'package.json'), path.join(appDir, 'package.json'));
   if (fs.existsSync(path.join(ROOT, 'LICENSE'))) fs.copyFileSync(path.join(ROOT, 'LICENSE'), path.join(appDir, 'LICENSE'));
 

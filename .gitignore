@@ -44,3 +44,8 @@ Thumbs.db
 # 源码根目录不允许出现工程产物，由 tests/workspace-hygiene.test.cjs 守住。
 user-projects/
 backups/
+!release/audio-realtime-loop-benchmark.json
+!release/audio-runtime-compatibility.json
+!release/audio-memory-profile.json
+!release/large-project-audio-acceptance.json
+!release/audio-soak-15min.json

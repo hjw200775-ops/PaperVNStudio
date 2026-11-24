@@ -1,0 +1,525 @@
+{
+  "at": "2026-11-24T16:17:49.457Z",
+  "version": "0.8.1-rc2",
+  "ok": false,
+  "stages": {
+    "标题音乐进入精确模式": {
+      "ok": true,
+      "detail": {
+        "loop": {
+          "mode": "region",
+          "start": 6,
+          "end": 14
+        },
+        "vol": 0.65
+      }
+    },
+    "标题循环区间 6–14 生效": {
+      "ok": true,
+      "detail": {
+        "mode": "region",
+        "start": 6,
+        "end": 14
+      }
+    },
+    "只有一个音乐实例": {
+      "ok": true,
+      "detail": {
+        "bgm": 1,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "title": 1
+      }
+    },
+    "实际输出采样（在线音频图 PCM）": {
+      "ok": true,
+      "detail": {
+        "rms": 0.0431,
+        "samples": 266240,
+        "maxStep": 0.0621,
+        "maxSilenceMs": 115.54,
+        "gaps": 0
+      }
+    },
+    "标题曲时间推进": {
+      "ok": true,
+      "detail": {
+        "seconds": 3,
+        "loops": 0
+      }
+    },
+    "标题曲循环回跳（音频时钟）": {
+      "ok": true,
+      "detail": {
+        "loops": 1,
+        "time": 6.1,
+        "captMaxSilenceMs": 115.54,
+        "note": "毫秒级接缝以 scripts/v081rc2-online-pcm.cjs 的 30 次采样为准"
+      }
+    },
+    "进入游戏：标题让位、剧情 BGM 接管": {
+      "ok": true,
+      "detail": {
+        "owner": "story",
+        "bgm": "bgm_ost_02_morning",
+        "mode": "precise"
+      }
+    },
+    "用户音量影响实际输出（区间 RMS）": {
+      "ok": true,
+      "detail": {
+        "rmsFull": 0.063,
+        "rmsAt35": 0.0287,
+        "ratio": 0.46,
+        "prefsBgm": 0.35
+      }
+    },
+    "返回标题：剧情停、标题曲恢复、单实例": {
+      "ok": true,
+      "detail": {
+        "loops": 0,
+        "time": 7.71,
+        "instances": {
+          "bgm": 1,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 1
+        }
+      }
+    },
+    "连续进出 5 次：每次都是单实例、标题曲正确恢复": {
+      "ok": true,
+      "detail": {
+        "cycles": [
+          {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 1
+          },
+          {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 1
+          },
+          {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 1
+          },
+          {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 1
+          },
+          {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 1
+          }
+        ],
+        "cache": [
+          2,
+          2,
+          2,
+          2,
+          2
+        ]
+      }
+    },
+    "往返后解码缓存稳定": {
+      "ok": true,
+      "detail": {
+        "before": 2,
+        "after": 2
+      }
+    },
+    "最小化窗口：标题循环继续推进": {
+      "ok": true,
+      "detail": {
+        "loopsBefore": 0,
+        "loopsAfter": 1,
+        "timeBefore": 11.75,
+        "timeAfter": 7.95,
+        "captureWhileMinimized": true
+      }
+    },
+    "失焦窗口：标题循环继续推进": {
+      "ok": true,
+      "detail": {
+        "loopsBefore": 1,
+        "loopsAfter": 1
+      }
+    },
+    "运行时 0 异常": {
+      "ok": true,
+      "detail": null
+    },
+    "收尾：音乐实例仍为 1": {
+      "ok": true,
+      "detail": {
+        "bgm": 1,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "title": 1
+      }
+    }
+  },
+  "problems": [],
+  "capture": {
+    "blocks": 473,
+    "samples": 1937408,
+    "maxStep": 0.33507153391838074,
+    "maxSilenceMs": 115.54166666666667,
+    "rmsSum": 12429.497503284962,
+    "rmsSamples": 1937408,
+    "rms": 0.0800969983955887,
+    "gaps": 0,
+    "rate": 48000
+  },
+  "exceptions": [],
+  "game": {
+    "at": "2026-11-24T16:17:28.635Z",
+    "version": "0.8.1-rc2",
+    "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\wanfeng-v081\\audio",
+    "ok": true,
+    "stages": {
+      "编辑器打开音频演出工程": {
+        "ok": true,
+        "detail": {
+          "nodes": 40,
+          "assets": 14
+        }
+      },
+      "目录版导出完成": {
+        "ok": true,
+        "detail": {
+          "text": "已导出：F:\\新建文件夹\\PaperVNStudio-src\\release\\v081rc2\\wanfeng-audio\\game\\晚风音频演出验收-0.8.1-rc2-win-x64-独立游戏SHA"
+        }
+      },
+      "定位导出产物": {
+        "ok": true,
+        "detail": {
+          "dir": "release/v081rc2/wanfeng-audio/game/晚风音频演出验收-0.8.1-rc2-win-x64-独立游戏",
+          "exe": "晚风音频演出验收.exe",
+          "contentBytes": 278684,
+          "shellBytes": 8731
+        }
+      },
+      "导出外壳已放开受控读取": {
+        "ok": true,
+        "detail": {
+          "csp": "connect-src 'self'",
+          "fetchApi": true
+        }
+      },
+      "游戏运行在 papergame://game": {
+        "ok": true,
+        "detail": {
+          "origin": "papergame://game"
+        }
+      },
+      "目录版标题曲 precise（fetch+decode 成功）": {
+        "ok": true,
+        "detail": {
+          "loop": {
+            "mode": "region",
+            "start": 6,
+            "end": 14
+          },
+          "cache": {
+            "entries": 1,
+            "bytes": 14512824
+          },
+          "graph": {
+            "state": "running",
+            "sampleRate": 48000,
+            "baseLatency": 0.01
+          }
+        }
+      },
+      "papergame:// 音频字节可读（解码缓存非空）": {
+        "ok": true,
+        "detail": {
+          "entries": 1,
+          "bytes": 14512824
+        }
+      },
+      "目录版剧情 BGM precise": {
+        "ok": true,
+        "detail": {
+          "bgm": {
+            "id": "bgm_ost_02_morning",
+            "time": 1.4586666666666668,
+            "vol": 0.5599999904632569,
+            "loop": {
+              "mode": "all",
+              "start": 0,
+              "end": 0
+            },
+            "mode": "precise"
+          },
+          "owner": "story"
+        }
+      },
+      "目录版音频真实推进": {
+        "ok": true,
+        "detail": {
+          "from": 1.46,
+          "to": 3.66
+        }
+      },
+      "目录版交叉淡化（演出动作）": {
+        "ok": true,
+        "detail": {
+          "bgm": "bgm_ost_03_school_road",
+          "mode": "precise",
+          "instances": {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 0
+          },
+          "loop": {
+            "mode": "all",
+            "start": 0,
+            "end": 0
+          }
+        }
+      },
+      "目录版 0 条 CSP / 资源读取报错": {
+        "ok": true,
+        "detail": null
+      }
+    },
+    "problems": [],
+    "artifact": {
+      "dir": "release/v081rc2/wanfeng-audio/game/晚风音频演出验收-0.8.1-rc2-win-x64-独立游戏",
+      "exe": "晚风音频演出验收.exe",
+      "contentBytes": 278684,
+      "shellBytes": 8731
+    },
+    "errors": []
+  },
+  "packaged": {
+    "at": "2026-11-24T15:33:35.605Z",
+    "ok": true,
+    "stages": {
+      "Windows 免安装版 启动并打开工程": {
+        "ok": true,
+        "detail": {
+          "exe": "PaperVNStudio.exe",
+          "metrics": {
+            "nodes": 40,
+            "assets": 14,
+            "audio": 7,
+            "chapters": 3,
+            "revision": 0,
+            "past": 0,
+            "future": 0
+          },
+          "version": ""
+        }
+      },
+      "Windows 免安装版 启用声音": {
+        "ok": true,
+        "detail": {
+          "unlocked": true
+        }
+      },
+      "Windows 免安装版 试玩进入 precise": {
+        "ok": true,
+        "detail": {
+          "mode": "precise",
+          "reason": "",
+          "graph": {
+            "state": "running",
+            "sampleRate": 48000,
+            "baseLatency": 0.01
+          },
+          "bgm": {
+            "id": "bgm_ost_02_morning",
+            "time": 0.32,
+            "loop": "all",
+            "vol": 0.09845513105392456
+          },
+          "instances": {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 0
+          },
+          "mem": {
+            "budgetBytes": 67108864,
+            "cacheBytes": 15897600,
+            "cacheEntries": 1,
+            "activeBufferBytes": 15897600,
+            "decoding": 0,
+            "decodingBytes": 0,
+            "decodePeakBytes": 2376,
+            "decodeCancelled": 0,
+            "decodeRejected": 0,
+            "streamChannels": 0,
+            "workingSetBytes": 15897600
+          }
+        }
+      },
+      "Windows 免安装版 交叉淡化": {
+        "ok": true,
+        "detail": {
+          "bgm": "bgm_ost_03_school_road",
+          "mode": "precise",
+          "instances": {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 0
+          },
+          "mem": {
+            "budgetBytes": 67108864,
+            "cacheBytes": 31235240,
+            "cacheEntries": 2,
+            "activeBufferBytes": 15337640,
+            "decoding": 0,
+            "decodingBytes": 0,
+            "decodePeakBytes": 2376,
+            "decodeCancelled": 0,
+            "decodeRejected": 0,
+            "streamChannels": 0,
+            "workingSetBytes": 31235240
+          }
+        }
+      },
+      "Windows 免安装版 退出试玩无残留": {
+        "ok": true,
+        "detail": {
+          "bgm": 0,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 0
+        }
+      }
+    },
+    "problems": []
+  },
+  "editor": {
+    "at": "2026-11-24T15:33:01.884Z",
+    "ok": true,
+    "stages": {
+      "编辑器 启动并打开工程": {
+        "ok": true,
+        "detail": {
+          "exe": "electron.exe",
+          "metrics": {
+            "nodes": 40,
+            "assets": 14,
+            "audio": 7,
+            "chapters": 3,
+            "revision": 0,
+            "past": 0,
+            "future": 0
+          },
+          "version": ""
+        }
+      },
+      "编辑器 启用声音": {
+        "ok": true,
+        "detail": {
+          "unlocked": true
+        }
+      },
+      "编辑器 试玩进入 precise": {
+        "ok": true,
+        "detail": {
+          "mode": "precise",
+          "reason": "",
+          "graph": {
+            "state": "running",
+            "sampleRate": 48000,
+            "baseLatency": 0.01
+          },
+          "bgm": {
+            "id": "bgm_ost_02_morning",
+            "time": 0.312,
+            "loop": "all",
+            "vol": 0.09599359631538391
+          },
+          "instances": {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 0
+          },
+          "mem": {
+            "budgetBytes": 67108864,
+            "cacheBytes": 15897600,
+            "cacheEntries": 1,
+            "activeBufferBytes": 15897600,
+            "decoding": 0,
+            "decodingBytes": 0,
+            "decodePeakBytes": 2376,
+            "decodeCancelled": 0,
+            "decodeRejected": 0,
+            "streamChannels": 0,
+            "workingSetBytes": 15897600
+          }
+        }
+      },
+      "编辑器 交叉淡化": {
+        "ok": true,
+        "detail": {
+          "bgm": "bgm_ost_03_school_road",
+          "mode": "precise",
+          "instances": {
+            "bgm": 1,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 0
+          },
+          "mem": {
+            "budgetBytes": 67108864,
+            "cacheBytes": 31235240,
+            "cacheEntries": 2,
+            "activeBufferBytes": 15337640,
+            "decoding": 0,
+            "decodingBytes": 0,
+            "decodePeakBytes": 2376,
+            "decodeCancelled": 0,
+            "decodeRejected": 0,
+            "streamChannels": 0,
+            "workingSetBytes": 31235240
+          }
+        }
+      },
+      "编辑器 退出试玩无残留": {
+        "ok": true,
+        "detail": {
+          "bgm": 0,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 0
+        }
+      }
+    },
+    "problems": []
+  }
+}

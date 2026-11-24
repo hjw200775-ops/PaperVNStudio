@@ -122,11 +122,15 @@ for (const [re, why] of [
   [/sandbox: true/, 'sandbox'],
   [/contextIsolation: true/, '上下文隔离'],
   [/nodeIntegration: false/, '禁用 Node'],
-  [/connect-src 'none'/, '禁止网络'],
+  [/connect-src 'self'/, 'CSP 只允许同源资源（无网络）'],
+  [/supportFetchAPI:\s*true/, '允许读取已登记音频字节'],
   [/papergame/, '白名单协议'],
   [/flushStorageData/, '退出前落盘']
 ]) assert(re.test(shell), '游戏外壳缺少：' + why);
 assert(!/ipcMain|preload:/.test(shell), '游戏外壳不应有 IPC / preload');
+/* 只查真正的放行值，不查注释文字：注释里出现「connect-src」是正常的。 */
+assert(!/connect-src\s+\*/.test(shell), 'connect-src 不得使用通配符');
+assert(!/connect-src\s+(https?|wss?):/.test(shell), 'connect-src 不得放行网络');
 assert(!/晚风|wanfeng|黄嘉文/.test(shell), '游戏外壳不应硬编码具体作品');
 
 /* 7. 默认图标与图标源都在仓库里 */

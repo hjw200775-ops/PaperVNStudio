@@ -226,6 +226,12 @@ function createVNCore(){
   if(src===null||typeof src!=='object'||typeof src.audioId!=='string'||!src.audioId){p.titleMusic=null;return p}
   p.titleMusic={audioId:src.audioId,volume:numIn(src.volume,0,100,80),
    fadeIn:Math.min(5,Math.max(0,Number(src.fadeIn)||0)),loop:src.loop!==false};
+  /* V0.8.1-RC2：循环区间是可选项。必须一起规范化，否则保存/重开就丢掉区间，
+     表现为「编辑器里设了 6–14，重新打开却整曲循环」。 */
+  if(src.loopStart!==undefined||src.loopEnd!==undefined){
+   p.titleMusic.loopStart=numIn(src.loopStart,0,86400,0);
+   p.titleMusic.loopEnd=numIn(src.loopEnd,0,86400,0);
+  }
   return p;
  }
  function checkTitleMusic(p){

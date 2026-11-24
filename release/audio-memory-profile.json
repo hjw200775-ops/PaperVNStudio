@@ -1,0 +1,275 @@
+{
+  "at": "2026-11-24T16:11:26.209Z",
+  "version": "0.8.1-rc2",
+  "policy": {
+    "budgetBytes": 67108864,
+    "budgetNote": "只限制「解码后的 AudioBuffer 缓存」；流式通道与压缩字节不计入这个预算。",
+    "estimate": {
+      "compressedAudio": 24,
+      "wav": 2.2,
+      "note": "解码前按压缩体积估算解码后占用；估算超预算直接回退，不赌解码结果。"
+    },
+    "concurrency": "解码串行化：同一时刻最多 1 段 decodeAudioData；过期请求在开始前丢弃。",
+    "eviction": "LRU；正在播放的那条永不淘汰；淘汰发生在解码前（cacheMakeRoom）。",
+    "neverDecodeAll": "从不预解码工程里的全部音频；只有被播放/切歌请求到的素材才解码。"
+  },
+  "observed": {
+    "soakSamples": 185,
+    "soakSeconds": 900,
+    "cacheMaxMB": 43.9,
+    "workingSetMaxMB": 43.9,
+    "activeBufferMaxMB": 21.97265625,
+    "decodingMax": 0,
+    "decodeRejectedMax": 0,
+    "decodeCancelledMax": 0,
+    "streamChannelsMax": 3,
+    "maxMusicInstances": 1,
+    "note": "activeBuffer 是缓存里正在播的那一条，已包含在 cacheBytes 内，不重复计入 workingSet。"
+  },
+  "stages": {
+    "largeProject": {
+      "openMs": 682,
+      "memory": [
+        {
+          "tag": "打开后",
+          "at": "2026-11-24T15:27:13.522Z",
+          "totalMB": 440.1,
+          "rendererMB": 0,
+          "mainMB": 165.3,
+          "jsHeapMB": 6,
+          "processes": 4
+        },
+        {
+          "tag": "导出后",
+          "at": "2026-11-24T15:27:50.011Z",
+          "totalMB": 635.4,
+          "rendererMB": 0,
+          "mainMB": 121.8,
+          "jsHeapMB": 4.1,
+          "processes": 6
+        }
+      ],
+      "preview": {
+        "budgetBytes": 67108864,
+        "cacheBytes": 23040000,
+        "cacheEntries": 1,
+        "activeBufferBytes": 23040000,
+        "decoding": 0,
+        "decodingBytes": 0,
+        "decodePeakBytes": 2352,
+        "decodeCancelled": 0,
+        "decodeRejected": 0,
+        "streamChannels": 0,
+        "workingSetBytes": 23040000
+      }
+    },
+    "titleAndGame": {
+      "game": {
+        "ok": true,
+        "detail": {
+          "entries": 1,
+          "bytes": 14512824
+        }
+      },
+      "editor": {
+        "编辑器 启动并打开工程": {
+          "ok": true,
+          "detail": {
+            "exe": "electron.exe",
+            "metrics": {
+              "nodes": 40,
+              "assets": 14,
+              "audio": 7,
+              "chapters": 3,
+              "revision": 0,
+              "past": 0,
+              "future": 0
+            },
+            "version": ""
+          }
+        },
+        "编辑器 启用声音": {
+          "ok": true,
+          "detail": {
+            "unlocked": true
+          }
+        },
+        "编辑器 试玩进入 precise": {
+          "ok": true,
+          "detail": {
+            "mode": "precise",
+            "reason": "",
+            "graph": {
+              "state": "running",
+              "sampleRate": 48000,
+              "baseLatency": 0.01
+            },
+            "bgm": {
+              "id": "bgm_ost_02_morning",
+              "time": 0.312,
+              "loop": "all",
+              "vol": 0.09599359631538391
+            },
+            "instances": {
+              "bgm": 1,
+              "retiring": 0,
+              "sfx": 0,
+              "voice": 0,
+              "title": 0
+            },
+            "mem": {
+              "budgetBytes": 67108864,
+              "cacheBytes": 15897600,
+              "cacheEntries": 1,
+              "activeBufferBytes": 15897600,
+              "decoding": 0,
+              "decodingBytes": 0,
+              "decodePeakBytes": 2376,
+              "decodeCancelled": 0,
+              "decodeRejected": 0,
+              "streamChannels": 0,
+              "workingSetBytes": 15897600
+            }
+          }
+        },
+        "编辑器 交叉淡化": {
+          "ok": true,
+          "detail": {
+            "bgm": "bgm_ost_03_school_road",
+            "mode": "precise",
+            "instances": {
+              "bgm": 1,
+              "retiring": 0,
+              "sfx": 0,
+              "voice": 0,
+              "title": 0
+            },
+            "mem": {
+              "budgetBytes": 67108864,
+              "cacheBytes": 31235240,
+              "cacheEntries": 2,
+              "activeBufferBytes": 15337640,
+              "decoding": 0,
+              "decodingBytes": 0,
+              "decodePeakBytes": 2376,
+              "decodeCancelled": 0,
+              "decodeRejected": 0,
+              "streamChannels": 0,
+              "workingSetBytes": 31235240
+            }
+          }
+        },
+        "编辑器 退出试玩无残留": {
+          "ok": true,
+          "detail": {
+            "bgm": 0,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 0
+          }
+        }
+      },
+      "packaged": {
+        "Windows 免安装版 启动并打开工程": {
+          "ok": true,
+          "detail": {
+            "exe": "PaperVNStudio.exe",
+            "metrics": {
+              "nodes": 40,
+              "assets": 14,
+              "audio": 7,
+              "chapters": 3,
+              "revision": 0,
+              "past": 0,
+              "future": 0
+            },
+            "version": ""
+          }
+        },
+        "Windows 免安装版 启用声音": {
+          "ok": true,
+          "detail": {
+            "unlocked": true
+          }
+        },
+        "Windows 免安装版 试玩进入 precise": {
+          "ok": true,
+          "detail": {
+            "mode": "precise",
+            "reason": "",
+            "graph": {
+              "state": "running",
+              "sampleRate": 48000,
+              "baseLatency": 0.01
+            },
+            "bgm": {
+              "id": "bgm_ost_02_morning",
+              "time": 0.32,
+              "loop": "all",
+              "vol": 0.09845513105392456
+            },
+            "instances": {
+              "bgm": 1,
+              "retiring": 0,
+              "sfx": 0,
+              "voice": 0,
+              "title": 0
+            },
+            "mem": {
+              "budgetBytes": 67108864,
+              "cacheBytes": 15897600,
+              "cacheEntries": 1,
+              "activeBufferBytes": 15897600,
+              "decoding": 0,
+              "decodingBytes": 0,
+              "decodePeakBytes": 2376,
+              "decodeCancelled": 0,
+              "decodeRejected": 0,
+              "streamChannels": 0,
+              "workingSetBytes": 15897600
+            }
+          }
+        },
+        "Windows 免安装版 交叉淡化": {
+          "ok": true,
+          "detail": {
+            "bgm": "bgm_ost_03_school_road",
+            "mode": "precise",
+            "instances": {
+              "bgm": 1,
+              "retiring": 0,
+              "sfx": 0,
+              "voice": 0,
+              "title": 0
+            },
+            "mem": {
+              "budgetBytes": 67108864,
+              "cacheBytes": 31235240,
+              "cacheEntries": 2,
+              "activeBufferBytes": 15337640,
+              "decoding": 0,
+              "decodingBytes": 0,
+              "decodePeakBytes": 2376,
+              "decodeCancelled": 0,
+              "decodeRejected": 0,
+              "streamChannels": 0,
+              "workingSetBytes": 31235240
+            }
+          }
+        },
+        "Windows 免安装版 退出试玩无残留": {
+          "ok": true,
+          "detail": {
+            "bgm": 0,
+            "retiring": 0,
+            "sfx": 0,
+            "voice": 0,
+            "title": 0
+          }
+        }
+      }
+    }
+  },
+  "conclusion": "缓存峰值未超过 64 MiB 预算；全程最多 1 个音乐实例、0 段并发解码；未出现「解码失败后不释放」或「淘汰后仍被引用」的迹象。"
+}

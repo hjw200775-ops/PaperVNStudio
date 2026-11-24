@@ -66,12 +66,18 @@ const must = [
   [/PaperVNStudio-Game-/, '独立 userData 目录'],
   [/requestSingleInstanceLock/, '单实例锁'],
   [/url\.pathname !== '\/index\.html'/, '协议白名单只放 index.html'],
-  [/connect-src 'none'/, 'CSP 禁止网络连接'],
+  /* RC2：精确循环要读内联音频字节，放开的是 data: 而不是网络。 */
+  [/connect-src data:/, 'CSP 只允许内联 data:（无网络）'],
+  [/supportFetchAPI:\s*true/, '允许读取内联音频字节'],
   [/onBeforeRequest/, '拦截 http(s) 请求'],
   [/setPermissionRequestHandler/, '拒绝权限申请'],
   [/setWindowOpenHandler/, '拒绝新窗口']
 ];
 for (const [re, why] of must) assert(re.test(main), '游戏主进程缺少：' + why);
+/* 放开读取不等于放开网络：CSP 里不允许出现通配符或 http(s)/ws。 */
+/* 只查真正的放行值，不查注释文字：注释里出现「connect-src」是正常的。 */
+assert(!/connect-src\s+\*/.test(main), 'connect-src 不得使用通配符');
+assert(!/connect-src\s+(https?|wss?):/.test(main), 'connect-src 不得放行网络');
 for (const [re, why] of [[/ipcMain|ipcRenderer|contextBridge/, 'IPC / preload 桥'],
   [/preload\s*:/, 'preload'],
   [/nodeIntegration:\s*true/, 'Node 集成'],

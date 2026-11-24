@@ -1,7 +1,7 @@
 {
   "name": "paper-vn-studio",
   "version": "0.8.1",
-  "versionLabel": "V0.8.1-RC",
+  "versionLabel": "V0.8.1-RC2",
   "private": true,
   "description": "纸间 PaperVNStudio — 视觉小说 / 文字冒险创作工具：Electron 桌面版与自包含 HTML 导出",
   "author": "wenwenwen817",
@@ -67,7 +67,12 @@
     "audio:engine": "node scripts/v081-audio-engine-window.cjs",
     "audio:window": "node scripts/v081-audio-window.cjs",
     "audio:loop": "node scripts/v081rc-loop-offline.cjs",
-    "audio:loop:online": "node scripts/v081rc-loop-benchmark.cjs"
+    "audio:loop:online": "node scripts/v081rc-loop-benchmark.cjs",
+    "audio:title": "node scripts/v081rc2-title-audio.cjs",
+    "audio:game": "node scripts/v081rc2-game-audio.cjs",
+    "audio:online": "node scripts/v081rc2-online-pcm.cjs",
+    "audio:large": "node scripts/v081rc2-large-audio.cjs",
+    "audio:soak": "node scripts/v081rc2-soak.cjs"
   },
   "engines": {
     "node": ">=20"

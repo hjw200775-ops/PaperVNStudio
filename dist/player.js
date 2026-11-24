@@ -18,74 +18,46 @@ function paperPlayer(P,coreFactory,effectFactory,audioFactory,performanceFactory
  const hasAudio=!!(Array.isArray(P.audioAssets)&&P.audioAssets.length)||P.nodes.some(n=>n&&n.audio);
  const PREF_KEY='paper-audio-prefs',SAVE_KEY='paper-game-'+P.id;
  let state='title',i=0,trail=[],cancelEffect=()=>{},audio=null,msgTimer=0;
- /* ---------- 标题音乐（V0.7.3） ----------
-    独立于剧情 BGM 的播放通道：进入游戏时暂停、返回标题时从暂停点继续，
-    两者不共用 audio.js 的 BGM 槽位，避免标题曲与场景曲相互叠加。 */
- let titleAudio=null;
- /* 标题音乐循环区间的实测统计：跳回时刻相对 loopEnd 的超出量就是接缝误差。 */
- let titleLoopStats={loops:0,overrunMaxMs:0,overrunSumMs:0,region:null},titleLoopTimer=0;
- function stopTitleLoopTimer(){if(titleLoopTimer){clearInterval(titleLoopTimer);titleLoopTimer=0}}
- function startTitleLoopTimer(el,cfg){
-  const start=Number(cfg.loopStart)||0,end=Number(cfg.loopEnd)||0;
-  stopTitleLoopTimer();
-  if(!(end>start))return;
-  titleLoopStats.region={start,end};
-  titleLoopTimer=setInterval(()=>{
-   if(!titleAudio||titleAudio!==el||titleAudio.paused)return;
-   let t=0;try{t=titleAudio.currentTime}catch{return}
-   if(t>=end){
-    const overrun=Math.max(0,(t-end)*1000);
-    try{titleAudio.currentTime=start}catch{return}
-    titleLoopStats.loops++;
-    titleLoopStats.overrunSumMs+=overrun;
-    titleLoopStats.overrunMaxMs=Math.max(titleLoopStats.overrunMaxMs,overrun);
-   }
-  },60);
- }
+ /* ---------- 标题音乐（V0.8.1-RC2） ----------
+   标题曲不再自建 <audio> 与 ticker，而是走 audio.runtime 的 titlePlay / titlePause / titleStop：
+   与剧情 BGM 共用同一个音乐槽（同一时刻只可能有一首在播），所以结构上不可能出现双 BGM。
+   精确循环可用时由音频线程循环，不依赖 rAF / 定时器；不可用时引擎自动回退流式并给出原因。 */
+ let titleResumeAt=0,titleMode='',titleReason='';
  function titleTrack(){
   const tm=P.titleMusic;if(!tm||!tm.audioId)return null;
   const a=(P.audioAssets||[]).find(x=>x.id===tm.audioId);
   return a?{asset:a,cfg:tm}:null;
  }
- function titleMusicEl(){
-  const t=titleTrack();if(!t)return null;
-  if(titleAudio&&titleAudio.dataset.id===t.asset.id)return titleAudio;
-  releaseTitleMusic();
-  const el=document.createElement('audio');
-  /* 有循环区间时不能开原生 loop：整曲循环会盖掉 [loopStart, loopEnd] 的意图。 */
-  const region=Number(t.cfg.loopEnd)>Number(t.cfg.loopStart||0);
-  el.src=t.asset.data;el.loop=!region&&t.cfg.loop!==false;el.preload='auto';
-  el.volume=Math.min(1,Math.max(0,(Number(t.cfg.volume)||0)/100));
-  el.dataset.id=t.asset.id;
-  el.addEventListener('error',()=>{if(E('titleNote'))E('titleNote').textContent='标题音乐无法播放：'+(t.asset.name||'素材已损坏')+'。'});
-  /* 挂进 DOM：audio 不占布局，但这样开发者工具里能直接看到音源与播放状态。 */
-  el.hidden=true;
-  if(document.body)document.body.appendChild(el);
-  titleAudio=el;return el;
+ function titleLoop(){
+  const tm=P.titleMusic||{};
+  const start=Number(tm.loopStart)||0,end=Number(tm.loopEnd)||0;
+  if(tm.loop===false)return {mode:'off',start:0,end:0};
+  if(end>start)return {mode:'region',start,end};
+  return {mode:'all',start:0,end:0};
+ }
+ function titleNote(text){
+  const el=E('titleNote');if(el&&text)el.textContent=text;
  }
  function playTitleMusic(){
   const t=titleTrack();if(!t)return;
-  const el=titleMusicEl();if(!el||!el.paused)return;
-  const t2=titleTrack();
-  if(t2&&el.loop===false&&Number(t2.cfg.loopEnd)>Number(t2.cfg.loopStart||0))startTitleLoopTimer(el,t2.cfg);
-  const pr=el.play();
-  /* 自动播放被拒时不报错：第一次点击开始/继续会再试一次。 */
-  if(pr&&pr.catch)pr.catch(()=>{});
+  if(!audio||typeof audio.titlePlay!=='function')return;
+  const loop=titleLoop();
+  Promise.resolve(audio.titlePlay({audioId:t.asset.id,volume:(Number(t.cfg.volume)||0)/100,
+   fadeIn:Number(t.cfg.fadeIn)||0,loop,offset:titleResumeAt})).then(r=>{
+   titleMode=(r&&r.mode)||'';titleReason=(r&&r.reason)||'';
+   if(!r||!r.ok)titleNote('标题音乐无法播放：'+(t.asset.name||'素材已损坏')+'（'+(titleReason||'未知原因')+'）');
+  }).catch(e=>{titleNote('标题音乐无法播放：'+((e&&e.message)||e))});
  }
  function pauseTitleMusic(){
-  if(titleAudio&&!titleAudio.paused){try{titleAudio.pause()}catch{}}
-  stopTitleLoopTimer();
+  if(!audio||typeof audio.titlePause!=='function')return;
+  const r=audio.titlePause(.35);
+  if(r&&r.ok)titleResumeAt=r.offset||0;
  }
  function releaseTitleMusic(){
-  stopTitleLoopTimer();
-  if(!titleAudio)return;
-  try{titleAudio.pause()}catch{}
-  titleAudio.removeAttribute('src');
-  if(typeof titleAudio.load==='function')try{titleAudio.load()}catch{}
-  if(titleAudio.parentNode)titleAudio.parentNode.removeChild(titleAudio);
-  titleAudio=null;
+  if(audio&&typeof audio.titleStop==='function')audio.titleStop(.3);
+  titleResumeAt=0;
  }
- let saveInfo={ok:false,reason:''},settingsOrigin='title',confirmOrigin='playing';
+let saveInfo={ok:false,reason:''},settingsOrigin='title',confirmOrigin='playing';
  const MIXERS=[['master','volMaster','volMasterVal'],['bgm','volBgm','volBgmVal'],
   ['sfx','volSfx','volSfxVal'],['voice','volVoice','volVoiceVal']];
 
@@ -575,7 +547,10 @@ function applyTitleBackground(){
  /* 只有含音频工程才创建运行层与绑定音量控件：标题页不产生任何播放任务。 */
  if(hasAudio&&A){
   audio=A.runtime({assetData:id=>{const a=(P.audioAssets||[]).find(x=>x.id===id);return a?a.data:''},
-   prefs:loadPrefs(),onStatus:showAudioStatus});
+   prefs:loadPrefs(),onStatus:showAudioStatus,
+   /* 只读验收注入点：真实窗口测量需要拿到音频图的 tap（总线之后、master 之前）。
+      没有任何业务逻辑依赖它；不注入时行为完全不变。 */
+   onGraph:g=>{try{if(typeof window!=='undefined'&&typeof window.__pvnOnAudioGraph==='function')window.__pvnOnAudioGraph(g)}catch{}}});
   const initial=audio.getPrefs();
   const bind=(id,k,valId)=>{
    const el=E(id);if(!el)return;
@@ -605,7 +580,9 @@ function applyTitleBackground(){
   saveOk:!!saveInfo.ok,saveReason:saveInfo.reason||'',nodes:P.nodes.length,hasAudio,
   titleBg:titleBgOk,audio:audio?audio.status():null,
   /* 音频演出取证：活动实例、总线/Ducking、标题循环实测 */
-  audioPerf:audio&&audio.snapshot?audio.snapshot():null,titleLoop:{...titleLoopStats},
+  audioPerf:audio&&audio.snapshot?audio.snapshot():null,
+  /* 标题音乐读数来自引擎（mode/loops/time/offset），不再有播放器自己的 ticker 统计 */
+  titleLoop:audio&&audio.titleSnapshot?audio.titleSnapshot():null,
   /* 只读诊断：为什么音频动作没有执行时，一眼能看出卡在哪一层 */
   audioDebug:{timers:perfAudioTimers.length,hasAudio:!!audio,hasA:!!A,api:!!(audio&&typeof audio.bgmCrossfade),
    target:perfAudioTarget?{bgm:perfAudioTarget.bgm&&perfAudioTarget.bgm.audioId,ducking:!!perfAudioTarget.ducking}:null,state,reduced:prefersReduced(),run:perfAudioDebug}});

@@ -26,7 +26,7 @@ const CONTENT_FILE = path.join(CONTENT_DIR, 'index.html');
  * script-src 需要 'unsafe-inline'：导出的播放器把 player.js 与工程数据内联在一个 <script> 里，
  * 这正是「单文件、零请求」的实现方式；页面来源固定为 wanfeng://game，不能被外部页面替换。 */
 const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
-  "img-src data:; media-src data:; font-src data:; connect-src 'none'; " +
+  "img-src data:; media-src data:; font-src data:; connect-src data:; " +
   "base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'";
 
 /* 存档与音量偏好都落在这个目录：它只属于本游戏。
@@ -41,7 +41,9 @@ app.setAppUserModelId(APP_ID);
 
 protocol.registerSchemesAsPrivileged([{
   scheme: SCHEME,
-  privileges: { standard: true, secure: true, supportFetchAPI: false, corsEnabled: false, stream: true }
+  /* supportFetchAPI：精确循环要把内联的 data: 音频读成 ArrayBuffer。
+     只放开 data:（见 CSP connect-src），没有任何网络或文件系统访问。 */
+  privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: false, stream: true }
 }]);
 
 let win = null;
