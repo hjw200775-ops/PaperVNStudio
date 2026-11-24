@@ -121,7 +121,8 @@ async function clickReal(cdp, selector) {
           if (raw && raw.metrics) {
             const sum = (t) => raw.metrics.filter((x) => x.type === t).reduce((a, x) => a + (x.workingSetSize || 0), 0) * 1024;
             row.mainMB = +(sum('browser') / 1048576).toFixed(1);
-            row.rendererMB = +(sum('renderer') / 1048576).toFixed(1);
+            /* Electron 把渲染进程标成 Tab，不是 renderer；两个都算，避免出现 0 MB 的假数据。 */
+            row.rendererMB = +((sum('renderer') + sum('tab')) / 1048576).toFixed(1);
             row.gpuMB = +(sum('gpu') / 1048576).toFixed(1);
             row.totalMB = +((raw.metrics.reduce((a, x) => a + (x.workingSetSize || 0), 0) * 1024) / 1048576).toFixed(1);
             row.processes = raw.metrics.length;
