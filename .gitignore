@@ -15,6 +15,7 @@ release/*
 !release/wanfeng-v08-report.json
 !release/wanfeng-v08-recording.json
 !release/portable-dir-manifest.json
+!release/v080-rc-game-verify.json
 release-*/
 out-*/
 out/

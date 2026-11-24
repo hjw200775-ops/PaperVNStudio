@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-23T17:20:26.858Z",
+  "at": "2026-11-24T12:41:00.406Z",
   "version": "0.8.0",
   "source": "C:/Users/Administrator/WorkBuddy/LAPTOP-O1JJ0J9M/PaperVNStudio-v0.3-source-and-AI-guide/wanfeng_alpha/projects/Wanfeng_Part1_Rehearsal",
   "sourceIntact": true,
@@ -43,7 +43,7 @@
       "node": 20,
       "shot": "docs/screenshots/v080-wanfeng-scene2.png",
       "camera": [
-        1.1167,
+        1.1165,
         -11,
         0
       ],
@@ -60,21 +60,21 @@
           "src": "7a0cd880e24d24d5e218.png",
           "display": "block",
           "opacity": 1,
-          "transform": "translate(-147.33px, 0px) scale(1)"
+          "transform": "translate(-147.3px, 0px) scale(1)"
         },
         {
           "layer": "c_you",
           "src": "4c2339f83f8ba1b58c1e.png",
           "display": "block",
           "opacity": 1,
-          "transform": "translate(122.77px, 0px) scale(1.04)"
+          "transform": "translate(122.75px, 0px) scale(1.04)"
         }
       ],
       "text": "她把笔记递过去，指腹在封面上停了一下。"
     },
     {
       "scene": "夜晚的房间",
-      "node": 31,
+      "node": 34,
       "shot": "docs/screenshots/v080-wanfeng-scene3.png",
       "camera": [
         1.1,
@@ -120,41 +120,58 @@
       "copiedAssets": 14,
       "sourceNodes": 216
     },
-    "工程生成：37 句 / 54 个演出动作 / 预计 143 秒": {
-      "beforeSeconds": 143,
-      "afterSeconds": 143,
-      "nodes": 37,
-      "performanceActions": 54
+    "工程生成：40 句 / 58 个演出动作 / 预计 154 秒": {
+      "beforeSeconds": 154,
+      "afterSeconds": 154,
+      "nodes": 40,
+      "performanceActions": 58
     },
     "单文件试玩版：29.6 MB / 单 script / 含演出运行时": {
       "after": {
         "file": "release/wanfeng-v080/晚风经过二楼走廊·演出优化版.html",
-        "bytes": 31033049,
+        "bytes": 31036609,
         "scriptTags": 1,
         "hasPerf": true
       },
       "before": {
         "file": "release/wanfeng-v080/晚风经过二楼走廊·原始对照版.html",
-        "bytes": 31022462
+        "bytes": 31025224
       }
     }
   },
   "duration": {
-    "beforeSeconds": 143,
-    "afterSeconds": 143,
-    "nodes": 37,
-    "performanceActions": 54
+    "beforeSeconds": 154,
+    "afterSeconds": 154,
+    "nodes": 40,
+    "performanceActions": 58
+  },
+  "branch": {
+    "nodeId": "bcd702bc-aa7e-4855-b916-493667aef389",
+    "index": 24,
+    "text": "走廊尽头还留着一点风，要先走哪一边？",
+    "options": [
+      {
+        "text": "和她一起走",
+        "target": "671a411e-bb5f-479f-b1f6-351cdb793747",
+        "targetIndex": 25
+      },
+      {
+        "text": "先去车棚找林澈",
+        "target": "e44e513a-24ad-4888-89bd-cf60a3da6fdf",
+        "targetIndex": 26
+      }
+    ]
   },
   "exports": {
     "after": {
       "file": "release/wanfeng-v080/晚风经过二楼走廊·演出优化版.html",
-      "bytes": 31033049,
+      "bytes": 31036609,
       "scriptTags": 1,
       "hasPerf": true
     },
     "before": {
       "file": "release/wanfeng-v080/晚风经过二楼走廊·原始对照版.html",
-      "bytes": 31022462
+      "bytes": 31025224
     }
   },
   "contrast": {

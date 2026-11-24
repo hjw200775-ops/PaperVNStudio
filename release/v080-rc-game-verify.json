@@ -1,0 +1,278 @@
+{
+  "at": "2026-11-24T12:57:08.344Z",
+  "version": "0.8.0-rc",
+  "ok": true,
+  "stages": {
+    "编辑器打开演出工程": {
+      "ok": true,
+      "detail": {
+        "nodes": 40,
+        "assets": 14,
+        "audio": 0,
+        "chapters": 3,
+        "revision": 0,
+        "past": 0,
+        "future": 0
+      }
+    },
+    "发行表单就绪（目录版）": {
+      "ok": true,
+      "detail": {
+        "name": "晚风演出验收",
+        "type": "folder",
+        "issues": [
+          "!第 40 节：对话在此结束，建议添加结局节点。"
+        ],
+        "disabled": false,
+        "toolchain": "Electron 45.3.2 · rcedit 就绪 · NSIS 就绪"
+      }
+    },
+    "目录版导出完成": {
+      "ok": true,
+      "detail": {
+        "stages": [
+          "写入产品名、版本与图标",
+          "folder",
+          "完成 · 完成"
+        ],
+        "text": "已导出：F:\\新建文件夹\\PaperVNStudio-src\\release\\v080-rc\\game-out\\晚风演出验收-0.8.0-rc-win-x64-独立游戏SHA-256：签名：未签名（没有配置证书，Windows 可能提示未知"
+      }
+    },
+    "产物结构": {
+      "ok": true,
+      "detail": {
+        "dir": "release/v080-rc/game-out/晚风演出验收-0.8.0-rc-win-x64-独立游戏",
+        "exe": "release/v080-rc/game-out/晚风演出验收-0.8.0-rc-win-x64-独立游戏/晚风演出验收.exe",
+        "exeBytes": 250135040,
+        "contentBytes": 209382,
+        "content": true,
+        "hasPerfRuntime": true,
+        "hasActionData": true,
+        "papergameRefs": 14,
+        "scriptTags": 1
+      }
+    },
+    "导出内容含演出运行时与 papergame 资源引用": {
+      "ok": true,
+      "detail": {
+        "refs": 14,
+        "scriptTags": 1
+      }
+    },
+    "独立游戏启动": {
+      "ok": true,
+      "detail": {
+        "url": "papergame://game/index.html"
+      }
+    },
+    "镜头推进": {
+      "ok": true,
+      "detail": {
+        "from": 1.006,
+        "to": 1.018
+      }
+    },
+    "阻塞演出：点击先结算不跳句": {
+      "ok": true,
+      "detail": {
+        "midOpacity": 0.336,
+        "settled": 1
+      }
+    },
+    "阻塞放行": {
+      "ok": true,
+      "detail": {
+        "next": 3
+      }
+    },
+    "角色进入（淡入 + 位移归零）": {
+      "ok": true,
+      "detail": {
+        "earlyDx": -37.47,
+        "earlyOpacity": 0.376,
+        "dx": 0,
+        "opacity": 1
+      }
+    },
+    "papergame:// 资源全部加载": {
+      "ok": true,
+      "detail": {
+        "images": 3
+      }
+    },
+    "第二场：背景交叉淡化": {
+      "ok": true,
+      "detail": {
+        "ghost": true,
+        "ghostOpacity": 0.255,
+        "bg": "1f0238aac07f794f3bc6341c90902ab7e4685f7b7ea3e0862a1a82f76125c056.png"
+      }
+    },
+    "分支：第二个选项": {
+      "ok": true,
+      "detail": {
+        "text": "我先去车棚找他。",
+        "node": 26
+      }
+    },
+    "分支：两条路都通": {
+      "ok": true,
+      "detail": {
+        "a": "那就一起走。",
+        "b": "我先去车棚找他。",
+        "backToChoice": true
+      }
+    },
+    "第三场：夜景 + 双人站位": {
+      "ok": true,
+      "detail": {
+        "bg": "2d7ef96ac10122fec4cb5c018542354f7a00bcce4e9055bf6e129d27f15cf75e.png",
+        "chars": 2,
+        "camera": 1.1
+      }
+    },
+    "读档恢复终态": {
+      "ok": true,
+      "detail": {
+        "node": 34,
+        "bg": "2d7ef96ac10122fec4cb5c018542354f7a00bcce4e9055bf6e129d27f15cf75e.png"
+      }
+    },
+    "编辑器试玩到同一句": {
+      "ok": true,
+      "detail": {
+        "text": "哥。",
+        "layers": 3
+      }
+    },
+    "三处终态一致": {
+      "ok": true,
+      "detail": {
+        "node": 34,
+        "camera": 1.1
+      }
+    },
+    "运行时异常": {
+      "ok": true,
+      "detail": {
+        "count": 0
+      }
+    }
+  },
+  "problems": [],
+  "exceptions": [],
+  "shots": [
+    "docs/screenshots/v080rc-export-done.png",
+    "docs/screenshots/v080rc-game-title.png",
+    "docs/screenshots/v080rc-game-scene2.png",
+    "docs/screenshots/v080rc-game-scene3.png"
+  ],
+  "artifact": {
+    "dir": "release/v080-rc/game-out/晚风演出验收-0.8.0-rc-win-x64-独立游戏",
+    "exe": "release/v080-rc/game-out/晚风演出验收-0.8.0-rc-win-x64-独立游戏/晚风演出验收.exe",
+    "exeBytes": 250135040,
+    "contentBytes": 209382,
+    "content": true,
+    "hasPerfRuntime": true,
+    "hasActionData": true,
+    "papergameRefs": 14,
+    "scriptTags": 1
+  },
+  "compare": {
+    "editor": {
+      "node": null,
+      "camera": {
+        "a": 1.1,
+        "e": 22.35,
+        "f": 0
+      },
+      "dim": 0,
+      "text": "哥。",
+      "layers": {
+        "ly_bg": {
+          "dx": 0,
+          "dy": 0,
+          "scale": 1,
+          "opacity": 1
+        },
+        "c_you": {
+          "dx": 6,
+          "dy": 0,
+          "scale": 1.04,
+          "opacity": 1
+        },
+        "c_che": {
+          "dx": -6,
+          "dy": 0,
+          "scale": 1,
+          "opacity": 1
+        }
+      },
+      "bgHash": "2d7ef96ac10122fec4cb5c018542354f7a00bcce4e9055bf6e129d27f15cf75e.png"
+    },
+    "trial": {
+      "node": 34,
+      "camera": {
+        "a": 1.1,
+        "e": 33,
+        "f": 0
+      },
+      "dim": 0,
+      "text": "哥。",
+      "layers": {
+        "ly_bg": {
+          "dx": 0,
+          "dy": 0,
+          "scale": 1,
+          "opacity": 1
+        },
+        "c_you": {
+          "dx": 6,
+          "dy": 0,
+          "scale": 1.04,
+          "opacity": 1
+        },
+        "c_che": {
+          "dx": -6,
+          "dy": 0,
+          "scale": 1,
+          "opacity": 1
+        }
+      },
+      "bgHash": "SP89Nj3wyABaAAAAABJRU5ErkJggg=="
+    },
+    "game": {
+      "node": 34,
+      "camera": {
+        "a": 1.1,
+        "e": 33,
+        "f": 0
+      },
+      "dim": 0,
+      "text": "哥。",
+      "layers": {
+        "ly_bg": {
+          "dx": 0,
+          "dy": 0,
+          "scale": 1,
+          "opacity": 1
+        },
+        "c_you": {
+          "dx": 6,
+          "dy": 0,
+          "scale": 1.04,
+          "opacity": 1
+        },
+        "c_che": {
+          "dx": -6,
+          "dy": 0,
+          "scale": 1,
+          "opacity": 1
+        }
+      },
+      "bgHash": "2d7ef96ac10122fec4cb5c018542354f7a00bcce4e9055bf6e129d27f15cf75e.png"
+    },
+    "editorVsGame": [],
+    "trialVsGame": []
+  }
+}

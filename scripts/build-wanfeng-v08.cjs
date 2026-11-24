@@ -390,6 +390,56 @@ function buildProject(src, withPerformance) {
     nodes.push(n);
   });
   nodes.forEach((n, i) => { if (i + 1 < nodes.length) n.next = nodes[i + 1].id; });
+
+  /* 分支：第二章结尾给一个选择，两条路都汇合到第三章。
+     演出验收要求覆盖「分支」——两条路台词与舞台状态都不同，最后回到同一句，
+     这样存档/读档、跳过与终态一致才有真正的分支路径可验。 */
+  const lastOfScene2 = nodes[perScene[0] + perScene[1] - 1];
+  const firstOfScene3 = nodes[perScene[0] + perScene[1]];
+  const pg2 = lastOfScene2.paragraphId;
+  const mkSay = (line) => {
+    const n = C.makeNode('say');
+    n.name = line.who ? '' : '旁白';
+    n.text = line.text;
+    n.sceneMode = 'own';
+    if (line.who) n.speakerId = line.who;
+    n.layers = line.layers.map((l) => ({ ...l }));
+    n.paragraphId = pg2;
+    n.performance = withPerformance && line.perf.length ? { version: 1, actions: line.perf.map((a) => ({ ...a })) } : null;
+    return n;
+  };
+  const choice = C.makeNode('choice');
+  choice.name = '';
+  choice.text = '走廊尽头还留着一点风，要先走哪一边？';
+  choice.sceneMode = 'own';
+  choice.paragraphId = pg2;
+  choice.layers = [BG('bg_road', '上学路·桂花'), SU('su_yuqing_summer_uniform_shy', 40), YOU('you_smile', 24)];
+  choice.performance = null;
+  const branchA = mkSay({
+    who: 'lin_you', text: '那就一起走。',
+    layers: [BG('bg_road', '上学路·桂花'), SU('su_yuqing_summer_uniform_shy', 36), YOU('you_smile', 20)],
+    perf: [
+      A('character.move', 'char:su_yuqing', { x: 32, y: 4 }, { duration: 1.0, easing: 'easeOut' }),
+      A('character.move', 'char:lin_you', { x: 16, y: 4 }, { duration: 1.0, easing: 'easeOut', mode: 'parallel' })
+    ]
+  });
+  const branchB = mkSay({
+    who: 'lin_you', text: '我先去车棚找他。',
+    layers: [BG('bg_road', '上学路·桂花'), YOU('you_neutral', 24)],
+    perf: [
+      A('character.hide', 'char:su_yuqing', { mode: 'fade' }, { duration: 0.6, blocking: true }),
+      A('character.expression', 'char:lin_you', { expressionId: 'ex_lin_you_you_neutral' }, { duration: 0.03, mode: 'parallel' })
+    ]
+  });
+  branchA.next = firstOfScene3.id;
+  branchB.next = firstOfScene3.id;
+  choice.options = [
+    { id: 'opt_' + C.id(), text: '和她一起走', target: branchA.id },
+    { id: 'opt_' + C.id(), text: '先去车棚找林澈', target: branchB.id }
+  ];
+  lastOfScene2.next = choice.id;
+  nodes.splice(perScene[0] + perScene[1], 0, choice, branchA, branchB);
+
   p.nodes = nodes;
   C.validate(p);
   return p;
@@ -486,6 +536,13 @@ async function connect(wsUrl) {
   const secAfter = playthroughSeconds(pAfter);
   const perfCount = pAfter.nodes.reduce((n, x) => n + ((x.performance && x.performance.actions) ? x.performance.actions.length : 0), 0);
   report.duration = { beforeSeconds: Math.round(secBefore), afterSeconds: Math.round(secAfter), nodes: pAfter.nodes.length, performanceActions: perfCount };
+  /* 分支信息交给后续验收脚本：不靠猜下标，直接读工程结构 */
+  const choiceNode = pAfter.nodes.find((x) => x.type === 'choice');
+  report.branch = choiceNode ? {
+    nodeId: choiceNode.id, index: pAfter.nodes.indexOf(choiceNode),
+    text: choiceNode.text,
+    options: choiceNode.options.map((o) => ({ text: o.text, target: o.target, targetIndex: pAfter.nodes.findIndex((n) => n.id === o.target) }))
+  } : null;
   ok('工程生成：' + pAfter.nodes.length + ' 句 / ' + perfCount + ' 个演出动作 / 预计 ' + Math.round(secAfter) + ' 秒', report.duration);
 
   console.log('[3/6] 导出可独立运行的单文件试玩版');
@@ -531,11 +588,18 @@ async function connect(wsUrl) {
     const marks = [
       { at: 3, name: '清晨的相遇', file: 'v080-wanfeng-scene1.png' },
       { at: 20, name: '放学后的走廊', file: 'v080-wanfeng-scene2.png' },
-      { at: 31, name: '夜晚的房间', file: 'v080-wanfeng-scene3.png' }
+      { at: 34, name: '夜晚的房间', file: 'v080-wanfeng-scene3.png' }
     ];
     const shots = [];
     /* 一次只前进一句：若正在播阻塞演出，先点一下把它结算到终态，再点一下才进下一句。 */
     const stepOnce = async () => {
+      /* 分支节点不响应「点舞台」：先点第一个选项走过去 */
+      const hasChoice = await preview.ev(`document.querySelectorAll('#choices button').length`);
+      if (hasChoice) {
+        await preview.ev(`document.querySelectorAll('#choices button')[0].click()`);
+        await sleep(400);
+        return;
+      }
       const hint = await preview.ev(`document.getElementById('hint').textContent`);
       if (/演出中/.test(hint)) { await preview.ev(`document.getElementById('scene').click()`); await sleep(90); }
       await preview.ev(`document.getElementById('scene').click()`);
