@@ -1166,6 +1166,9 @@ function createPaperAudio(){
    const prevSwitch=pendingSwitch;
    const myGen=++generation;
    lastEnter={cue:c,options:{...opt}};
+   /* 进入新的一句时，清掉上一句遗留的解码/缺失/未知错误，只保留「未获播放许可」——
+      否则一句播放失败后，错误横幅会一直挂到会话结束（即使后面的句子都正常）。 */
+   errors=errors.filter(x=>x.code==='permission');
    stopPreview(true);
    clearFades();
    leave();
@@ -1176,8 +1179,11 @@ function createPaperAudio(){
    }
    const tasks=[];
    if(opt.rebuild){
-    /* 返回 / 读档 / 重开：先彻底清掉旧的 BGM 通道，再按目标句状态从曲首重建。 */
+    /* 返回 / 读档 / 重开：先彻底清掉旧的 BGM 通道，再按目标句状态从曲首重建。
+       精确模式（AudioBufferSourceNode）的 BGM 也必须一并停掉，否则会与重建起的流式
+       BGM 叠加成双 BGM。 */
     stopBgm(true);
+    if(preciseBgm)preciseStop(0);
     const st=opt.bgmState;
     if(st&&st.audioId)tasks.push(startBgm({audioId:st.audioId,volume:st.volume,loop:st.loop,fadeIn:st.fadeIn||0},myGen,label));
    }else if(c.bgm&&c.bgm.action==='play'){
