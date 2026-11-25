@@ -105,7 +105,9 @@ function createPaperPerformance() {
         easing: EASINGS.includes(a.easing) ? a.easing : 'easeOut',
         blocking: a.blocking === true,
         mode: a.mode === 'parallel' ? 'parallel' : 'after',
-        enabled: a.enabled !== false
+        enabled: a.enabled !== false,
+        /* V0.8.2-M0：显式绝对开始时间（时间轴视图）。可选，旧工程没有。 */
+        start: num(a.start) && a.start >= 0 ? a.start : undefined
       });
     }
     return out;
@@ -127,6 +129,7 @@ function createPaperPerformance() {
       if (!EASINGS.includes(a.easing)) throw Error('未知的缓动方式');
       if (typeof a.blocking !== 'boolean') throw Error('阻塞标记格式错误');
       if (!['after', 'parallel'].includes(a.mode)) throw Error('执行关系只能是顺序或并行');
+      if (a.start !== undefined && (!num(a.start) || a.start < 0 || a.start > 86400)) throw Error('演出开始时间格式错误');
       if (typeof a.enabled !== 'boolean') throw Error('启用标记格式错误');
       if (!a.params || typeof a.params !== 'object') throw Error('演出参数缺失');
       checkParams(a);
@@ -259,14 +262,19 @@ function createPaperPerformance() {
   /* 顺序 / 并行关系由「与上一动作」的语义决定，而不是绝对时间轴：
      - after    ：排在上一动作结束之后；
      - parallel ：与上一动作同时开始。
-     这样拖动列表顺序就能改变语义，作者不需要手算绝对时间。 */
+     这样拖动列表顺序就能改变语义，作者不需要手算绝对时间。
+     V0.8.2-M0：动作可带显式 `start`（绝对秒）。有 `start` 就按绝对时间排（时间轴视图），
+     没有就退回 after/parallel + delay（动作列表视图）。两者共用同一份数据源。 */
   function schedule(actions) {
     const list = (actions || []).filter((a) => a && a.enabled !== false && TYPES[a.type]);
     const out = [];
     let cursor = 0;
     let lastStart = 0;
     for (const a of list) {
-      const start = (a.mode === 'parallel' ? lastStart : cursor) + (a.delay || 0);
+      const explicit = num(a.start) && a.start >= 0;
+      const start = explicit
+        ? a.start
+        : (a.mode === 'parallel' ? lastStart : cursor) + (a.delay || 0);
       const end = start + (a.duration || 0);
       out.push({ action: a, start, end, blocking: a.blocking === true });
       lastStart = start;

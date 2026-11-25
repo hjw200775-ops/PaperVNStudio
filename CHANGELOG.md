@@ -1,5 +1,26 @@
 # 更新日志
 
+## V0.8.2-M0 — 可视化多轨演出时间轴 · 架构基础（2026-11-25）
+
+基线 `79eb401`（V0.8.1-RC3.1），分支 `feature/v0.8.2-timeline`。
+
+### V0.8.1 最终收尾（M0-0）
+
+- 实机验证（Windows x64 便携版）发现并修复：标题音乐循环点 `6.4–30.5` 保存后被
+  `toTitleMusic` 的 `numIn(Math.round)` 取整成 `6–31`，丢失乐句匹配所需的小数秒精度。
+  改为夹到 [0,86400] 并四舍五入到 1ms；单测覆盖；实机保存关闭重开后一致。
+- 用户人工听感验收：**PASS**。D 方案循环交叉淡化仍属实验能力；其他已知限制如实保留。
+- 验证产物 `release/v081-final-verify.json`。
+
+### 时间轴架构（M0-1…M0-6）
+
+- 数据模型：动作新增可选 `start`（绝对秒）；`schedule()` 优先读 `start`，旧工程无 `start`
+  走 `after/parallel` + `delay`（向后兼容，无需迁移）。
+- 新增 `dist/timeline.js`（时间轴数据层：`toTimeline/scrubState/audioSideEffectsAt/setStart/...`）。
+- 新增 `tests/timeline.test.cjs`（11 组：映射/顺序并行/偏移/确定性/定位/回退/防重放/终态一致/start 映射/轨道）。
+- 技术原型 `release/v082m0/timeline-prototype.html` + 截图。
+- 文档 `docs/V0.8.2_TIMELINE_ARCHITECTURE.md`、`docs/V0.8.2_M1_HANDOFF.md`。
+
 ## V0.8.1-RC3.1 — 播放可靠性修复与循环试听编辑器（2026-11-25）
 
 基线 `0534551`（V0.8.1-RC3）。本轮不进入 V0.8.2。
