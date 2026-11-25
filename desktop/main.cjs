@@ -43,6 +43,8 @@ const ALLOWED = {
   '/game-html.js': 'text/javascript; charset=utf-8',
   '/audio.js': 'text/javascript; charset=utf-8',
   '/loop-audition.js': 'text/javascript; charset=utf-8',
+  '/timeline.js': 'text/javascript; charset=utf-8',
+  '/timeline-panel.js': 'text/javascript; charset=utf-8',
   '/desktop-bridge.js': 'text/javascript; charset=utf-8'
 };
 

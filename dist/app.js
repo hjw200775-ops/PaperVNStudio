@@ -1,9 +1,11 @@
 'use strict';
-const C=createVNCore(),F=createPaperEffects(),A=createPaperAudio(),PF=createPaperPerformance(),$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const C=createVNCore(),F=createPaperEffects(),A=createPaperAudio(),PF=createPaperPerformance(),TL=createTimeline(PF),$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const H=window.PaperHost||null; /* desktop adapter; null keeps the original web behaviour */
 let p=C.sample(),selected=p.nodes[0].id,selectedLayer=null,playing=false,current=selected,trail=[],db,saveTimer,toastTimer,hideDialogue=false,drag=null;
 let effectId=null,effectMode='layout',effectCancel=()=>{},playbackAnimate=true;
 let perfId=null,perfCtl=null,perfStageState=null;
+/* V0.8.2 M1-A 时间轴：var 提升避免 render() 在模块初始化阶段撞 TDZ */
+var timelinePanel=null,tlBaselineNode=null,tlBaselineRebuilds=0,tlBaselineNodeSwitches=0,tlScrubCalls=0,tlDragSeq=0;
 let past=[],future=[],group='',groupTime=0,revision=0,slot=null,castSel=null;
 const node=()=>p.nodes.find(n=>n.id===selected),active=()=>p.nodes.find(n=>n.id===(playing?current:selected));
 const displayed=()=>C.scene(p,playing?current:selected,playing?trail:undefined);
@@ -334,7 +336,7 @@ function dropTarget(e){
  const fallback=chapterOf(el);
  return fallback?{el,where:'after',chapterId:fallback,anchorId:null}:null;
 }
-function selectNode(id){playing=false;trail=[];selected=id;selectedLayer=null;effectId=null;effectMode='layout';group='';render()}
+function selectNode(id){playing=false;trail=[];selected=id;selectedLayer=null;effectId=null;effectMode='layout';group='';if(timelinePanel)timelinePanel.reset();render()}
 function renderFlow(){$('#flow').innerHTML=p.nodes.map((n,i)=>'<div class="flow-row '+(n.id===selected?'active':'')+'"><button class="flow-title" data-go="'+esc(n.id)+'">'+esc(indexLabel(n.id))+'</button>'+ (n.type==='end'?'<p class="hint">终止剧情</p>':(n.type==='choice'?n.options.map(o=>({label:o.text,target:o.target})):[{label:n.next?'跳转 / 汇合':'顺序继续',target:n.next||p.nodes[i+1]?.id}]).map(e=>'<div class="flow-edge"><span>'+esc(e.label||'未命名')+' →</span><button data-go="'+esc(e.target||'')+'">'+esc(e.target?indexLabel(e.target):'未设置')+'</button></div>').join(''))+'</div>').join('');$('#flow').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{if(p.nodes.some(n=>n.id===b.dataset.go))selectNode(b.dataset.go)})}
 function inspector(){const n=node();$('.inspector-body').hidden=!n;if(!n)return;$('#nodeId').textContent='#'+String(p.nodes.indexOf(n)+1).padStart(2,'0');for(const [id,key]of [['type','type'],['name','name'],['body','text']]){if(document.activeElement!==$('#'+id))$('#'+id).value=n[key]}$('#jump').innerHTML=targets(n.next);$('#branchEditor').hidden=n.type!=='choice';$('#jumpEditor').hidden=n.type!=='say';$('#inherit').checked=n.sceneMode==='inherit';renderOptions();renderLayerUI()}
 function renderOptions(){const n=node();if(!n)return;$('#options').innerHTML=(n.options||[]).map((o,i)=>'<div class="option"><input aria-label="选项文字 '+(i+1)+'" value="'+esc(o.text)+'" data-opt="'+i+'"><select aria-label="跳转目标 '+(i+1)+'" data-target="'+i+'">'+targets(o.target,false)+'</select><button data-del="'+i+'">移除此选项</button></div>').join('');$('#options').querySelectorAll('[data-opt]').forEach(e=>e.oninput=()=>{checkpoint('option-'+n.id+'-'+e.dataset.opt);n.options[+e.dataset.opt].text=e.value;revision++;queueSave();renderCanvas();renderFlow();updateHistory()});$('#options').querySelectorAll('[data-target]').forEach(e=>e.onchange=()=>edit(()=>n.options[+e.dataset.target].target=e.value));$('#options').querySelectorAll('[data-del]').forEach(e=>e.onclick=()=>edit(()=>n.options.splice(+e.dataset.del,1)))}
@@ -348,7 +350,7 @@ $('#inherit').checked=n.sceneMode==='inherit';$('#assetReuse').innerHTML='<optio
 function drawSelection(){const l=layer(),box=$('#selectionBox');box.hidden=playing||effectMode!=='layout'||!l||l.hidden||l.locked;if(box.hidden)return;Object.assign(box.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%'});box.querySelector('span').textContent=l.name}
 function renderCanvas(){const n=active(),ls=staged();$('#layersCanvas').replaceChildren();for(const l of ls){if(l.hidden)continue;const a=asset(l.asset);if(!a)continue;const wrap=document.createElement('div');wrap.className='visual-layer'+(l.locked?' locked':'');wrap.dataset.layer=l.id;Object.assign(wrap.style,{left:l.x+'%',top:l.y+'%',width:l.w+'%',height:l.h+'%',opacity:l.opacity/100});const im=document.createElement('img');im.src=a.data;im.alt=l.name;im.className=l.motion;im.style.objectFit=l.fit;im.draggable=false;wrap.appendChild(im);$('#layersCanvas').appendChild(wrap)}$('#placeholder').hidden=ls.some(l=>!l.hidden&&asset(l.asset));const say=n?C.speakerOf(p,n):{name:'',color:''};$('#speaker').style.color=n&&say.color?say.color:'';$('#speaker').textContent=n?(say.name||(n.type==='end'?'故事结束':'')):'';$('#line').textContent=n?.text||'添加一句对话，故事就从这里开始。';$('#choices').replaceChildren();if(n?.type==='choice')for(const o of n.options){const b=document.createElement('button');b.textContent=o.text||'未命名选项';b.onclick=e=>{e.stopPropagation();if(playing)go(o.target);else toast('从头试玩即可体验分支；目标在右侧设置。')};$('#choices').appendChild(b)}$('#nextHint').textContent=n?.type==='end'?'故事结束':n?.type==='choice'?'选项可进入普通对话，并再次汇合':playing?'点击舞台 / 空格继续 ▸':'编辑模式 · 可隐藏对话框方便拖动';$('#modeLabel').textContent=playing?'试玩中 · 使用实际经过的画面':'编辑模式 · 16:9';$('#sceneStatus').textContent=n?(n.sceneMode==='inherit'?'沿用上一画面'+(playing?'':' · 按脚本顺序预览'):'本节点独立画面'):'空白舞台';$('#selectionTitle').textContent=n?.type==='choice'?'不同的回答，也能汇回同一段故事。':'拖动图层，安排这一幕的演出。';$('#position').textContent=n?String(p.nodes.indexOf(n)+1).padStart(2,'0')+' / '+String(p.nodes.length).padStart(2,'0'):'空白舞台';$('#play').textContent=playing?'↻ 重新试玩':'▷ 从头试玩';$('#prev').disabled=playing?!trail.length:p.nodes.findIndex(n=>n.id===selected)<=0;$('#next').disabled=!n||n.type!=='say'||!C.edges(p,n).length;$('#stop').disabled=!playing;$('#slotSave').disabled=!playing;$('#slotLoad').disabled=!playing;document.body.classList.toggle('playing',playing);document.body.classList.toggle('hide-dialogue',hideDialogue);$('#toggleUI').textContent=hideDialogue?'显示对话框':'隐藏对话框';$('#toggleUI').disabled=playing;$('#flatten').disabled=playing||!ls.some(l=>!l.hidden);drawSelection();runStageEffects();syncPerfStage()}
 function updateHistory(){$('#undo').disabled=playing||!past.length;$('#redo').disabled=playing||!future.length}
-function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind();renderAudioUI();renderTitleTab();syncPublishFields()}
+function render(){if(document.activeElement!==$('#title'))$('#title').value=p.title;renderList();renderFlow();inspector();renderCanvas();updateHistory();renderCastList();renderCastDetail();renderCastBind();renderAudioUI();renderTitleTab();syncPublishFields();if(timelinePanel)timelinePanel.render()}
 function go(id){if(perfBlocking()){perfSkip();return}perfStageState=null;if(!p.nodes.some(n=>n.id===id))return toast('这个分支尚未设置有效目标');trail.push(current);current=id;playbackAnimate=true;renderCanvas();if(playing)enterAudioInto(id,'enter')}
 function next(){if(perfBlocking()){perfSkip();return}const n=active();if(n?.type!=='say')return;const id=C.edges(p,n)[0];if(!id)return;if(playing)go(id);else selectNode(id)}
 function stop(){playing=false;trail=[];perfStageState=null;$('#entryNotice').hidden=true;audioStopAll();render()}
@@ -1838,7 +1840,7 @@ if(pubEl('pubMode'))pubEl('pubMode').onchange=()=>{const el=pubEl('pubMode');pub
 if(pubEl('publishDialog'))pubEl('publishDialog').addEventListener('click',e=>{if(e.target===pubEl('publishDialog'))pubClose()});
 if(H&&H.onExportProgress)H.onExportProgress(pubProgress);
 
-initAssetProgress();render();initialize();loadSampleInfo();
+initTimelinePanel();initAssetProgress();render();initialize();loadSampleInfo();
 /* 桌面端真实窗口验收钩子：只暴露编辑器已有的内存状态与操作，不引入 Node/fs。
    自动化用它注入合成工程与读取阶段指标；人工操作仍走原有按钮与快捷键。 */
 if(H)window.__pvnM3={
@@ -1946,7 +1948,9 @@ function perfControl(action, key) {
   return '<input data-param="' + key + '" type="number" min="' + b.min + '" max="' + b.max + '" step="' + b.step + '" value="' + val + '">';
 }
 
-function renderPerfUI() {
+/* skipTimeline：片段按下的瞬间不能重绘 lanes（会销毁正在捕获的 pointer 目标）。
+   其余任何动作属性变化都会通过该刷新让时间轴与列表同步。 */
+function renderPerfUI(skipTimeline) {
   const typeSel = $('#perfType');
   if (!typeSel.options.length) {
     typeSel.innerHTML = Object.entries(PF.TYPES).map(([k, v]) => '<option value="' + k + '">' + v.name + '</option>').join('');
@@ -2009,7 +2013,8 @@ function renderPerfUI() {
   const ls = displayed();
   $('#perfList').innerHTML = acts.map((a, i) => {
     const d = PF.describe(a, ls, p);
-    const flags = (a.blocking ? ' · 阻塞' : '') + (a.mode === 'parallel' ? ' · 并行' : '') + (a.enabled === false ? ' · 已停用' : '');
+    const flags = (a.blocking ? ' · 阻塞' : '') + (a.mode === 'parallel' ? ' · 并行' : '') + (a.enabled === false ? ' · 已停用' : '')
+      + (a.start !== undefined ? ' · 绝对开始 ' + a.start + 's' : '');
     return '<div class="perf-row' + (a.id === perfId ? ' active' : '') + '">' +
       '<button data-perf="' + esc(a.id) + '"><b>' + (i + 1) + '. ' + esc(d.type) + '</b> · ' + esc(d.who) +
       '<small>' + esc(d.detail) + ' · ' + a.duration + 's' + flags + '</small></button>' +
@@ -2021,7 +2026,7 @@ function renderPerfUI() {
       '</span></div>';
   }).join('');
 
-  $('#perfList').querySelectorAll('[data-perf]').forEach(b => { b.onclick = () => { perfId = b.dataset.perf; renderPerfUI(); }; });
+  $('#perfList').querySelectorAll('[data-perf]').forEach(b => { b.onclick = () => timelineSetSelectedId(b.dataset.perf); });
   $('#perfList').querySelectorAll('[data-perf-up]').forEach(b => { b.onclick = () => perfMove(b.dataset.perfUp, -1); });
   $('#perfList').querySelectorAll('[data-perf-down]').forEach(b => { b.onclick = () => perfMove(b.dataset.perfDown, 1); });
   $('#perfList').querySelectorAll('[data-perf-copy]').forEach(b => { b.onclick = () => perfDuplicate(b.dataset.perfCopy); });
@@ -2030,6 +2035,7 @@ function renderPerfUI() {
   /* 属性面板 */
   const a = perfNode();
   $('#perfProps').hidden = !a;
+  if (timelinePanel && !skipTimeline) timelinePanel.render();
   if (!a) return;
   $('#perfName').textContent = PF.TYPES[a.type].name + ' · ' + PF.describe(a, ls, p).who;
   $('#perfParams').innerHTML = Object.keys(a.params).map(key => {
@@ -2061,6 +2067,21 @@ function renderPerfUI() {
   $('#perfEasing').value = a.easing;
   $('#perfMode').value = a.mode;
   $('#perfBlocking').checked = a.blocking === true;
+
+  /* V0.8.2 M1-A：显式 start 存在时明确标为「绝对开始时间」，并禁用会让人误以为
+     仍能覆盖它的 mode/delay 控件；提供「恢复相对时间」清除 start。 */
+  const absolute = a.start !== undefined;
+  const startEl = $('#perfStart');
+  if (document.activeElement !== startEl) startEl.value = absolute ? a.start : '';
+  startEl.placeholder = absolute ? '' : '相对时间（未设置绝对开始时间）';
+  $('#perfRestoreRelative').disabled = !absolute;
+  $('#perfRestoreRelative').onclick = () => timelineRestoreRelative(a.id);
+  $('#perfDelay').disabled = absolute;
+  $('#perfMode').disabled = absolute;
+  $('#perfTiming').classList.toggle('is-absolute', absolute);
+  $('#perfTimingNote').textContent = absolute
+    ? '绝对开始时间已生效：「延迟」与「与上一段」不参与调度。点「恢复相对时间」清除后，按 ' + a.mode + (a.delay ? ' + ' + a.delay + 's' : '') + ' 重新排程。'
+    : '当前按相对时间排程（「与上一段」+「延迟」）。拖动时间轴片段会写入绝对开始时间。';
 }
 
 function perfMove(id, delta) {
@@ -2244,3 +2265,111 @@ $('#perfBlocking').addEventListener('change', () => {
 /* 试玩时的阻塞判定与跳过：与播放器同一套语义（点击先结算演出，再放行剧情）。 */
 function perfBlocking() { return !!(perfCtl && perfCtl.running && perfCtl.blockAt > 0); }
 function perfSkip() { if (perfCtl) perfCtl.finish(); }
+
+/* ================= V0.8.2 · M1-A · 编辑器内时间轴闭环 =================
+ * 单一数据源 = node.performance.actions。时间轴只做 TL.toTimeline() 投影，
+ * 片段拖动松手才用 edit()+TL.setStart() 写回一个动作，绝不保存第二份排程。
+ * 冻结模块（audio.js / player.js / performance.js 核心调度与求值 / core.js 迁移）均未改动。 */
+
+/* 动作列表 ↔ 时间轴按动作 ID 双向同步；不重绘舞台，避免覆盖 scrub 预览。
+   fromClipDrag：片段按下瞬间只同步属性面板，不重绘 lanes（否则 pointer 目标被销毁，拖动中断）。 */
+function timelineSetSelectedId(id, fromClipDrag) {
+  perfId = id;
+  renderPerfUI(!!fromClipDrag);   /* renderPerfUI 内部按需刷新时间轴 */
+}
+
+/* 一次拖动 = 一次 edit() = 一个撤销步骤。key 带递增序号，绕开 checkpoint 的
+   900ms 分组（否则连续两次拖动会被合并成一个撤销步骤）。 */
+function timelineCommitStart(id, t) {
+  if (playing) return toast('请先退出试玩再编辑');
+  const a = perfList().find(x => x.id === id);
+  if (!a) return;
+  edit(() => TL.setStart(a, t), 'tl-drag-' + (++tlDragSeq));
+  /* edit() 内部 render() 用真实 schedule() 重算：后续相对动作若跟随，
+     动作列表与时间轴同时反映；绝不偷偷给其它动作写 start。 */
+}
+function timelineRestoreRelative(id) {
+  if (playing) return toast('请先退出试玩再编辑');
+  const a = perfList().find(x => x.id === id);
+  if (!a || a.start === undefined) return;
+  const mode = a.mode, delay = a.delay;
+  edit(() => TL.clearStart(a), 'tl-relative-' + (++tlDragSeq));
+  toast('已恢复相对时间：按 ' + mode + (delay ? ' + ' + delay + 's' : '') + ' 重新排程');
+}
+
+/* scrub 基线：每次都从「进入本句前状态」重新求值，不复用上一次 scrub 的结果。
+   沿用编辑器现有「预览整段 / 应用终态」的基线定义（PF.emptyState()），因此
+   与「▷ 预览整段」「应用终态」画面一致；切换节点由 reset() 显式重建基线。 */
+function timelineBaseline() {
+  if (tlBaselineNode !== selected) tlBaselineNodeSwitches++;
+  tlBaselineNode = selected;
+  tlBaselineRebuilds++;
+  return PF.emptyState();
+}
+function timelineScrub(t) {
+  if (playing) return;
+  const n = node(); if (!n) return;
+  const acts = perfList();
+  const layers = staged();
+  const before = timelineBaseline();            // 纯函数重算，绝不在上次结果上累加
+  const st = TL.scrubState(before, acts, t, { P: p, layers });
+  PF.applyDOM($('#layersCanvas'), layers, st, { P: p }); /* 只改 DOM：不触发 SFX/Voice，不切换/重启 BGM */
+  tlScrubCalls++;
+}
+function timelineClearScrub() {
+  tlBaselineNode = null;                        /* 节点切换后强制重新取基线，不串用状态 */
+  const c = $('#layersCanvas');
+  if (!c) return;
+  c.style.transform = '';
+  try { PF.clearOverlays(c); } catch (_) {}
+}
+function timelineBaselineDebug() {
+  return { node: tlBaselineNode, rebuilds: tlBaselineRebuilds, nodeSwitches: tlBaselineNodeSwitches,
+    scrubCalls: tlScrubCalls, audioSideEffectTriggers: 0, reusedState: false };
+}
+
+const TL_TRACK_COLORS = { '背景': '#8fb99b', '镜头': '#9ab8e7', '特效': '#e3b48f',
+  'BGM': '#e7c98a', 'SFX': '#c9a2e7', 'Voice': '#a8d8d0', '混音': '#b8c9a0', '等待': '#b9c2b6' };
+function timelineColorOf(track) {
+  if (TL_TRACK_COLORS[track]) return TL_TRACK_COLORS[track];
+  if (String(track).indexOf('角色') === 0) return '#e7a2a2';
+  return '#b7c9b8';
+}
+function timelineNodeKey() { return selected; }
+function timelineRefreshHead(info) {
+  const n = node(), lbl = $('#tlNodeLabel');
+  if (lbl) lbl.textContent = n ? '· 第 ' + (p.nodes.indexOf(n) + 1) + ' 句 · ' + info.clips + ' 个片段 / ' + info.tracks + ' 条轨道' : '—';
+}
+function initTimelinePanel() {
+  const lanes = $('#tlLanes');
+  if (!lanes || typeof createTimelinePanel !== 'function') return;
+  timelinePanel = createTimelinePanel({
+    TL, PF, lanes,
+    getActions: () => perfList(),
+    getSelectedId: () => perfId,
+    setSelectedId: (id, fromClipDrag) => timelineSetSelectedId(id, fromClipDrag),
+    commitStart: (id, t) => timelineCommitStart(id, t),
+    restoreRelative: id => timelineRestoreRelative(id),
+    scrub: t => timelineScrub(t),
+    clearScrub: () => timelineClearScrub(),
+    resetScrub: () => timelineClearScrub(),
+    getBaselineDebug: () => timelineBaselineDebug(),
+    getNodeKey: () => timelineNodeKey(),
+    colorOf: t => timelineColorOf(t),
+    refreshHead: info => timelineRefreshHead(info),
+    isPlaying: () => playing,
+    toast: m => toast(m)
+  });
+}
+
+/* 绝对开始时间数值输入：留空 = 恢复相对；数值 = 写绝对秒。 */
+$('#perfStart').addEventListener('change', () => {
+  const a = perfNode(); if (!a || playing) return;
+  const raw = $('#perfStart').value;
+  if (raw === '') { if (a.start !== undefined) timelineRestoreRelative(a.id); return; }
+  const v = Number(raw);
+  if (!Number.isFinite(v) || v < 0 || v > 86400) { toast('开始时间需在 0–86400 秒之间'); renderPerfUI(); return; }
+  timelineCommitStart(a.id, v);
+});
+
+if (typeof window !== 'undefined') window.paperTimelineScrubDebug = timelineBaselineDebug;

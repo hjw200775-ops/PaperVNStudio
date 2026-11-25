@@ -51,3 +51,4 @@ backups/
 !release/audio-soak-15min.json
 !release/audio-soak-15min-rc3.1.json
 !release/v081-final-verify.json
+!release/v082m1a-ui-verify.json

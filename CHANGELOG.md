@@ -1,5 +1,19 @@
 # 更新日志
 
+## V0.8.2-M1-A — 编辑器内时间轴闭环（2026-11-26）
+
+基线 `ae3f63d`（M0），分支 `feature/v0.8.2-timeline`。只做单节点时间轴最小可用闭环。
+
+- 新增 `dist/timeline-panel.js`：正式编辑器内时间轴面板（`TL.toTimeline` 投影，支持并行片段、零时长瞬时事件、无动作空状态），**不保存第二份动作或排程数据**。
+- `dist/timeline.js` 增加 `createDragSession()` 纯交互状态机：拖动期间只显示临时预览、不改数据；松手用一次 `edit()` + `TL.setStart()` 写回绝对秒，一次拖动一个撤销步骤；Esc / 无位移 / pointercancel / lostpointercapture / 切换节点一律取消。
+- 动作列表与时间轴按动作 ID 双向同步选择和属性；显式 `start` 显示「绝对开始时间」并禁用 `mode/delay`；提供「恢复相对时间」清除 `start`。
+- 播放头 scrub 用 `scrubState()` 每次从进入前状态重新求值（不累加、节点隔离），只调 `PF.applyDOM` 改画面，不触发 SFX/Voice、不切换或重启 BGM。
+- 松手后按真实 `schedule()` 刷新整条时间轴；后续相对动作跟随，绝不偷偷给其它动作写 `start`。
+- **冻结模块未改**：`dist/audio.js`、`dist/player.js`、`dist/performance.js` 核心调度/求值、`dist/core.js` 迁移语义。
+- 新增 `tests/timeline-interaction.test.cjs`（12 组）、`scripts/v082m1a-ui-verify.cjs`（真实窗口 37 项）。
+- `npm run check` 全绿、packaged-smoke PASS、最终 Windows x64 便携版实机 37 项全绿；证据 `release/v082m1a-ui-verify.json`，截图 5 张。
+- 验收记录：`docs/V0.8.2_M1A_ACCEPTANCE.md`。**技术闭环完成，产品体验待人工复验**；闭环通过即停。
+
 ## V0.8.2-M0 — 可视化多轨演出时间轴 · 架构基础（2026-11-25）
 
 基线 `79eb401`（V0.8.1-RC3.1），分支 `feature/v0.8.2-timeline`。

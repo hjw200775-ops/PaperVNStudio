@@ -1,0 +1,401 @@
+{
+  "at": "2026-11-25T17:30:53.952Z",
+  "version": "0.8.2-M1A",
+  "mode": "packaged-win-x64",
+  "exe": "F:\\新建文件夹\\PaperVNStudio-src\\release\\PaperVNStudio-0.8.1-win-x64\\PaperVNStudio.exe",
+  "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m1a-verify\\晚风-M1A验收副本",
+  "stages": {
+    "可执行文件存在": {
+      "ok": true,
+      "detail": {
+        "exe": "F:\\新建文件夹\\PaperVNStudio-src\\release\\PaperVNStudio-0.8.1-win-x64\\PaperVNStudio.exe",
+        "mode": "packaged-win-x64"
+      }
+    },
+    "验收工程为隔离副本": {
+      "ok": true,
+      "detail": {
+        "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m1a-verify\\晚风-M1A验收副本",
+        "originalKept": "F:\\新建文件夹\\PaperVNStudio-src\\release\\wanfeng-v081rc3\\晚风·循环试听工程"
+      }
+    },
+    "编辑器启动并打开隔离副本": {
+      "ok": true,
+      "detail": {
+        "nodes": 40
+      }
+    },
+    "时间轴面板渲染（TL.toTimeline 投影）": {
+      "ok": true,
+      "detail": {
+        "clips": 2,
+        "lanes": 2,
+        "ticks": 6
+      }
+    },
+    "脚本加载无 timeline 报错": {
+      "ok": true,
+      "detail": null
+    },
+    "原工程无显式 start": {
+      "ok": true,
+      "detail": null
+    },
+    "未编辑旧工程：预览+保存不批量写 start": {
+      "ok": true,
+      "detail": null
+    },
+    "未编辑旧工程：原调度保持一致": {
+      "ok": true,
+      "detail": null
+    },
+    "列表 → 时间轴按 ID 同步": {
+      "ok": true,
+      "detail": null
+    },
+    "时间轴 → 列表按 ID 同步": {
+      "ok": true,
+      "detail": null
+    },
+    "拖动中只显示临时预览，动作数据未改": {
+      "ok": true,
+      "detail": null
+    },
+    "Esc 取消不留半成品": {
+      "ok": true,
+      "detail": null
+    },
+    "取消不留半成品：pointercancel": {
+      "ok": true,
+      "detail": null
+    },
+    "取消不留半成品：lostpointercapture": {
+      "ok": true,
+      "detail": null
+    },
+    "无位移松手不写入": {
+      "ok": true,
+      "detail": null
+    },
+    "松手通过 edit()+TL.setStart 写回小数秒": {
+      "ok": true,
+      "detail": {
+        "start": 2.35,
+        "deltaX": 302.2,
+        "pxPerSec": 128.6
+      }
+    },
+    "一次拖动只增加一个撤销步骤": {
+      "ok": true,
+      "detail": null
+    },
+    "拖动后其它动作未被偷写 start": {
+      "ok": true,
+      "detail": null
+    },
+    "显式 start 明确显示「绝对开始时间」且 mode/delay 不可覆盖": {
+      "ok": true,
+      "detail": null
+    },
+    "撤销回退拖动、重做恢复拖动": {
+      "ok": true,
+      "detail": null
+    },
+    "显式 start=0 被保留且仍识别为绝对时间": {
+      "ok": true,
+      "detail": null
+    },
+    "恢复相对时间清除 start 并解除 mode/delay 禁用": {
+      "ok": true,
+      "detail": null
+    },
+    "恢复相对时间后仍可重新设置绝对开始时间": {
+      "ok": true,
+      "detail": null
+    },
+    "混排：拖动绝对动作后后续相对动作按真实调度跟随": {
+      "ok": true,
+      "detail": null
+    },
+    "混排：其它动作不偷写 start，列表同步显示绝对开始": {
+      "ok": true,
+      "detail": null
+    },
+    "并行片段与前一动作同起点": {
+      "ok": true,
+      "detail": null
+    },
+    "零时长动作在时间轴显示为瞬时片段": {
+      "ok": true,
+      "detail": null
+    },
+    "反复前后拖播放头：一次性音频触发数为 0": {
+      "ok": true,
+      "detail": null
+    },
+    "scrub 每次重新取进入前状态，不在上次结果上累加": {
+      "ok": true,
+      "detail": null
+    },
+    "快速切换节点后播放头归零、无残留拖动": {
+      "ok": true,
+      "detail": null
+    },
+    "切换节点后重新取基线，不串用状态": {
+      "ok": true,
+      "detail": null
+    },
+    "标题音乐 6.4–30.5 保存写入磁盘（小数秒不被取整）": {
+      "ok": true,
+      "detail": null
+    },
+    "时间轴编辑写入磁盘（start=0 与小数秒均保留）": {
+      "ok": true,
+      "detail": null
+    },
+    "会话 1 无渲染进程异常": {
+      "ok": true,
+      "detail": null
+    },
+    "关闭重开后标题音乐 6.4–30.5 一致": {
+      "ok": true,
+      "detail": null
+    },
+    "关闭重开后时间轴 start 参数一致且面板正确重建": {
+      "ok": true,
+      "detail": null
+    },
+    "会话 2 无渲染进程异常": {
+      "ok": true,
+      "detail": null
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "initialRender": {
+      "clips": 2,
+      "lanes": 2,
+      "ticks": 6,
+      "label": "· 第 1 句 · 2 个片段 / 2 条轨道"
+    },
+    "legacyNoStart": {
+      "before": 0,
+      "afterPreviewAndSave": 0,
+      "scheduleEqual": true
+    },
+    "dragCommit": {
+      "start": 2.35,
+      "pastBefore": 0,
+      "pastAfter": 1,
+      "uiAbs": {
+        "start": "2.35",
+        "delayDisabled": true,
+        "modeDisabled": true,
+        "restoreEnabled": true,
+        "listText": true,
+        "note": "绝对开始时间已生效：「延迟」与「与上一段」不参与调度。点「恢复相对时间」清除后，按 after 重新排程。"
+      }
+    },
+    "mixedSchedule": {
+      "before": [
+        {
+          "id": "pa78",
+          "left": "0px"
+        },
+        {
+          "id": "pa79",
+          "left": "0px"
+        },
+        {
+          "id": "pa_fa20c33c-5039-4045-88f6-7b688aa7b5b1",
+          "left": "230.821px"
+        }
+      ],
+      "after": [
+        {
+          "id": "pa78",
+          "left": "241.768px"
+        },
+        {
+          "id": "pa79",
+          "left": "241.768px"
+        },
+        {
+          "id": "pa_fa20c33c-5039-4045-88f6-7b688aa7b5b1",
+          "left": "385.8px"
+        }
+      ],
+      "starts": [
+        2.35,
+        null,
+        null
+      ]
+    },
+    "scrub": {
+      "sweeps": 12,
+      "before": {
+        "perf": {
+          "calls": 0,
+          "slots": 0,
+          "fired": 0,
+          "last": "",
+          "err": ""
+        },
+        "stats": null,
+        "tl": {
+          "renderCount": 38,
+          "scrubCalls": 8,
+          "oneShotTriggers": 0,
+          "clipDragCommits": 2,
+          "clipDragCancels": 5,
+          "lastCommit": {
+            "id": "pa78",
+            "from": 0,
+            "to": 2.35,
+            "reason": "up"
+          },
+          "lastCancel": {
+            "reason": "up",
+            "moved": false
+          },
+          "playheadT": 0,
+          "clipCount": 3,
+          "trackCount": 3,
+          "nodeKey": "d59c8613-46fb-46ae-b870-c7643fa413f3",
+          "previewOnly": true,
+          "pxPerSec": 459.28571428571433,
+          "total": 1.4,
+          "curT": 0,
+          "dragActive": false,
+          "dragState": null,
+          "baseline": {
+            "node": null,
+            "rebuilds": 8,
+            "nodeSwitches": 1,
+            "scrubCalls": 8,
+            "audioSideEffectTriggers": 0,
+            "reusedState": false
+          }
+        },
+        "bl": {
+          "node": null,
+          "rebuilds": 8,
+          "nodeSwitches": 1,
+          "scrubCalls": 8,
+          "audioSideEffectTriggers": 0,
+          "reusedState": false
+        }
+      },
+      "after": {
+        "perf": {
+          "calls": 0,
+          "slots": 0,
+          "fired": 0,
+          "last": "",
+          "err": ""
+        },
+        "stats": null,
+        "tl": {
+          "renderCount": 38,
+          "scrubCalls": 32,
+          "oneShotTriggers": 0,
+          "clipDragCommits": 2,
+          "clipDragCancels": 5,
+          "lastCommit": {
+            "id": "pa78",
+            "from": 0,
+            "to": 2.35,
+            "reason": "up"
+          },
+          "lastCancel": {
+            "reason": "up",
+            "moved": false
+          },
+          "playheadT": 1.148,
+          "clipCount": 3,
+          "trackCount": 3,
+          "nodeKey": "d59c8613-46fb-46ae-b870-c7643fa413f3",
+          "previewOnly": true,
+          "pxPerSec": 459.28571428571433,
+          "total": 1.4,
+          "curT": 1.148,
+          "dragActive": false,
+          "dragState": null,
+          "baseline": {
+            "node": "d59c8613-46fb-46ae-b870-c7643fa413f3",
+            "rebuilds": 32,
+            "nodeSwitches": 2,
+            "scrubCalls": 32,
+            "audioSideEffectTriggers": 0,
+            "reusedState": false
+          }
+        },
+        "bl": {
+          "node": "d59c8613-46fb-46ae-b870-c7643fa413f3",
+          "rebuilds": 32,
+          "nodeSwitches": 2,
+          "scrubCalls": 32,
+          "audioSideEffectTriggers": 0,
+          "reusedState": false
+        }
+      },
+      "baseline": {
+        "node": "d59c8613-46fb-46ae-b870-c7643fa413f3",
+        "rebuilds": 32,
+        "nodeSwitches": 2,
+        "scrubCalls": 32,
+        "audioSideEffectTriggers": 0,
+        "reusedState": false
+      }
+    },
+    "diskFinal": {
+      "node0": [
+        2.35,
+        0
+      ],
+      "node13": [
+        2.35,
+        null,
+        null
+      ],
+      "titleMusic": {
+        "audioId": "bgm_ost_01_title",
+        "volume": 65,
+        "fadeIn": 1.5,
+        "loop": true,
+        "loopStart": 6.4,
+        "loopEnd": 30.5
+      }
+    }
+  },
+  "classification": {
+    "automation": [
+      "npm run check（含 tests/timeline.test.cjs + tests/timeline-interaction.test.cjs）",
+      "tests/timeline-interaction.test.cjs：拖动状态机 12 组断言（预览不改数据/取消/混排/恢复相对/终态一致）",
+      "tests/timeline.test.cjs：M0 数据层 11 组断言"
+    ],
+    "realUi": [
+      "选中节点、时间轴面板渲染、截图",
+      "旧工程打开 → 拖播放头预览 → 保存 → 磁盘核对无 start",
+      "动作列表 ↔ 时间轴按动作 ID 双向同步选择",
+      "片段拖动临时预览、Esc / pointercancel / lostpointercapture / 无位移取消",
+      "真实拖动片段写回小数秒绝对开始时间、属性面板同步",
+      "撤销 / 重做（Ctrl+Z 对应按钮）",
+      "显式 start=0（属性面板数值输入）",
+      "恢复相对时间（清除 start，回到 after/parallel + delay）",
+      "绝对动作 + 相对 after/parallel 混排、后续跟随、列表与时间轴同步",
+      "并行片段、零时长瞬时事件（真实 UI 改 duration=0 并撤销）",
+      "含 SFX 的节点反复前后拖播放头 12 次，核对一次性音频触发数",
+      "快速连续切换节点后播放头 / 预览 / 舞台 transform 不残留",
+      "保存工程（#save 按钮）、磁盘核对",
+      "关闭重开：时间轴参数与标题音乐循环点往返一致"
+    ],
+    "notTested": [
+      "片段拉伸（改 duration 的拖柄）、完整缩放/网格吸附、多选、音频波形 —— 本轮明确不做",
+      "跨节点场景时间轴、导出播放器改造 —— 本轮明确不做",
+      "1 GiB 大型工程全链验收与 900 秒浸泡 —— 本轮未改资源存储/核心音频运行时，按 M1-A 范围不重复执行",
+      "人工长时间听感与最终 A/B/C/D 艺术方案选择 —— 由用户决定"
+    ]
+  },
+  "ok": true
+}

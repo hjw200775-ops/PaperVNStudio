@@ -79,6 +79,55 @@ function createTimeline(PF) {
   function totalDuration(actions) { return PF.totalDuration(actions); }
   function blockUntil(actions) { return PF.blockUntil(actions); }
 
-  return { toTimeline, scrubState, audioSideEffectsAt, setStart, clearStart, totalDuration, blockUntil, trackOf, isOneShotAudio };
+  /* ---------- V0.8.2 M1-A · 片段拖动的纯交互状态机 ----------
+     不含任何 DOM，也不持有 action 引用，因此自动化测试可以直接验证：
+       · 交互期间只产出「预览秒数」，绝不修改任何动作数据；
+       · 松手（up）且确有位移才提交一次，调用方据此执行唯一一次 edit()+setStart()；
+       · 无位移 / Esc / pointercancel / lostpointercapture 一律不提交，不留半成品。
+     一次拖动 = 一个撤销步骤，由调用方只调用一次 edit() 保证。 */
+  function createDragSession() {
+    let s = null;
+    const THRESHOLD_PX = 3;
+    const r3 = (v) => +Number(v).toFixed(3);
+
+    function begin(id, origStart, startClientX, pxPerSec, pointerId) {
+      if (s) return false;
+      const o = Number(origStart);
+      s = {
+        id, origStart: Number.isFinite(o) && o >= 0 ? o : 0,
+        startX: Number(startClientX) || 0,
+        pxPerSec: Number(pxPerSec) > 0 ? Number(pxPerSec) : 1,
+        pointerId, preview: Number.isFinite(o) && o >= 0 ? o : 0,
+        moved: false, done: false
+      };
+      return true;
+    }
+    function move(clientX, pointerId) {
+      if (!s || s.done) return null;
+      if (pointerId != null && s.pointerId != null && pointerId !== s.pointerId) return null;
+      const dx = (Number(clientX) || 0) - s.startX;
+      if (Math.abs(dx) >= THRESHOLD_PX) s.moved = true;
+      s.preview = Math.max(0, r3(s.origStart + dx / s.pxPerSec));
+      return { active: true, id: s.id, previewStart: s.preview, deltaSec: r3(dx / s.pxPerSec), moved: s.moved };
+    }
+    /* reason: 'up' | 'cancel' | 'escape' | 'lostcapture' | 'nodechange' */
+    function finish(reason, clientX, pointerId) {
+      if (!s || s.done) return { commit: false, reason: reason || 'none', stale: true };
+      if (reason === 'up' && clientX != null) move(clientX, pointerId);
+      const commit = reason === 'up' && s.moved;
+      const out = commit
+        ? { commit: true, id: s.id, start: s.preview, from: s.origStart, reason }
+        : { commit: false, id: s.id, reason: reason || 'none', moved: s.moved };
+      s.done = true; s = null;
+      return out;
+    }
+    function state() {
+      return s ? { id: s.id, origStart: s.origStart, preview: s.preview, moved: s.moved } : null;
+    }
+    return { begin, move, finish, state };
+  }
+
+  return { toTimeline, scrubState, audioSideEffectsAt, setStart, clearStart,
+    totalDuration, blockUntil, trackOf, isOneShotAudio, createDragSession };
 }
 if (typeof module !== 'undefined') module.exports = createTimeline;
