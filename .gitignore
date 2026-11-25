@@ -50,3 +50,4 @@ backups/
 !release/large-project-audio-acceptance.json
 !release/audio-soak-15min.json
 !release/audio-soak-15min-rc3.1.json
+!release/v081-final-verify.json

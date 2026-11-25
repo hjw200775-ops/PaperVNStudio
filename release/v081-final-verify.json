@@ -1,0 +1,45 @@
+{
+  "at": "2026-11-25T14:48:39.890Z",
+  "version": "0.8.1-rc3.1",
+  "exe": "F:\\新建文件夹\\PaperVNStudio-src\\release\\PaperVNStudio-0.8.1-win-x64\\PaperVNStudio.exe",
+  "stages": {
+    "便携版存在": {
+      "ok": true,
+      "detail": {
+        "bytes": 250056704
+      }
+    },
+    "便携版启动并打开隔离工程": {
+      "ok": true,
+      "detail": null
+    },
+    "打开工程": {
+      "ok": true,
+      "detail": {
+        "nodes": 40
+      }
+    },
+    "修改循环参数为 6.4–30.5": {
+      "ok": true,
+      "detail": null
+    },
+    "保存写入磁盘": {
+      "ok": true,
+      "detail": {
+        "loopStart": 6.4,
+        "loopEnd": 30.5
+      }
+    },
+    "保存关闭重开后循环参数一致": {
+      "ok": true,
+      "detail": {
+        "asset": "bgm_ost_01_title",
+        "mode": "region",
+        "start": "6.4",
+        "end": "30.5"
+      }
+    }
+  },
+  "problems": [],
+  "ok": true
+}

@@ -227,10 +227,13 @@ function createVNCore(){
   p.titleMusic={audioId:src.audioId,volume:numIn(src.volume,0,100,80),
    fadeIn:Math.min(5,Math.max(0,Number(src.fadeIn)||0)),loop:src.loop!==false};
   /* V0.8.1-RC2：循环区间是可选项。必须一起规范化，否则保存/重开就丢掉区间，
-     表现为「编辑器里设了 6–14，重新打开却整曲循环」。 */
+     表现为「编辑器里设了 6–14，重新打开却整曲循环」。
+     V0.8.2-M0：循环点要保留小数秒精度（乐句匹配的 6.4–30.5 不能被取整成 6–31），
+     这里只夹到 [0,86400] 并四舍五入到 1ms，不再用 numIn（numIn 是 Math.round 取整）。 */
   if(src.loopStart!==undefined||src.loopEnd!==undefined){
-   p.titleMusic.loopStart=numIn(src.loopStart,0,86400,0);
-   p.titleMusic.loopEnd=numIn(src.loopEnd,0,86400,0);
+   const clampMs=(v)=>Math.min(86400,Math.max(0,Math.round(Number(v)*1000)/1000));
+   p.titleMusic.loopStart=clampMs(src.loopStart);
+   p.titleMusic.loopEnd=clampMs(src.loopEnd);
   }
   return p;
  }

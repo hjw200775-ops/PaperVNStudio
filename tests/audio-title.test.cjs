@@ -16,6 +16,18 @@ const A = require('../dist/audio.js')();
   assert.equal(C.checkTitleMusic(p), undefined, '合法区间应通过校验');
 }
 
+/* 1b. 小数秒循环点必须保留（V0.8.2-M0 修复：不得被 numIn 取整成 6–31） */
+{
+  const p = { titleMusic: { audioId: 'a1', volume: 65, fadeIn: 1.5, loop: true, loopStart: 6.4, loopEnd: 30.5 } };
+  const out = C.toTitleMusic(p).titleMusic;
+  assert.equal(out.loopStart, 6.4, '循环起点保留小数秒');
+  assert.equal(out.loopEnd, 30.5, '循环终点保留小数秒');
+  // 1ms 精度四舍五入
+  const q = C.toTitleMusic({ titleMusic: { audioId: 'a', volume: 80, fadeIn: 1, loop: true, loopStart: 6.4321, loopEnd: 30.5678 } }).titleMusic;
+  assert.equal(q.loopStart, 6.432);
+  assert.equal(q.loopEnd, 30.568);
+}
+
 /* 2. 不带区间的旧工程：不得凭空多出字段 */
 {
   const p = { titleMusic: { audioId: 'a1', volume: 80, fadeIn: 1.2, loop: true } };
