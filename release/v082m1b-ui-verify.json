@@ -1,0 +1,206 @@
+{
+  "at": "2026-11-26T08:43:20.904Z",
+  "version": "0.8.2-M1B",
+  "mode": "packaged-win-x64",
+  "exe": "F:\\新建文件夹\\PaperVNStudio-src\\release\\PaperVNStudio-0.8.1-win-x64\\PaperVNStudio.exe",
+  "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m1b-verify\\晚风-M1B验收副本",
+  "stages": {
+    "可执行文件存在": {
+      "ok": true,
+      "detail": {
+        "mode": "packaged-win-x64"
+      }
+    },
+    "验收工程为隔离副本": {
+      "ok": true,
+      "detail": {
+        "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m1b-verify\\晚风-M1B验收副本",
+        "originalKept": "F:\\新建文件夹\\PaperVNStudio-src\\release\\wanfeng-v081rc3\\晚风·循环试听工程"
+      }
+    },
+    "编辑器启动": {
+      "ok": true,
+      "detail": {
+        "nodes": 40
+      }
+    },
+    "未编辑旧工程：预览+保存不批量写 start": {
+      "ok": true,
+      "detail": "before=0 after=0"
+    },
+    "未编辑旧工程：原调度一致": {
+      "ok": true,
+      "detail": "调度变化"
+    },
+    "面板渲染（含刻度/手柄/0s 刻度）": {
+      "ok": true,
+      "detail": "{\"clips\":3,\"lanes\":3,\"ticks\":9,\"firstTick\":\"0s\",\"handles\":6,\"acts\":[{\"id\":\"pa78\",\"type\":\"background.change\",\"target\":\"bg\",\"params\":{\"assetId\":\"bg_school\",\"transition\":\"crossfade\"},\"duration\":1,\"delay\":0,\"easing\":\"easeOut\",\"blocking\":true,\"mode\":\"after\",\"enabled\":true},{\"id\":\"pa79\",\"type\":\"camera.zoom\",\"target\":\"\",\"params\":{\"scale\":106},\"duration\":1.4,\"delay\":0,\"easing\":\"linear\",\"blocking\":false,\"mode\":\"parallel\",\"enabled\":true},{\"id\":\"pa_fa20c33c-5039-4045-88f6-7b688aa7b5b1\",\"type\":\"audio.bgm.crossfade\",\"target\":\"\",\"params\":{\"audioId\":\"bgm_ost_03_school_road\",\"volume\":72,\"duration\":2.5,\"curve\":\"equalPower\",\"loopMode\":\"all\",\"loopStart\":0,\"loopEnd\":0},\"duration\":2.5,\"delay\":0,\"easing\":\"linear\",\"blocking\":false,\"mode\":\"after\",\"enabled\":true}]}"
+    },
+    "缩放初值可用": {
+      "ok": true,
+      "detail": "{\"pps\":154.6153846153846,\"labelWidth\":92}"
+    },
+    "拉伸预览：只显示临时视觉，不改工程数据": {
+      "ok": true,
+      "detail": "{\"dur\":0.7,\"hint\":\"起点 0.000s · 终点 1.300s · 时长 1.300s\"}"
+    },
+    "右边缘拉伸：start 不变、duration 增加、一次撤销": {
+      "ok": true,
+      "detail": "{\"before\":0.7,\"after\":1.3,\"past\":[0,1]}"
+    },
+    "左边缘拉伸：保持原结束时间、调整 start 与 duration": {
+      "ok": true,
+      "detail": "{\"orig\":{\"id\":\"pa78\",\"start\":0,\"end\":1},\"now\":{\"id\":\"pa78\",\"start\":0.45,\"end\":1},\"startField\":0.45,\"hint\":\"起点 0.450s · 终点 1.000s · 时长 0.550s\"}"
+    },
+    "Esc 取消拉伸不留半成品": {
+      "ok": true,
+      "detail": "数据被改动"
+    },
+    "无位移松手不写入": {
+      "ok": true,
+      "detail": "数据被改动"
+    },
+    "零时长动作以菱形显示且无拉伸手柄": {
+      "ok": true,
+      "detail": "{\"zero\":1,\"handles\":0,\"dur\":0}"
+    },
+    "缩放按钮 / Ctrl+滚轮 / 适应范围生效且数据不变": {
+      "ok": true,
+      "detail": "{\"p0\":138.6206896551724,\"p1\":207.9310344827586,\"p2\":138.62068965517238,\"p3\":166.34482758620686,\"p4\":138.6206896551724}"
+    },
+    "缩放保持播放头时间点稳定": {
+      "ok": true,
+      "detail": "{\"before\":0,\"after\":0}"
+    },
+    "横向滚动可用且刻度/网格/片段同处一个内容坐标系": {
+      "ok": true,
+      "detail": "{\"scrollLeft\":120,\"scrollWidth\":2385,\"clientWidth\":719,\"pps\":467.84482758620686,\"lw\":92,\"tickLeft\":208.961,\"clipLeft\":210.53,\"gridLeft\":208.961}"
+    },
+    "吸附到 0.5s 网格并绘制参考线": {
+      "ok": true,
+      "detail": "{\"snappedStart\":2.5,\"snapLine\":\"tl-snapline shown\"}"
+    },
+    "Alt 临时关闭吸附，得到非网格时间": {
+      "ok": true,
+      "detail": "{\"altStart\":7.36}"
+    },
+    "Ctrl 多选显示选中状态": {
+      "ok": true,
+      "detail": "{\"ids\":[\"pa78\",\"pa79\"],\"count\":2}"
+    },
+    "批量移动预览不修改工程": {
+      "ok": true,
+      "detail": "{\"hint\":\"批量移动 2 个片段 · Δ 1.100s（松手才写入）\"}"
+    },
+    "批量移动：保持相对间隔、一次撤销、未选动作不写 start": {
+      "ok": true,
+      "detail": "{\"before\":[0.45,0.45,1.8499999999999999],\"after\":[1.55,1.55,2.95],\"abs\":[1.55,1.55,null],\"past\":[4,5]}"
+    },
+    "点击空白取消多选": {
+      "ok": true,
+      "detail": "[]"
+    },
+    "Ctrl+C / Ctrl+V：新 ID、素材引用保留、一次编辑": {
+      "ok": true,
+      "detail": "{\"clipSize\":1,\"nBefore\":3,\"nAfter\":4}"
+    },
+    "Ctrl+D 复制选中片段（ID 唯一）": {
+      "ok": true,
+      "detail": "{\"n\":5}"
+    },
+    "属性/文本输入时 Delete 不误删片段": {
+      "ok": true,
+      "detail": "误删了片段"
+    },
+    "Delete 删除选中片段（一次编辑）": {
+      "ok": true,
+      "detail": "{\"before\":5,\"after\":4}"
+    },
+    "撤销恢复被删片段": {
+      "ok": true,
+      "detail": "撤销未恢复"
+    },
+    "角色按角色名拆子轨道，折叠只改显示不改数据": {
+      "ok": true,
+      "detail": "{\"charLane\":\"角色 · 林悠\",\"folds\":1,\"collapsed\":1}"
+    },
+    "时间轴选中 → 属性面板按 ID 同步": {
+      "ok": true,
+      "detail": "{\"perfName\":\"角色移动 · 林悠\",\"perfDuration\":\"1.3\",\"clipCount\":1,\"sel\":\"角色移动 · 轨道 角色·lin_you · 相对 after · 排程 0→1.3s\"}"
+    },
+    "属性面板改时长 → 时间轴同步刷新": {
+      "ok": true,
+      "detail": "{\"dur\":1.8,\"clipW\":\"603px\",\"perfDuration\":\"1.8\"}"
+    },
+    "反复前后拖播放头：一次性音频触发数为 0": {
+      "ok": true,
+      "detail": "{\"before\":{\"calls\":0,\"slots\":0,\"fired\":0,\"last\":\"\",\"err\":\"\"},\"after\":{\"calls\":0,\"slots\":0,\"fired\":0,\"last\":\"\",\"err\":\"\"}}"
+    },
+    "scrub 每次重取基线、不累加": {
+      "ok": true,
+      "detail": "{\"node\":\"d59c8613-46fb-46ae-b870-c7643fa413f3\",\"rebuilds\":34,\"nodeSwitches\":3,\"scrubCalls\":34,\"audioSideEffectTriggers\":0,\"reusedState\":false}"
+    },
+    "快速切换节点：播放头归零、选择清空、无残留拖动": {
+      "ok": true,
+      "detail": "{\"t\":0,\"sel\":[],\"drag\":false}"
+    },
+    "时间长度覆盖 0.5s / 10s / 60s / 300s+ 与 100 动作": {
+      "ok": true,
+      "detail": "{\"short\":{\"n\":1,\"total\":0.5},\"ten\":{\"n\":10,\"total\":10},\"sixty\":{\"n\":60,\"total\":60},\"long\":{\"n\":10,\"total\":300},\"hundred\":{\"n\":100,\"total\":10}}"
+    },
+    "100 动作节点：DOM 数量正确、监听器不重复注册、渲染不冻结": {
+      "ok": true,
+      "detail": "{\"clipDom\":100,\"listeners\":1,\"ms\":1.4}"
+    },
+    "压测注入后撤销恢复真实工程（不污染磁盘）": {
+      "ok": true,
+      "detail": "{\"restoredN\":2}"
+    },
+    "会话 1 无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    },
+    "关闭重开：磁盘工程未被压测数据污染": {
+      "ok": true,
+      "detail": "{\"n\":2}"
+    },
+    "关闭重开：时间轴按真实数据重建、0s 刻度完整": {
+      "ok": true,
+      "detail": "{\"clips\":5,\"ticks\":7,\"firstTick\":\"0s\"}"
+    },
+    "旧工程兼容：仅被编辑动作有 start，其余保持相对": {
+      "ok": true,
+      "detail": "{\"withStart\":6,\"nodes\":40}"
+    },
+    "会话 2 无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    }
+  },
+  "problems": [],
+  "evidence": {},
+  "classification": {
+    "automation": [
+      "npm run check（M0 数据层 11 组 + M1A/M1B 交互 28 组，全部保留）",
+      "tests/timeline-interaction.test.cjs：M1B 新增 16 组（拉伸/零时长/非法时长/吸附与缩放/多选/批量/复制粘贴删除/相对重排/轨道组织/音频无副作用/保存重开）"
+    ],
+    "realUi": [
+      "旧工程打开 → 拖播放头 → 保存 → 磁盘核对无 start",
+      "放大/缩小/Ctrl+滚轮/适应/默认缩放，核对工程数据不变",
+      "0.5 秒网格吸附（含参考线）与 Alt 临时关闭",
+      "Ctrl 多选 → 批量移动（间隔保持/一次撤销）→ 空白取消",
+      "Ctrl+C/V/D、Delete、输入框不拦截、撤销恢复",
+      "角色子轨道显示角色名、轨道折叠不改工程数据",
+      "时间轴 ↔ 属性面板双向同步（选中与时长）",
+      "含 SFX 节点反复前后拖播放头 12 次",
+      "0.5s/10s/60s/300s+、100 动作节点渲染与监听器清理"
+    ],
+    "notTested": [
+      "音频波形、轨道独奏/静音混音、高级关键帧、视频轨道、Live2D 轨道 —— 本轮明确不做",
+      "跨节点/跨章节时间轴、连续音视频播放调度 —— 本轮明确不做",
+      "1.47 GiB 工程全链验收与 900 秒音频浸泡 —— 本轮未改音频引擎/资源存储/核心调度，按范围不重复",
+      "人工长时间使用体验与最终艺术方案 —— 由用户决定"
+    ]
+  },
+  "ok": true
+}

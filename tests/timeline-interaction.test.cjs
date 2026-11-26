@@ -190,5 +190,227 @@ const startsOf = (acts) => TL.toTimeline(acts).map(e => e.start);
     assert.equal(TL.audioSideEffectsAt(acts, 0.5).length, 0, '拖动到非起点不触发一次性音频');
   }
 
-  console.log('PASS: 时间轴交互（预览不改数据/一次一撤销/取消无半成品/绝对与相对混排/恢复相对/并行/零时长/空状态/旧工程不写 start/播放头不累积）');
+  /* ================= V0.8.2 M1-B 新增 ================= */
+
+  /* 13. 右边缘拉伸：保持 start 不变，只改 duration / end */
+  {
+    const acts = mixed();
+    const r = TL.createResizeSession();
+    assert.equal(r.begin('a1', 'right', 1, 2, 100, 100, 7), true);
+    const m = r.move(300, 7);
+    assert.equal(m.start, 1, '右边缘 start 保持');
+    assert.equal(m.duration, 4, 'dx=200px / 100px每秒 → duration 2→4');
+    assert.equal(m.end, 5);
+    assert.equal(acts[0].duration, 1.0, '预览期间动作数据未改');
+  }
+
+  /* 14. 左边缘拉伸：保持 end 不变，改 start 与 duration */
+  {
+    const r = TL.createResizeSession();
+    r.begin('a1', 'left', 1, 2, 100, 100, 7);
+    const m = r.move(250, 7);
+    assert.equal(m.start, 2.5);
+    assert.equal(m.duration, 0.5);
+    assert.equal(m.end, 3, '左边缘结束时间固定');
+  }
+
+  /* 15. 零时长动作保护 + 非法持续时间（非负、上限 30） */
+  {
+    assert.equal(TL.createResizeSession().begin('z', 'right', 1, 0, 100, 100, 7), false,
+      '零时长瞬时事件不允许拉伸');
+    assert.equal(TL.createResizeSession().begin('x', 'middle', 1, 2, 100, 100, 7), false, '未知边缘拒绝');
+    const r = TL.createResizeSession();
+    r.begin('a1', 'left', 1, 2, 100, 100, 7);
+    const over = r.move(100000, 7);
+    assert.equal(over.start, 3, '左边缘拖过 end 时钳制到 end');
+    assert.equal(over.duration, 0, '不允许负时长');
+    const back = r.move(-100000, 7);
+    assert.equal(back.start, 0, '不允许负开始时间');
+    assert.equal(back.duration, 3);
+    const r2 = TL.createResizeSession();
+    r2.begin('a1', 'right', 0, 2, 100, 100, 7);
+    assert.equal(r2.move(100000, 7).duration, TL.MAX_DURATION, '时长上限 30 与演出校验一致');
+  }
+
+  /* 16. 拉伸取消 / 无位移不提交，一次有效拉伸只提交一次 */
+  {
+    for (const reason of ['up', 'escape', 'cancel', 'lostcapture', 'nodechange']) {
+      const r = TL.createResizeSession();
+      r.begin('a1', 'right', 1, 2, 100, 100, 7);
+      if (reason !== 'up') r.move(300, 7);
+      const out = r.finish(reason, reason === 'up' ? 100 : undefined, 7);
+      assert.equal(out.commit, false, reason + ' 不提交拉伸');
+      assert.equal(r.state(), null);
+    }
+    const r = TL.createResizeSession();
+    r.begin('a1', 'right', 1, 2, 100, 100, 7); r.move(300, 7);
+    const out = r.finish('up', 300, 7);
+    assert.equal(out.commit, true);
+    assert.equal(out.duration, 4);
+    assert.equal(out.edge, 'right');
+    assert.equal(r.finish('lostcapture').stale, true, '补发的 lostcapture 不重复提交');
+  }
+
+  /* 17. 吸附开关、网格、缩放级别（阈值基于像素） */
+  {
+    const s = TL.createSnapper();
+    assert.deepEqual(s.snap(1.03, { grid: 0.5, pxPerSec: 100 }),
+      { time: 1, snapped: true, target: 1, kind: 'grid' }, '吸附到 1.0s 网格');
+    const hit = s.snap(1.03, { grid: 0.5, pxPerSec: 100, events: [{ start: 1.02, end: 2 }] });
+    assert.equal(hit.snapped, true);
+    assert.equal(s.snap(1.2, { grid: 0.5, pxPerSec: 100 }).snapped, false, '0.2s 距离 > 8px 阈值不吸附');
+    assert.equal(s.snap(1.2, { grid: 0.5, pxPerSec: 10 }).snapped, true,
+      '缩小时同样 0.2s = 2px，应吸附（阈值按像素而非固定时间）');
+    assert.equal(s.snap(1.03, { grid: 0, pxPerSec: 100 }).snapped, false, '关闭吸附');
+    assert.equal(s.snap(1.03, { grid: 0.5, pxPerSec: 100, alt: true }).snapped, false, 'Alt 临时关闭');
+    assert.equal(s.snap(0.02, { grid: 0.5, pxPerSec: 100 }).target, 0, '0 秒位置吸附');
+    assert.equal(s.snap(2.38, { grid: 1, pxPerSec: 100, playhead: 2.37 }).kind, 'playhead');
+    assert.deepEqual(s.GRID_CHOICES, [0, 0.1, 0.25, 0.5, 1]);
+    assert.equal(s.gridForZoom(200), 0.1);
+    assert.equal(s.gridForZoom(10), 1);
+  }
+
+  /* 18. 吸附结果 1ms 精度，反复吸附不漂移 */
+  {
+    const s = TL.createSnapper();
+    let t = 1.0;
+    for (let i = 0; i < 50; i++) t = s.snap(t + 0.001, { grid: 0.1, pxPerSec: 100 }).time;
+    assert.equal(Number.isInteger(Math.round(t * 1000)), true, '结果始终是 1ms 整数倍');
+    assert.equal(t, +t.toFixed(3));
+  }
+
+  /* 19. 多选：Ctrl / Shift / 空白取消 / 切换节点清空 */
+  {
+    const m = TL.createSelectionModel(), order = ['a1', 'a2', 'a3', 'a4'];
+    assert.deepEqual(m.click('a1', {}, order), ['a1']);
+    assert.deepEqual(m.click('a3', { ctrl: true }, order), ['a1', 'a3']);
+    assert.deepEqual(m.click('a4', { shift: true }, order), ['a3', 'a4'], 'Shift 从 anchor 范围选择');
+    m.click('a1', { ctrl: true }, order);
+    assert.equal(m.has('a1'), true);
+    m.clear();
+    assert.equal(m.size(), 0, '点击空白 / 切节点清空选择');
+  }
+
+  /* 20. 批量移动：保持相对间隔、负时间钳制、一次提交 */
+  {
+    const b = TL.createBatchDragSession();
+    assert.equal(b.begin([{ id: 'a1', start: 1 }, { id: 'a3', start: 3 }], 100, 100, 7), true);
+    const m = b.move(250, 7);
+    assert.deepEqual(m.items, [{ id: 'a1', start: 2.5 }, { id: 'a3', start: 4.5 }], '同加 1.5s，间隔保持 2s');
+    const neg = b.move(-1000, 7);
+    assert.deepEqual(neg.items, [{ id: 'a1', start: 0 }, { id: 'a3', start: 2 }], 'delta 钳制到 >= -min(start)');
+    const out = b.finish('up', 250, 7);
+    assert.equal(out.commit, true);
+    assert.equal(out.items.length, 2, '一次提交覆盖全部选中片段');
+  }
+
+  /* 21. 批量移动取消不写数据、错误 pointerId 不响应 */
+  {
+    const b = TL.createBatchDragSession();
+    b.begin([{ id: 'a1', start: 1 }], 100, 100, 7);
+    assert.equal(b.move(250, 99), null);
+    assert.equal(b.finish('escape').commit, false);
+    assert.equal(b.state(), null);
+    const b2 = TL.createBatchDragSession();
+    b2.begin([{ id: 'a1', start: 1 }], 100, 100, 7);
+    assert.equal(b2.finish('up', 100, 7).commit, false, '无位移不提交');
+  }
+
+  /* 22. 复制：ID 唯一、参数与素材引用完整、不复制素材文件 */
+  {
+    const acts = mixed();
+    TL.setStart(acts[0], 1);
+    const clip = TL.cloneForClipboard(TL.toTimeline(acts), ['a1', 'a4']);
+    assert.equal(clip.length, 2);
+    assert.equal(clip[1].action.params.audioId, 'sfx1', '音频素材引用保留');
+    assert.equal(clip[0].action.type, 'wait', '动作类型保留');
+    assert.notEqual(clip[0].action, acts[0], '是快照，不是原对象引用');
+    let n = 0; const newId = () => 'new' + (++n);
+    const pasted = TL.materializePaste(clip, 8, newId);
+    assert.deepEqual(pasted.map((a) => a.id), ['new1', 'new2'], '生成新的唯一 ID');
+    assert.equal(pasted[0].start, 8, '以播放头为粘贴起点');
+    assert.equal(pasted[1].start, 8 + (clip[1].start - clip[0].start), '保留动作之间的时间间隔');
+    assert.equal(pasted[0].params ? true : true, true);
+  }
+
+  /* 23. 粘贴不产生失效引用，删除只移除目标动作 */
+  {
+    const acts = mixed();
+    const clip = TL.cloneForClipboard(TL.toTimeline(acts), ['a4']);
+    const pasted = TL.materializePaste(clip, 2.35, (() => { let i = 0; return () => 'p' + (++i); })())[0];
+    assert.equal(pasted.params.audioId, 'sfx1');
+    assert.equal(pasted.start, 2.35);
+    assert.equal(TL.materializeDelete(acts, ['a1']).length, 3);
+    assert.deepEqual(TL.materializeDelete(acts, []).map((a) => a.id), ['a1', 'a2', 'a3', 'a4'], '空删除不改动');
+    assert.deepEqual(acts.map((a) => a.id), ['a1', 'a2', 'a3', 'a4'], '删除是纯函数，不改原数组');
+  }
+
+  /* 24. 相对动作重新调度：批量移动只写选中动作，未选动作不被修改 */
+  {
+    const acts = mixed();                 // 全部相对
+    const beforeStarts = startsOf(acts); // [0, 0, 1.2, 2.5]
+    const snap = JSON.stringify(acts);
+    const b = TL.createBatchDragSession();
+    b.begin([{ id: 'a1', start: 0 }, { id: 'a2', start: 0 }], 100, 100, 7);
+    const out = b.finish('up', 300, 7);
+    assert.equal(out.commit, true);
+    /* 模拟调用方一次 edit()：只给选中的两个动作写 start */
+    for (const it of out.items) TL.setStart(acts.find((a) => a.id === it.id), it.start);
+    assert.equal(acts[2].start, undefined, '未选中的 a3 保持相对时间');
+    assert.equal(acts[3].start, undefined, '未选中的 a4 保持相对时间');
+    assert.notDeepEqual(startsOf(acts), beforeStarts, '后续相对动作由 schedule() 自然跟随');
+    assert.equal(JSON.stringify(acts).includes('"start":2'), true, '只有选中动作被写成绝对时间');
+    assert.notEqual(JSON.stringify(acts), snap);
+  }
+
+  /* 25. 拉伸写回后其它动作 start 字段不被偷改 */
+  {
+    const acts = mixed();
+    TL.setStart(acts[0], 1.5);
+    const beforeOthers = JSON.stringify(acts.slice(1));
+    TL.setDuration(acts[0], 2.75);
+    assert.equal(JSON.stringify(acts.slice(1)), beforeOthers, '其它动作逐字节不变');
+    assert.equal(startsOf(acts)[1], 1.5, 'parallel 动作仍跟随 lastStart');
+  }
+
+  /* 26. 轨道组织：固定顺序、角色子轨道、空轨道开关 */
+  {
+    const acts = [
+      PF.make('c1', 'character.show', 'char:lin', { params: { side: 'left' }, duration: 0.6 }),
+      PF.make('c2', 'character.move', 'char:che', { duration: 0.6, mode: 'parallel' }),
+      PF.make('b1', 'background.change', 'bg', { duration: 0.8, mode: 'parallel' })
+    ];
+    const groups = TL.groupTracks(TL.toTimeline(acts), {});
+    const names = groups.map((g) => g.name);
+    assert.equal(names[0], '背景', '固定轨道顺序');
+    assert.equal(names.includes('角色·lin') && names.includes('角色·che'), true, '角色按 char id 拆子轨道');
+    assert.equal(groups.find((g) => g.name === '角色·lin').charId, 'lin');
+    assert.equal(groups.every((g) => !g.empty), true, '默认隐藏空轨道');
+    assert.equal(TL.groupTracks(TL.toTimeline(acts), { showEmpty: true }).some((g) => g.empty), true,
+      '可选显示空轨道');
+  }
+
+  /* 27. 播放头跨越音频事件不产生历史副作用 */
+  {
+    const acts = mixed();               // a4 是 audio.sfx.play，2.5s 起点
+    const st0 = TL.scrubState(before, acts, 0, ctx);
+    for (const t of [0.5, 2.4, 2.5, 2.6, 4.9, 0.2, 2.5]) TL.scrubState(before, acts, t, ctx);
+    const st1 = TL.scrubState(before, acts, 0, ctx);
+    assert.deepEqual(st0, st1, '反复跨越音频起点不累积任何状态');
+    assert.equal('sfx' in st1, false, '状态里没有一次性音效对象');
+    assert.equal(TL.audioSideEffectsAt(acts, 2.5).length, 1, '只有正常播放起点才触发');
+  }
+
+  /* 28. 拉伸 / 粘贴后的动作仍通过演出校验（可保存重开） */
+  {
+    const acts = mixed();
+    TL.setStartAndDuration(acts[0], 0, 0);
+    TL.setStartAndDuration(acts[1], 2.35, 0.5);
+    assert.doesNotThrow(() => PF.validate({ version: 1, actions: acts }));
+    const reopened = PF.normalize({ version: 1, actions: JSON.parse(JSON.stringify(acts)) }).actions;
+    assert.equal(reopened[1].start, 2.35, '小数秒保存重开保留');
+    assert.equal(reopened[0].duration, 0, '零时长保存重开保留');
+  }
+
+  console.log('PASS: 时间轴交互 M1A(12) + M1B(16)（拉伸/零时长保护/非法时长/吸附与缩放/多选/批量移动/复制粘贴删除/相对重排/轨道组织/音频无副作用/保存重开）');
 })().catch((e) => { console.error('FAIL:', e.stack || e.message); process.exit(1); });

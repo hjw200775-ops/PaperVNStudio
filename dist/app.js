@@ -2297,6 +2297,59 @@ function timelineRestoreRelative(id) {
   toast('已恢复相对时间：按 ' + mode + (delay ? ' + ' + delay + 's' : '') + ' 重新排程');
 }
 
+/* ================= V0.8.2 M1-B · 时间轴编辑写回 =================
+   每种操作都只调用一次 edit()，因此一次有效操作 = 一个撤销步骤。
+   写回永远只改「被操作的动作」；未选中的相对动作保持相对，由 schedule() 自然重算。
+   相对动作被拖动/批量移动/粘贴后转成绝对时间（写 start），这是明确且可预测的规则。 */
+
+/* 右边缘：保持 start 状态不变，只改 duration；左边缘：写绝对 start + duration。 */
+function timelineCommitResize(id, edge, start, duration) {
+  if (playing) return toast('请先退出试玩再编辑');
+  const a = perfList().find(x => x.id === id);
+  if (!a) return;
+  edit(() => {
+    if (edge === 'left') TL.setStartAndDuration(a, start, duration);
+    else TL.setDuration(a, duration);
+  }, 'tl-resize-' + (++tlDragSeq));
+}
+/* 批量移动：只给选中的动作写 start，保持相对间隔；不偷偷改其它动作。 */
+function timelineCommitBatchMove(items) {
+  if (playing) return toast('请先退出试玩再编辑');
+  const list = perfList();
+  edit(() => {
+    for (const it of items) {
+      const a = list.find(x => x.id === it.id);
+      if (a) TL.setStart(a, it.start);
+    }
+  }, 'tl-batch-' + (++tlDragSeq));
+}
+/* 粘贴 / 复制选中：生成新唯一 ID，保留类型、参数、素材引用与动作间隔，写绝对 start。 */
+function timelinePaste(clip, atTime) {
+  if (playing) return toast('请先退出试玩再编辑');
+  const built = TL.materializePaste(clip, atTime, () => C.id());
+  if (!built.length) return;
+  edit(() => {
+    const perf = perfEnsure();
+    perf.actions.push(...built);
+    perfId = built[built.length - 1].id;
+  }, 'tl-paste-' + (++tlDragSeq));
+  toast('已粘贴 ' + built.length + ' 个片段（新 ID，素材引用保留）');
+}
+function timelineDelete(ids) {
+  if (playing) return toast('请先退出试玩再编辑');
+  const want = new Set(ids);
+  edit(() => {
+    const perf = perfEnsure();
+    perf.actions = perf.actions.filter(a => !want.has(a.id));
+    if (want.has(perfId)) perfId = null;
+  }, 'tl-delete-' + (++tlDragSeq));
+  toast('已删除 ' + ids.length + ' 个片段');
+}
+function timelineCharacterName(id) {
+  const c = (p.characters || []).find(x => x.id === id);
+  return c ? c.name : '';
+}
+
 /* scrub 基线：每次都从「进入本句前状态」重新求值，不复用上一次 scrub 的结果。
    沿用编辑器现有「预览整段 / 应用终态」的基线定义（PF.emptyState()），因此
    与「▷ 预览整段」「应用终态」画面一致；切换节点由 reset() 显式重建基线。 */
@@ -2344,11 +2397,16 @@ function initTimelinePanel() {
   const lanes = $('#tlLanes');
   if (!lanes || typeof createTimelinePanel !== 'function') return;
   timelinePanel = createTimelinePanel({
-    TL, PF, lanes,
+    TL, PF, lanes, panel: $('#timelinePanel'),
     getActions: () => perfList(),
     getSelectedId: () => perfId,
     setSelectedId: (id, fromClipDrag) => timelineSetSelectedId(id, fromClipDrag),
     commitStart: (id, t) => timelineCommitStart(id, t),
+    commitResize: (id, edge, s, d) => timelineCommitResize(id, edge, s, d),
+    commitBatchMove: items => timelineCommitBatchMove(items),
+    paste: (clip, at) => timelinePaste(clip, at),
+    deleteIds: ids => timelineDelete(ids),
+    characterName: id => timelineCharacterName(id),
     restoreRelative: id => timelineRestoreRelative(id),
     scrub: t => timelineScrub(t),
     clearScrub: () => timelineClearScrub(),
