@@ -1,0 +1,584 @@
+{
+  "at": "2026-11-26T13:23:01.417Z",
+  "version": "0.8.2-M2B",
+  "mode": "packaged-win-x64",
+  "exe": "F:\\新建文件夹\\PaperVNStudio-src\\release\\PaperVNStudio-0.8.1-win-x64\\PaperVNStudio.exe",
+  "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m2b-verify\\晚风-M2B验收副本",
+  "stages": {
+    "可执行文件存在": {
+      "ok": true,
+      "detail": {
+        "mode": "packaged-win-x64",
+        "skipLong": false
+      }
+    },
+    "验收工程为隔离副本": {
+      "ok": true,
+      "detail": {
+        "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m2b-verify\\晚风-M2B验收副本",
+        "originalKept": "F:\\新建文件夹\\PaperVNStudio-src\\release\\wanfeng-v081rc3\\晚风·循环试听工程"
+      }
+    },
+    "编辑器启动": {
+      "ok": true,
+      "detail": {
+        "nodes": 40
+      }
+    },
+    "启用声音成功（真实用户手势）": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"message\":\"声音已启用\"}"
+    },
+    "《晚风》真实场景 BGM 起播且播放位置推进": {
+      "ok": true,
+      "detail": "{\"bgm\":{\"audioId\":\"bgm_ost_02_morning\",\"itemVolume\":0.8081971406936646,\"fade\":1,\"volume\":0.6465577125549317,\"time\":2.1013333333333333,\"duration\":41.4,\"paused\":false,\"loop\":{\"mode\":\"all\",\"start\":0,\"end\":0},\"mode\":\"precise\",\"owner\":\"story\",\"startedAt\":3.36},\"stats\":{\"requested\":0,\"started\":0,\"completed\":0,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0},\"instances\":{\"bgm\":1,\"retiring\":0,\"sfx\":0,\"voice\":0,\"title\":0},\"dualBgm\":false}"
+    },
+    "在线音频图输出非静音（真实发声，非仅按钮状态）": {
+      "ok": true,
+      "detail": "{\"rms\":0.04352,\"peak\":0.09434,\"fftSize\":2048,\"sampleRate\":48000,\"state\":\"running\"}"
+    },
+    "连续视觉预览改变舞台 DOM 且与音频同步推进": {
+      "ok": true,
+      "detail": "{\"curT\":4.504,\"state\":\"playing\",\"fired\":1}"
+    },
+    "停止后无残留声音（BGM 清空、实例归零、无新失败）": {
+      "ok": true,
+      "detail": "{\"bgm\":null,\"instances\":{\"bgm\":0,\"retiring\":0,\"sfx\":0,\"voice\":0,\"title\":0}}"
+    },
+    "综合演出节点已注入（含全部音频事件类型）": {
+      "ok": true,
+      "detail": "{\"total\":14,\"n\":9,\"audio\":6}"
+    },
+    "音频事件按时间轴触发（BGM 淡入 / SFX / Voice / 交叉淡化）": {
+      "ok": true,
+      "detail": "{\"firedTypes\":[\"audio.bgm.play\",\"audio.sfx.play\",\"audio.voice.play\",\"audio.ducking\",\"audio.bgm.crossfade\"],\"fired\":6,\"oneShots\":2}"
+    },
+    "一次性音频与状态音频分类计数正确": {
+      "ok": true,
+      "detail": "{\"oneShots\":2,\"stateEvents\":4}"
+    },
+    "无真实播放失败、无非预期双 BGM": {
+      "ok": true,
+      "detail": "{\"failed\":0,\"dualBgm\":false,\"instances\":{\"bgm\":1,\"retiring\":0,\"sfx\":0,\"voice\":1,\"title\":0},\"errors\":[]}"
+    },
+    "播放期间在线音频图持续有输出（RMS 非零采样点）": {
+      "ok": true,
+      "detail": "{\"rmsSamples\":[0.0465,0.0551,0.0042,0.08,0.2114,0.0315]}"
+    },
+    "暂停：画面冻结、音频同步停（BGM 清空、无在播 BGM）": {
+      "ok": true,
+      "detail": "{\"state\":\"paused\",\"bgm\":null,\"activeRaf\":0}"
+    },
+    "继续：BGM 恢复且播放位置接近暂停点（offset 恢复）": {
+      "ok": true,
+      "detail": "{\"pausedT\":2.506,\"bgmTime\":3.1093333333333355,\"state\":\"playing\"}"
+    },
+    "连续定位不触发任何一次性音频（历史 SFX/Voice 不重放）": {
+      "ok": true,
+      "detail": "{\"before\":7,\"after\":7,\"recent\":[{\"type\":\"audio.bgm.play\",\"planned\":0,\"wall\":1795699388744},{\"type\":\"audio.sfx.play\",\"planned\":4,\"wall\":1795699392752},{\"type\":\"audio.voice.play\",\"planned\":6,\"wall\":1795699394752},{\"type\":\"audio.ducking\",\"planned\":6,\"wall\":1795699394752},{\"type\":\"audio.bgm.crossfade\",\"planned\":8,\"wall\":1795699396752},{\"type\":\"audio.bgm.play\",\"planned\":0,\"wall\":1795699397941}]}"
+    },
+    "从 5s 开始：6s Voice 触发、4s 历史 SFX 不重放": {
+      "ok": true,
+      "detail": "{\"newTypes\":[\"audio.voice.play\",\"audio.ducking\"],\"newRecent\":[{\"type\":\"audio.voice.play\",\"planned\":6,\"wall\":1795699403202},{\"type\":\"audio.ducking\",\"planned\":6,\"wall\":1795699403202}]}"
+    },
+    "区间循环 ≥10 次且 BGM 不累积（无双 BGM、实例 ≤1）": {
+      "ok": true,
+      "detail": "{\"loopCount\":10,\"instances\":{\"bgm\":1,\"retiring\":0,\"sfx\":0,\"voice\":1,\"title\":0},\"dualBgm\":false}"
+    },
+    "区间内 SFX 每轮重新触发（不因循环漏触发）": {
+      "ok": true,
+      "detail": "{\"sfxTriggers\":12}"
+    },
+    "30 次快速定位无异常、无非预期双 BGM": {
+      "ok": true,
+      "detail": "{\"state\":\"stopped\",\"instances\":{\"bgm\":0,\"retiring\":0,\"sfx\":0,\"voice\":0,\"title\":0},\"dualBgm\":false,\"err\":[]}"
+    },
+    "播放中切换节点：停止旧计划、无残留声音": {
+      "ok": true,
+      "detail": "{\"state\":\"stopped\",\"bgm\":null}"
+    },
+    "播放中修改动作：停止旧计划、递增代际、无残留": {
+      "ok": true,
+      "detail": "{\"state\":\"stopped\"}"
+    },
+    "播放中撤销：停止旧计划": {
+      "ok": true,
+      "detail": "{\"state\":\"stopped\"}"
+    },
+    "停止后等待异步任务：无残留播放、无新起播事件、无突然响起的旧音频": {
+      "ok": true,
+      "detail": "{\"bgm\":null,\"instances\":{\"bgm\":0,\"retiring\":0,\"sfx\":0,\"voice\":0,\"title\":0},\"stats\":{\"requested\":25,\"started\":25,\"completed\":23,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0},\"rms\":0}"
+    },
+    "时间轴播放中启动普通试玩：时间轴停止、试玩接管": {
+      "ok": true,
+      "detail": "{\"tlBefore\":\"playing\",\"tlAfter\":\"stopped\",\"bodyPlaying\":true}"
+    },
+    "普通试玩中点击时间轴播放：被拒绝（互斥）": {
+      "ok": true,
+      "detail": "{\"inPlayBody\":true,\"tlState\":\"stopped\"}"
+    },
+    "300s 混合音视频预览通过": {
+      "ok": true,
+      "detail": "{\"loops\":109,\"failedAny\":false,\"dualAny\":false,\"maxBgm\":1,\"finalRaf\":0}"
+    },
+    "会话 1 无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    },
+    "关闭重开：无残留播放任务、标注为音频已同步、时间轴正常重建": {
+      "ok": true,
+      "detail": "{\"state\":\"idle\",\"activeRaf\":0,\"badge\":\"视觉与音频已同步预览\",\"clips\":2}"
+    },
+    "关闭重开后播放仍真实发声（BGM 起播 + RMS 非零）": {
+      "ok": true,
+      "detail": "{\"bgm\":{\"audioId\":\"bgm_ost_02_morning\",\"itemVolume\":0.4225561022758484,\"fade\":1,\"volume\":0.3380448818206787,\"time\":1.098666666666667,\"duration\":41.4,\"paused\":false,\"loop\":{\"mode\":\"all\",\"start\":0,\"end\":0},\"mode\":\"precise\",\"owner\":\"story\",\"startedAt\":2.872},\"stats\":{\"requested\":0,\"started\":0,\"completed\":0,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0},\"rms\":0.03954}"
+    },
+    "会话 2 无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "sync": {
+      "elapsedMs": 9050,
+      "firedTypes": [
+        "audio.bgm.play",
+        "audio.sfx.play",
+        "audio.voice.play",
+        "audio.ducking",
+        "audio.bgm.crossfade"
+      ],
+      "driver": {
+        "applies": 2,
+        "fired": 6,
+        "oneShots": 2,
+        "stateEvents": 4,
+        "stops": 2,
+        "last": "audio.bgm.crossfade",
+        "err": "",
+        "lastT": 9.04860000000894,
+        "active": true,
+        "bgmOffset": 0,
+        "recent": [
+          {
+            "type": "audio.bgm.play",
+            "planned": 2.4,
+            "wall": 1795699385462
+          },
+          {
+            "type": "audio.bgm.play",
+            "planned": 0,
+            "wall": 1795699388744
+          },
+          {
+            "type": "audio.sfx.play",
+            "planned": 4,
+            "wall": 1795699392752
+          },
+          {
+            "type": "audio.voice.play",
+            "planned": 6,
+            "wall": 1795699394752
+          },
+          {
+            "type": "audio.ducking",
+            "planned": 6,
+            "wall": 1795699394752
+          },
+          {
+            "type": "audio.bgm.crossfade",
+            "planned": 8,
+            "wall": 1795699396752
+          }
+        ]
+      },
+      "stats": {
+        "requested": 2,
+        "started": 2,
+        "completed": 1,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "events": [
+        {
+          "at": 1795699396752,
+          "kind": "precise-crossfade",
+          "to": "bgm_ost_03_school_road",
+          "ms": 2500,
+          "curve": "equalPower"
+        },
+        {
+          "at": 1795699394763,
+          "kind": "play-started",
+          "cat": "voice",
+          "audioId": "voice_placeholder"
+        },
+        {
+          "at": 1795699394752,
+          "kind": "voice",
+          "audioId": "voice_placeholder"
+        },
+        {
+          "at": 1795699394752,
+          "kind": "play-requested",
+          "cat": "voice",
+          "audioId": "voice_placeholder",
+          "label": "演出配音"
+        },
+        {
+          "at": 1795699393997,
+          "kind": "play-completed",
+          "cat": "sfx",
+          "audioId": "sfx_chime"
+        },
+        {
+          "at": 1795699392760,
+          "kind": "play-started",
+          "cat": "sfx",
+          "audioId": "sfx_chime"
+        },
+        {
+          "at": 1795699392752,
+          "kind": "sfx",
+          "audioId": "sfx_chime",
+          "key": "chime"
+        },
+        {
+          "at": 1795699392752,
+          "kind": "play-requested",
+          "cat": "sfx",
+          "audioId": "sfx_chime",
+          "label": "演出音效"
+        }
+      ],
+      "rms": [
+        0.0465,
+        0.0551,
+        0.0042,
+        0.08,
+        0.2114,
+        0.0315
+      ]
+    },
+    "longMix": {
+      "plannedMs": 305000,
+      "actualMs": 300556,
+      "loops": 109,
+      "maxBgm": 1,
+      "failedAny": false,
+      "dualAny": false,
+      "samples": [
+        {
+          "t": 2.01,
+          "bgm": null,
+          "rms": 0.10519,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 2.01,
+          "bgm": null,
+          "rms": 0.06837,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 2,
+          "bgm": null,
+          "rms": 0.07917,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 2,
+          "bgm": null,
+          "rms": 0.10519,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.99,
+          "bgm": 2.589333333333343,
+          "rms": 0.13947,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.98,
+          "bgm": 2.5813333333333333,
+          "rms": 0.14636,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.97,
+          "bgm": 2.5706666666666536,
+          "rms": 0.15415,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.96,
+          "bgm": 2.570666666666682,
+          "rms": 0.15415,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.95,
+          "bgm": 2.541333333333341,
+          "rms": 0.16542,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.93,
+          "bgm": 2.5386666666666713,
+          "rms": 0.16446,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.91,
+          "bgm": 2.4986666666666224,
+          "rms": 0.18623,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.91,
+          "bgm": 2.4986666666666792,
+          "rms": 0.18623,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.89,
+          "bgm": 2.5013333333333208,
+          "rms": 0.18832,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.9,
+          "bgm": 2.5013333333333208,
+          "rms": 0.18832,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.89,
+          "bgm": 2.490666666666698,
+          "rms": 0.17753,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.87,
+          "bgm": 2.472000000000037,
+          "rms": 0.10731,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.84,
+          "bgm": 2.447999999999979,
+          "rms": 0.05496,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.84,
+          "bgm": 2.4399999999999977,
+          "rms": 0.057,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.83,
+          "bgm": 2.429333333333318,
+          "rms": 0.05882,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        },
+        {
+          "t": 4.83,
+          "bgm": 2.4399999999999977,
+          "rms": 0.057,
+          "stats": {
+            "requested": 25,
+            "started": 25,
+            "completed": 23,
+            "cancelled": 0,
+            "failed": 0,
+            "decodeFailed": 0,
+            "fallback": 0
+          }
+        }
+      ]
+    }
+  },
+  "classification": {
+    "automation": [
+      "npm run check（M0/M1A/M1B/M2A 全部保留 + 新增 timeline-preview-audio 8 组）",
+      "tests/timeline-preview-audio.test.cjs：audioSideEffectsBetween 半开/闭区间与确定性排序；预览音频驱动任意时间开始、区间触发、历史一次性不重放、暂停 offset 恢复、循环复位、seek 不重放、停止清理、结束补扫"
+    ],
+    "realUi": [
+      "启用声音（真实用户手势）",
+      "《晚风》真实场景 BGM 起播、在线音频图 RMS 证据、停止无残留",
+      "综合演出节点：BGM 淡入/SFX/Voice/Ducking/交叉淡化按时间轴触发，在线音频图 RMS 证据",
+      "暂停定格 + 继续按 offset 恢复 BGM 播放位置",
+      "任意时间开始 + 向前/向后定位不重放历史一次性音频",
+      "区间循环 10 次以上 + 区间内 SFX 每轮触发 + BGM 不累积",
+      "30 次快速定位竞态保护",
+      "播放中切换节点/修改动作/撤销均停止旧计划",
+      "停止后等待异步任务，无突然响起的旧音频",
+      "时间轴预览与普通试玩互斥（双向）",
+      "300s 混合音视频预览",
+      "保存 / 关闭 / 重开后仍真实发声"
+    ],
+    "notTested": [
+      "音频裁剪/变速、高级关键帧、视频/Live2D 轨道、跨节点/跨章节时间轴 —— 本轮不做",
+      "1.47 GiB 全链与 900 秒音频浸泡 —— 本轮未改核心音频运行时与资源存储，按范围不重复",
+      "操作系统扬声器实际输出时间（含输出设备延迟）—— 采集的是在线音频图 RMS，不把 AudioContext 时间当作扬声器发声时间",
+      "人工长时间使用体验与第二台机器验收 —— 由用户决定"
+    ]
+  },
+  "ok": true
+}

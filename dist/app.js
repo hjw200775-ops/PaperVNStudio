@@ -6,6 +6,8 @@ let effectId=null,effectMode='layout',effectCancel=()=>{},playbackAnimate=true;
 let perfId=null,perfCtl=null,perfStageState=null;
 /* V0.8.2 M1-A 时间轴：var 提升避免 render() 在模块初始化阶段撞 TDZ */
 var timelinePanel=null,tlBaselineNode=null,tlBaselineRebuilds=0,tlBaselineNodeSwitches=0,tlScrubCalls=0,tlDragSeq=0;
+/* V0.8.2 M2-B 预览音频驱动：同样 var 提升，避免 initTimelinePanel()（模块初始化阶段）之后才执行 = null 覆盖已赋值的驱动实例。 */
+var previewAudioDriver=null;
 let past=[],future=[],group='',groupTime=0,revision=0,slot=null,castSel=null;
 const node=()=>p.nodes.find(n=>n.id===selected),active=()=>p.nodes.find(n=>n.id===(playing?current:selected));
 const displayed=()=>C.scene(p,playing?current:selected,playing?trail:undefined);
@@ -363,6 +365,7 @@ function routeLabel(o){
 }
 function startPlayAt(nodeId,pathIds,note){
  /* 参数不能命名成 trail：会遮住同名全局变量，导致试玩路径被丢掉。 */
+ timelineStopPreview();                 /* 普通试玩与时间轴预览互斥 */
  playing=true;current=nodeId;trail=[...pathIds];selectedLayer=null;effectId=null;effectMode='layout';playbackAnimate=true;
  audioStopAll();
  render();
@@ -413,7 +416,7 @@ $('#playPara').onclick=()=>{
  }
  toast('这句还不在任何段落里，先用「移动到…」放进段落');
 };
-$('#play').onclick=()=>{if(!p.nodes.length)return toast('请先添加剧情');perfStageState=null;playing=true;playbackAnimate=true;current=p.nodes[0].id;trail=[];selectedLayer=null;audioStopAll();render();enterAudioInto(current,'rebuild');$('#stage').focus()};$('#stop').onclick=stop;$('#next').onclick=next;$('#prev').onclick=()=>{if(playing){if(trail.length)current=trail.pop();playbackAnimate=false;renderCanvas();enterAudioInto(current,'rebuild')}else{const i=p.nodes.findIndex(n=>n.id===selected);if(i>0)selectNode(p.nodes[i-1].id)}};
+$('#play').onclick=()=>{if(!p.nodes.length)return toast('请先添加剧情');timelineStopPreview();perfStageState=null;playing=true;playbackAnimate=true;current=p.nodes[0].id;trail=[];selectedLayer=null;audioStopAll();render();enterAudioInto(current,'rebuild');$('#stage').focus()};$('#stop').onclick=stop;$('#next').onclick=next;$('#prev').onclick=()=>{if(playing){if(trail.length)current=trail.pop();playbackAnimate=false;renderCanvas();enterAudioInto(current,'rebuild')}else{const i=p.nodes.findIndex(n=>n.id===selected);if(i>0)selectNode(p.nodes[i-1].id)}};
 let stagePress=null;$('#stage').onpointerdown=e=>{stagePress={x:e.clientX,y:e.clientY}};$('#stage').onpointercancel=()=>{stagePress=null};/* 与播放器一致：拖动（拖选、拖素材）不算点击，不推进剧情。 */$('#stage').onclick=e=>{if(!playing||e.target.tagName==='BUTTON')return;if(stagePress&&Math.hypot(e.clientX-stagePress.x,e.clientY-stagePress.y)>8){stagePress=null;return}stagePress=null;next()};$('#stage').onkeydown=e=>{if(playing&&e.target.tagName!=='BUTTON'&&(e.key===' '||e.key==='Enter')){e.preventDefault();next()}};$('#toggleUI').onclick=()=>{hideDialogue=!hideDialogue;renderCanvas()};
 $('#title').oninput=e=>{checkpoint('title');p.title=e.target.value;revision++;queueSave();updateHistory()};for(const [id,key]of [['name','name'],['body','text']])$('#'+id).oninput=e=>{const n=node();if(!n||playing)return;checkpoint(n.id+'-'+key);n[key]=e.target.value;revision++;queueSave();renderList();renderFlow();renderCanvas();updateHistory()};$('#type').onchange=e=>edit(()=>{const n=node();n.type=e.target.value;if(n.type==='choice'&&!n.options)n.options=[{text:'选项一',target:''},{text:'选项二',target:''}]});$('#jump').onchange=e=>edit(()=>node().next=e.target.value);$('#addOption').onclick=()=>edit(()=>node().options.push({text:'新选项',target:''}));
 function add(type){edit(()=>{const cur=node();const pid=cur&&cur.paragraphId?cur.paragraphId:(p.chapters[0]&&p.chapters[0].paragraphs[0]?p.chapters[0].paragraphs[0].id:'');const n=C.makeNode(type);n.paragraphId=pid;const i=p.nodes.findIndex(x=>x.id===selected);p.nodes.splice(i+1,0,n);selected=n.id;selectedLayer=null})}$('#add').onclick=()=>add('say');$('#addChoice').onclick=()=>add('choice');$('#addEnd').onclick=()=>add('end');
@@ -1067,14 +1070,22 @@ $('#batchClear').onclick=batchClear;
 /* ================= V0.5 基础音频 =================
  * 编辑器与导出播放器共用 dist/audio.js 的同一个工厂：工程内容（逐句音频指令）
  * 与播放偏好（总/分类音量、静音）分开存放，音频生命周期只在这里接线。 */
-let audioRT=null,audioPrefs=loadAudioPrefs(),audioPreviewId=null,cuePreviewOn=false;
+let audioRT=null,audioPrefs=loadAudioPrefs(),audioPreviewId=null,cuePreviewOn=false,audioTap=null;
 const MIXERS=[['master','volMaster','volMasterVal'],['bgm','volBgm','volBgmVal'],['sfx','volSfx','volSfxVal'],['voice','volVoice','volVoiceVal']];
 function loadAudioPrefs(){try{return A.pure.normalizePrefs(JSON.parse(localStorage.getItem('paper-audio-prefs')||'null'))}catch{return A.pure.normalizePrefs(null)}}
 function persistAudioPrefs(){try{localStorage.setItem('paper-audio-prefs',JSON.stringify(audioPrefs))}catch{}}
 function runtime(){
- if(!audioRT)audioRT=A.runtime({assetData:id=>{const a=C.audioAsset(p,id);return a?a.data:''},prefs:audioPrefs,onStatus:audioStatus});
+ if(!audioRT)audioRT=A.runtime({assetData:id=>{const a=C.audioAsset(p,id);return a?a.data:''},prefs:audioPrefs,onStatus:audioStatus,
+  /* M2B：在总线之后、master 之前接 AnalyserNode 作为在线音频图采集点，
+     验收脚本据此验证「音频确实发声」，不修改冻结的音频引擎。 */
+  onGraph:({ctx,tap})=>{try{const an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0;tap.connect(an);audioTap={ctx,analyser:an};}catch(e){audioTap=null;}}});
  return audioRT;
 }
+/* M2B：读取在线音频图采集点（时域 RMS/peak），验证音频真实输出，而非仅靠按钮状态。 */
+if(typeof window!=='undefined')window.__pvnAudioTap=()=>{if(!audioTap)return null;try{const a=audioTap.analyser;
+ const n=a.fftSize,td=new Float32Array(n);a.getFloatTimeDomainData(td);let rms=0,peak=0;
+ for(let i=0;i<n;i++){const v=td[i];rms+=v*v;if(Math.abs(v)>peak)peak=Math.abs(v)}
+ rms=Math.sqrt(rms/n);return{rms:+rms.toFixed(5),peak:+peak.toFixed(5),fftSize:n,sampleRate:audioTap.ctx.sampleRate,state:audioTap.ctx.state};}catch(e){return{error:String(e&&e.message||e)}}};
 /* 只读：编辑器试玩也是五种运行环境之一，验收需要看到真实的播放模式与实例数。
    必须挂在模块级（而不是 runtime() 里），否则「还没启用声音」时调用会拿到 undefined。 */
 if(typeof window!=='undefined')window.paperEditorAudio=()=>{try{return audioRT?audioRT.snapshot():null}catch{return null}};
@@ -2403,6 +2414,24 @@ function timelinePreviewEvent(name, e) {
   if (timelinePreviewEvents.length > 120) timelinePreviewEvents.shift();
 }
 if (typeof window !== 'undefined') window.paperTimelineEvents = () => timelinePreviewEvents.slice(-60);
+
+/* M2B：预览音频驱动的纯逻辑在 dist/timeline-preview-audio.js（<script> 先行加载）。
+   这里只做 UI 提示与实例持有。previewAudioDriver 实例变量在模块顶部用 var 声明（见文件头）。 */
+function timelineAudioHint() {
+  const el = document.getElementById('tlAudioState');
+  if (!el) return;
+  const r = audioRT;
+  if (!r) { el.textContent = '音频未初始化'; return; }
+  let snap = null;
+  try { snap = r.snapshot(); } catch (e) {}
+  if (snap && snap.graph && snap.graph.state === 'suspended') { el.textContent = '声音已暂停（AudioContext suspended）'; return; }
+  if (snap && snap.errors && snap.errors.length) { el.textContent = '注意：' + (snap.errors[0].title || '音频问题'); return; }
+  if (snap && !snap.unlocked) { el.textContent = '点击「启用声音」后预览有声'; return; }
+  if (snap && snap.bgm && snap.mode === 'precise') el.textContent = '音频已同步 · 精确循环';
+  else if (snap && snap.bgm) el.textContent = '音频已同步 · 流式';
+  else el.textContent = '视觉与音频已同步预览';
+}
+if (typeof window !== 'undefined') window.paperTimelineAudioDriver = () => (previewAudioDriver ? previewAudioDriver.debug() : null);
 function timelineWaveDecode(audioId, bins) {
   try {
     const rt = runtime();
@@ -2412,6 +2441,13 @@ function timelineWaveDecode(audioId, bins) {
     return Promise.resolve({ ok: false, reason: String((e && e.message) || e) });
   }
 }
+/* 停止时间轴预览（供普通试玩启动前调用，保证时间轴预览与试玩互斥）。 */
+function timelineStopPreview() {
+  if (timelinePanel && timelinePanel.preview) {
+    try { timelinePanel.preview.stop(); } catch (e) {}
+  }
+  if (previewAudioDriver) { try { previewAudioDriver.dispose(); } catch (e) {} }
+}
 function initTimelinePanel() {
   const lanes = $('#tlLanes');
   if (!lanes || typeof createTimelinePanel !== 'function') return;
@@ -2420,9 +2456,20 @@ function initTimelinePanel() {
     assetOf: id => C.audioAsset(p, id)
   });
   if (typeof window !== 'undefined') window.paperWaveformCache = waves;
+  /* M2B：预览音频驱动订阅预览事件 + 每帧时间，完成视觉与音频的实时同步。 */
+  previewAudioDriver = createPreviewAudioDriver({
+    PF, TL, P: p,
+    getActions: () => perfList(),
+    getLayers: () => staged(),
+    getBefore: () => timelineBaseline(),
+    perfAudioAction: (a) => perfAudioAction(a),
+    runtime: () => runtime(),
+    hint: () => timelineAudioHint()
+  });
   timelinePanel = createTimelinePanel({
     TL, PF, lanes, panel: $('#timelinePanel'), waves,
-    onPreviewEvent: (name, e) => timelinePreviewEvent(name, e),
+    onPreviewEvent: (name, e) => { timelinePreviewEvent(name, e); if (previewAudioDriver) previewAudioDriver.onEvent(name, e); },
+    onTick: (t) => { if (previewAudioDriver) previewAudioDriver.onTick(t); },
     getActions: () => perfList(),
     getSelectedId: () => perfId,
     setSelectedId: (id, fromClipDrag) => timelineSetSelectedId(id, fromClipDrag),

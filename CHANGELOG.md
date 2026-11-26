@@ -1,5 +1,38 @@
 # 更新日志
 
+## V0.8.2-M2-B — 时间轴实时音视频同步预览（2026-11-26）
+
+基线 `186cc0f`（M2-A），分支 `feature/v0.8.2-timeline`。冻结模块核心语义未改
+（`performance.js` 调度与求值 / `player.js` / `core.js` 迁移 / V0.7.6 资源存储）。
+`audio.js` 仅最小扩展 `applyAudioState(state, options.offset)`（暂停继续恢复 BGM 位置，向后兼容）。
+
+- **预览音频驱动** `dist/timeline-preview-audio.js`（新增，纯逻辑、可注入可测试）：订阅
+  `previewStart/Pause/Resume/Seek/Stop/Loop/End` + 每帧 `onTick(t)`；正常播放扫描 `(lastT, t]`
+  区间内全部音频动作并复用 `perfAudioAction`；`applyStateAt(t)` 落地「严格 < t」的历史累积，
+  扫描触发「≥ t」的事件——任意时间开始/seek/循环回绕语义统一，无重复无遗漏。
+- **统一时间基准**：视觉单调时钟驱动音频事件扫描，BGM 精确循环由 AudioContext 时钟接缝；
+  不累加固定帧增量、不依赖 rAF 命中边界；窗口卡顿视觉追赶正确时间而不延迟音频序列。
+- **音频事件调度**：同一时间事件按 `schedule()` 稳定排序确定执行顺序；掉帧跨越事件按「执行」
+  规则补触发，不无声遗漏。`dist/timeline.js` 新增 `audioSideEffectsBetween`（半开/闭区间、去重、排序）。
+- **任意时间开始与定位**：从任意时间开始恢复持久 BGM 状态、不重放历史 SFX/Voice；
+  seek 只落状态音频、绝不重放历史一次性音频。
+- **暂停/继续/停止**：暂停画面冻结 + 音频同步停 + 记录 BGM 位置；继续按 offset 恢复；
+  停止清理本预览全部播放任务、无残留声音；复用 AudioContext 不销毁重建。
+- **区间循环**：回绕重建起点状态、区间内 SFX/Voice 每轮重新触发；A 时间轴循环与 B BGM 素材
+  精确循环分离；区间预览不写工程。
+- **竞态与生命周期**：driver 维护 `active/lastT/boundaryInclusive/generation`；暂停/停止/seek
+  递增代际并 `stopAll()`，过期异步结果由 audio.js 既有 `loadSeq` 丢弃；复用 `playbackStats()`/`dualBgm`。
+- **界面**：移除「视觉连续预览」占位，改「视觉与音频已同步预览」；`tlAudioState` 提示未解锁/
+  `AudioContext suspended`/错误；预览复用全局音量与静音；与普通试玩双向互斥；在线音频图采集点
+  （AnalyserNode，总线后/master 前）供验收验证真实发声。
+- 新增 `tests/timeline-preview-audio.test.cjs`（8 组）、`scripts/v082m2b-ui-verify.cjs`、
+  `release/v082m2b-ui-verify.json`、3 张截图、`docs/V0.8.2_M2B_ACCEPTANCE.md`、
+  `docs/V0.8.2_M3_HANDOFF.md`。
+- `npm run check` 全绿；真实窗口验收：综合节点 6 类音频动作按时间轴触发、`playbackStats.failed=0`、
+  无重复双 BGM、暂停继续 offset 恢复、历史一次性音频不重放、区间循环不累积、停止无残留声音、
+  在线音频图 RMS 非零（真实发声）。
+- **V0.8.2-M2B 技术验收通过，M2 音视频时间轴预览闭环完成；产品听感体验待人工确认。**
+
 ## V0.8.2-M2-A — 音频波形与时间轴预览基础（2026-11-26）
 
 基线 `941dc00`（M1-B），分支 `feature/v0.8.2-timeline`。冻结模块未改

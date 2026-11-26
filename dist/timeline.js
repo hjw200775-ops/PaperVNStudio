@@ -68,6 +68,20 @@ function createTimeline(PF) {
       isOneShotAudio(s.action.type) && s.start <= t + eps && s.start >= t - eps);
   }
 
+  /* M2B：一次性音频（SFX/Voice）的区间扫描。半开区间 (from, to] 是正常向前推进的语义
+     （上一帧已处理到 from，绝不重复触发 from 点）；inclusive 为真时闭区间 [from, to]，
+     用于「从某点开始 / 循环回绕到起点」后的首个推进区间，让起点处的事件也能命中。
+     结果按 start 稳定升序（start 相同保持动作列表原始顺序），保证同一时间的多个事件
+     具有确定性的执行顺序。拖动播放头（seek）不调用本函数——历史一次性音频绝不重放。 */
+  function audioSideEffectsBetween(actions, from, to, inclusive) {
+    const f = Number(from), t = Number(to);
+    if (!Number.isFinite(f) || !Number.isFinite(t)) return [];
+    return PF.schedule(actions || [])
+      .filter((s) => isOneShotAudio(s.action.type) &&
+        (inclusive ? (s.start >= f && s.start <= t) : (s.start > f && s.start <= t)))
+      .sort((a, b) => a.start - b.start);
+  }
+
   /* 把时间写回动作（单一数据源就地更新；撤销/重做由调用方 checkpoint 处理）。 */
   function setStart(action, t) {
     const v = Number(t);
@@ -344,7 +358,7 @@ function createTimeline(PF) {
     }));
   }
 
-  return { toTimeline, scrubState, audioSideEffectsAt, setStart, clearStart,
+  return { toTimeline, scrubState, audioSideEffectsAt, audioSideEffectsBetween, setStart, clearStart,
     totalDuration, blockUntil, trackOf, isOneShotAudio, createDragSession,
     setDuration, setStartAndDuration, createResizeSession, createSnapper,
     createSelectionModel, createBatchDragSession, cloneForClipboard,

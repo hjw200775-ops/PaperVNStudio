@@ -217,6 +217,7 @@ function createTimelinePanel(opts) {
   function onPreviewTick(t) {
     setPlayhead(t);            /* 只更新播放头 + stateAt()/applyDOM()，不触发音频副作用 */
     autoFollow(t);
+    if (opts.onTick) opts.onTick(t);   /* M2B：预览音频驱动订阅每帧当前时间 */
   }
   function onPreviewState(s) {
     const map = { idle: '空闲', playing: '播放中', paused: '已暂停', stopped: '已停止', ended: '播放结束' };
@@ -238,6 +239,10 @@ function createTimelinePanel(opts) {
     setText('tlRangeLabel', '区间 ' + r.start.toFixed(2) + '–' + r.end.toFixed(2) + 's');
   }
   function togglePlay() {
+    if (opts.isPlaying && opts.isPlaying()) {
+      if (opts.toast) opts.toast('请先退出试玩，再使用时间轴预览');
+      return;
+    }
     const st = preview.snapshot().state;
     if (st === 'playing') preview.pause();
     else if (st === 'paused') preview.resume();

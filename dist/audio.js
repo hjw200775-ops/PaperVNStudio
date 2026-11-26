@@ -1123,9 +1123,14 @@ function createPaperAudio(){
    return {ok:true};
   }
   /* 跳过演出 / 快进 / 读档：把「可计算的音频终态」一次性落地。
-     同一首 BGM 只调音量与循环，不重启（否则切换场景就从头响）。 */
-  function applyAudioState(state){
+     同一首 BGM 只调音量与循环，不重启（否则切换场景就从头响）。
+     options.offset：M2B 时间轴预览「暂停后继续」恢复 BGM 播放位置用（秒）。
+     仅在没有现役同曲 BGM 时生效（新建通道时从 offset 处起播）；
+     不传 offset 时行为与之前完全一致，向后兼容。 */
+  function applyAudioState(state,options){
    const s=state||{};
+   const opt=options||{};
+   const offset=Math.max(0,Number(opt.offset)||0);
    if(s.buses)for(const c of CATEGORIES)if(Number.isFinite(s.buses[c]))showVolume={...showVolume,[c]:clamp(s.buses[c],0,1,1)};
    if(s.ducking)duck={...duck,...duckSpec({...duck,...s.ducking})};
    const want=s.bgm;
@@ -1135,15 +1140,18 @@ function createPaperAudio(){
     stopLoopTicker();
    }else if(want&&want.audioId){
     /* 有 Web Audio 图时走精确模式：跳过/快进后的终态同样应该是采样级循环。
-       解码是异步的，期间旧的流式通道仍在播，解码完成后精确源接管（同曲只调音量）。 */
+       解码是异步的，期间旧的流式通道仍在播，解码完成后精确源接管（同曲只调音量）。
+       精确模式的 AudioBufferSourceNode.start(when, offset) 原生支持 offset 起播，
+       暂停继续时把 offset 传给 bgmCrossfade 即可恢复播放位置。 */
     if(modePref!=='stream'&&(graph||ensureGraph())){
      bgmCrossfade({audioId:want.audioId,volume:want.volume,duration:0,curve:'linear',
-      loop:want.loop||{mode:'off',start:0,end:0}});
+      loop:want.loop||{mode:'off',start:0,end:0},offset});
     }else if(bgm&&!bgm.done&&bgm.audioId===want.audioId){
      bgm.itemVolume=clamp(want.volume,0,1,1);
      bgm.fadeFactor=1;
      if(want.loop)applyLoop(bgm,want.loop);
      try{bgm.el.volume=channelVolume(bgm,1)}catch{}
+     if(offset>0)try{bgm.el.currentTime=offset}catch{}
     }else{
      if(bgm){hardStop(bgm);bgm=null}
      const ch=channel('bgm',want.audioId,want.volume,false,'');
@@ -1152,6 +1160,7 @@ function createPaperAudio(){
       if(want.loop)applyLoop(ch,want.loop);
       ch.fadeFactor=1;
       try{ch.el.volume=channelVolume(ch,1)}catch{}
+      if(offset>0)try{ch.el.currentTime=offset}catch{}
       start(ch,generation);
       if(!want.playing)try{ch.el.pause()}catch{}
      }
