@@ -213,7 +213,10 @@ let saveInfo={ok:false,reason:''},settingsOrigin='title',confirmOrigin='playing'
   /* 立刻记账：即使动画没播完就跳句 / 快进，后续节点也从终态接着算，不会位置漂移。 */
   perfState=after;
   if(!acts.length){PF.applyDOM(E('layers'),layers,before,{P});perfAudioTarget=before&&before.audio?before.audio:null;return}
-  runAudioPerformance(acts,before,after,!animate||prefersReduced());
+  /* M3B：第 4 参是「是否按时间轴挂定时器执行一次性音频」，不是 reduced 语义。
+     修复前误传 !animate||prefersReduced()，导致正常播放时 SFX/Voice 完全不触发、
+     读档/返回时反而重放历史一次性音频。PF.play 的 reduced 仍保持原语义。 */
+  runAudioPerformance(acts,before,after,animate&&!prefersReduced());
   perfCtl=PF.play({container:E('layers'),layers,actions:acts,before,P,reduced:!animate||prefersReduced(),
    onDone:()=>{perfState=after;perfCtl=null;if(perfHint)E('hint').textContent=perfHint}});
   perfHint=E('hint').textContent;

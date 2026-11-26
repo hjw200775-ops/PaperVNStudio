@@ -1,5 +1,56 @@
 # 更新日志
 
+## V0.8.2-M3-B — 发布运行时一致性与实机验收（2026-11-27，开发中）
+
+基线 `f863ad8`（M3-A），分支 `feature/v0.8.2-timeline`。**开发阶段构建，不是正式 V0.8.2 发布版。**
+目标：证明最终发布的游戏能正确执行创作者在时间轴里编排的演出。
+
+- **M3B-0 证据核对**：核对 M3A 实际 diff 与 `av-sync-benchmark.json`，确认 10.6ms 是
+  `driver.sync.driftMs`（JS 派发相对计划墙钟的漂移，L2），**不是音频起音与视觉变化的偏差**；
+  当次 `mode=stream`，无采样级 AudioContext 排程时间；RMS 只证明「有声音」。
+  Voice 暂停续播、BGM 交叉淡化中途恢复、正式播放器绝对/相对混排均缺真实窗口证据 → 列入本轮补测。
+  另发现 M3A 文档写 P95=9.1ms 而证据 JSON 为 10.6ms，已在本轮按证据口径记录。
+- **M3B-1 发布数据完整性**：`core.referencedAudioIds` / `referencedImageIds` 覆盖所有
+  `audio.*` 动作（含交叉淡化）与 `background.change` 的素材引用；`buildGameHTML` 只替换
+  assets/audioAssets，`nodes[].performance` 原样序列化，start / duration / delay / mode / 动作 ID /
+  循环区间 / 音频演出参数全部保留。修复 `scripts/resource-report.cjs` 漏扫演出动作引用的问题
+  （导出前预检口径与 core 对齐）。`paper://` / `pvres://` / `papergame://` / 内嵌 data URI
+  在各自环境解析正确；未关闭 CSP、sandbox 或 webSecurity。
+- **核心缺陷修复（发布播放器不执行时间轴音频演出）**：`dist/player.js` 把
+  `!animate||prefersReduced()`（reduced 语义）传给参数名为 `animate` 的
+  `runAudioPerformance`，导致**正常播放时 SFX/Voice 完全不触发**、**读档/返回时反而重放历史一次性音频**。
+  编辑器试玩走 `app.js` 的 `syncPerfAudio`，没有该参数，所以 M3A 的三环境语义一致性测试发现不了；
+  只有真实发布载体（单文件 HTML / 目录版 EXE）才暴露。最小修复为单行参数方向
+  `animate&&!prefersReduced()`，`PF.play` 的 `reduced` 语义保持不变。
+  修复前后实机对比：发布载体 `run.animate` 由 `false` → `true`，`playbackStats`
+  由 `requested=0/started=0`（仅标题音乐）→ `requested=4/started=4/completed=3/failed=0`，
+  并出现 `sfx_chime` 的 `play-started` / `play-completed` 带时间戳事件。
+  新增 `tests/player-audio-schedule.test.cjs` 固化参数方向，防止再次取反。
+- **M3B-8 版本标识统一**：软件版本唯一来源为 `package.json` 的 `version` / `versionLabel`，
+  统一为 `0.8.2-M3B` / `V0.8.2-M3B`；同步 `package-lock.json`（原 0.3.1）、编辑器界面
+  （原 0.6.2）、使用指南标题、窗口标题、README 徽章与说明、便携版目录与构建清单。
+  新增 `tests/version-consistency.test.cjs` 强制校验，并显式保护工程 schema、存档格式、
+  内置示例 `sampleVersion`、`publish.version` 等独立技术版本不被误改。
+- **新增回归测试**：`tests/release-consistency.test.cjs`（演出数据全字段 / 演出专属素材不裁剪 /
+  共享运行时同源 / 单文件自包含 / 包内模式）、`tests/version-consistency.test.cjs`、
+  `tests/player-audio-schedule.test.cjs`；全部接入 `npm run check`（全绿）。
+- **新增验收脚本**：`scripts/v082m3b-release-verify.cjs`（五环境一致性 + 剧情交互）、
+  `scripts/v082m3b-avsync.cjs`（发布载体音画同步）、`scripts/v082m3b-large-project.cjs`
+  （大型工程专项）、`scripts/v082m3b-packaged-verify.cjs`（最终打包产物实机验证）、
+  `scripts/v082m3b-interaction-extra.cjs`（分支汇合 / 阻塞跳过补测）、
+  `scripts/v082m3b-env-d.cjs`（环境 D 独立会话补采）、
+  `scripts/v082m3b-audio-regression.cjs`（共享音频受影响回归汇总）。
+- **M3B-6 浸泡判定**：M3A 对 `audio.js` 只有 4 行 `voicePlay(spec.offset)` 改动，M3B 未改
+  `audio.js`，均不触及长期播放、解码缓存/64 MiB 预算、资源释放、代际隔离或活动节点生命周期，
+  按任务条件判定**无需重跑 ≥900 秒浸泡**；改用 RC3.1 严格 Voice 验收脚本 +
+  全部音频单测 + 发布载体 `playbackStats` 做受影响回归，负向测试仍保证真实失败必 FAIL。
+- **M3B-9 最终产物**：重建 `release/PaperVNStudio-0.8.2-M3B-win-x64/`，核对包含时间轴组件、
+  最新 `audio.js` / `player.js` / `performance.js`、`vendor/toolchain/rcedit`；
+  最终便携版实机完成打开隔离工程、改时间轴动作、保存关闭、重开确认、播放时间轴、普通试玩、
+  导出单文件 HTML、导出目录版、启动独立 EXE、完成关键演出与剧情交互。
+- **不宣称完成**：扬声器/声卡回环输出、第二台机器与不同 GPU 的人工验收、真实作品制作体验
+  仍留待 M4。详见 `docs/V0.8.2_M3B_ACCEPTANCE.md` 与 `docs/V0.8.2_M4_HANDOFF.md`。
+
 ## V0.8.2-M3-A — 演出调度一致性与同步精度修复（2026-11-27）
 
 基线 `777a6b3`（M2-B），分支 `feature/v0.8.2-timeline`。冻结模块核心语义未改

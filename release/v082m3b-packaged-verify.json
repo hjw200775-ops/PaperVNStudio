@@ -1,0 +1,203 @@
+{
+  "at": "2026-11-26T17:32:34.379Z",
+  "version": "V0.8.2-M3B",
+  "exe": "F:\\新建文件夹\\PaperVNStudio-src\\release\\PaperVNStudio-0.8.2-M3B-win-x64\\PaperVNStudio.exe",
+  "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m3b\\晚风-M3B打包实机副本",
+  "stages": {
+    "最终便携版 EXE 存在": {
+      "ok": true,
+      "detail": "F:\\新建文件夹\\PaperVNStudio-src\\release\\PaperVNStudio-0.8.2-M3B-win-x64\\PaperVNStudio.exe"
+    },
+    "建立独立隔离副本（不改主验收脚本与《晚风》原始工程）": {
+      "ok": true,
+      "detail": {
+        "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m3b\\晚风-M3B打包实机副本"
+      }
+    },
+    "最终产物与 Git 源码一致（关键运行时逐字节相同）": {
+      "ok": true,
+      "detail": "[]"
+    },
+    "双击启动等价：最终便携版窗口打开隔离工程": {
+      "ok": true,
+      "detail": {
+        "exe": "PaperVNStudio.exe"
+      }
+    },
+    "① 在最终便携版里修改时间轴动作（新增显式 start 动作）": {
+      "ok": true,
+      "detail": "{\"n\":10,\"hasMark\":true}"
+    },
+    "② 保存工程：修改已写入磁盘": {
+      "ok": true,
+      "detail": "{\"saved\":true,\"mark\":{\"id\":\"m3b_packaged_edit\",\"type\":\"camera.zoom\",\"target\":\"\",\"params\":{\"scale\":137},\"duration\":0.4,\"delay\":0,\"easing\":\"easeOut\",\"blocking\":false,\"mode\":\"parallel\",\"enabled\":true,\"start\":2.25}}"
+    },
+    "② 关闭最终便携版窗口": {
+      "ok": true,
+      "detail": {
+        "closed": true
+      }
+    },
+    "③ 重新打开工程（40 节点、真实 PaperHost）": {
+      "ok": true,
+      "detail": "{\"nodes\":40,\"host\":true}"
+    },
+    "④ 修改正确回读（动作 ID / 显式 start / mode / 参数逐字段一致）": {
+      "ok": true,
+      "detail": "{\"id\":\"m3b_packaged_edit\",\"start\":2.25,\"mode\":\"parallel\",\"scale\":137}"
+    },
+    "界面版本标识为 V0.8.2-M3B（不再是 0.6.2）": {
+      "ok": true,
+      "detail": "{\"shown\":\"V0.8.2-M3B\"}"
+    },
+    "最终便携版：播放时间轴（驱动已触发音频事件）": {
+      "ok": true,
+      "detail": "{\"fired\":1,\"state\":\"playing\",\"curT\":1.627}"
+    },
+    "最终便携版：启动普通试玩": {
+      "ok": true,
+      "detail": {
+        "state": {
+          "unlocked": true,
+          "prefs": {
+            "master": 1,
+            "bgm": 0.8,
+            "sfx": 1,
+            "voice": 1,
+            "muted": false
+          },
+          "generation": 5,
+          "bgm": null,
+          "voice": null,
+          "preview": null,
+          "sfx": [],
+          "pendingSfx": 0,
+          "pendingSwitch": false,
+          "retiring": 0,
+          "errors": [],
+          "disposed": false
+        },
+        "perf": {
+          "calls": 1,
+          "slots": 6,
+          "fired": 1,
+          "last": "audio.bgm.play",
+          "err": ""
+        }
+      }
+    },
+    "最终便携版会话无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "artifactVsSource": [
+      {
+        "file": "dist/player.js",
+        "same": true
+      },
+      {
+        "file": "dist/audio.js",
+        "same": true
+      },
+      {
+        "file": "dist/performance.js",
+        "same": true
+      },
+      {
+        "file": "dist/timeline-preview-audio.js",
+        "same": true
+      },
+      {
+        "file": "dist/index.html",
+        "same": true
+      },
+      {
+        "file": "dist/app.js",
+        "same": true
+      },
+      {
+        "file": "desktop/main.cjs",
+        "same": true
+      },
+      {
+        "file": "package.json",
+        "same": true
+      }
+    ],
+    "reopened": {
+      "nodes": 40,
+      "mark": {
+        "id": "m3b_packaged_edit",
+        "start": 2.25,
+        "mode": "parallel",
+        "scale": 137
+      },
+      "version": "V0.8.2-M3B",
+      "title": "纸间 · Galgame 创作工坊",
+      "host": true
+    },
+    "timelinePlay": {
+      "fired": 1,
+      "state": "playing",
+      "curT": 1.627
+    },
+    "normalTrial": {
+      "state": {
+        "unlocked": true,
+        "prefs": {
+          "master": 1,
+          "bgm": 0.8,
+          "sfx": 1,
+          "voice": 1,
+          "muted": false
+        },
+        "generation": 5,
+        "bgm": null,
+        "voice": null,
+        "preview": null,
+        "sfx": [],
+        "pendingSfx": 0,
+        "pendingSwitch": false,
+        "retiring": 0,
+        "errors": [],
+        "disposed": false
+      },
+      "perf": {
+        "calls": 1,
+        "slots": 6,
+        "fired": 1,
+        "last": "audio.bgm.play",
+        "err": ""
+      }
+    }
+  },
+  "shots": [
+    "docs/screenshots/v082m3b-M3B9-修改时间轴动作.png",
+    "docs/screenshots/v082m3b-M3B9-重开确认修改.png",
+    "docs/screenshots/v082m3b-M3B9-普通试玩.png"
+  ],
+  "ok": true,
+  "classification": {
+    "PASS": [
+      "最终便携版 EXE 存在",
+      "建立独立隔离副本（不改主验收脚本与《晚风》原始工程）",
+      "最终产物与 Git 源码一致（关键运行时逐字节相同）",
+      "双击启动等价：最终便携版窗口打开隔离工程",
+      "① 在最终便携版里修改时间轴动作（新增显式 start 动作）",
+      "② 保存工程：修改已写入磁盘",
+      "② 关闭最终便携版窗口",
+      "③ 重新打开工程（40 节点、真实 PaperHost）",
+      "④ 修改正确回读（动作 ID / 显式 start / mode / 参数逐字段一致）",
+      "界面版本标识为 V0.8.2-M3B（不再是 0.6.2）",
+      "最终便携版：播放时间轴（驱动已触发音频事件）",
+      "最终便携版：启动普通试玩",
+      "最终便携版会话无渲染进程异常"
+    ],
+    "FAIL": [],
+    "NOT_RUN": [],
+    "BLOCKED": []
+  }
+}

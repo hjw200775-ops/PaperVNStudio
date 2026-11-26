@@ -1,0 +1,750 @@
+{
+  "at": "2026-11-26T17:38:35.748Z",
+  "version": "V0.8.2-M3B",
+  "method": "在线音频起音事件（Date.now → performance.now 基准对齐）vs 舞台 DOM 变化时间；M3A 的 driver.sync 派发漂移单独列出，不与音画偏差混算",
+  "scope": "在线音频图 + 渲染层，不含操作系统扬声器/声卡回环输出",
+  "goal": {
+    "hotAudioVisualP95Ms": 50
+  },
+  "plannedSlots": [
+    {
+      "id": "m2b_bgm",
+      "type": "audio.bgm.play",
+      "planned": 0,
+      "audioId": "bgm_ost_02_morning",
+      "expectsStart": true
+    },
+    {
+      "id": "m2b_sfx",
+      "type": "audio.sfx.play",
+      "planned": 4,
+      "audioId": "sfx_chime",
+      "expectsStart": true
+    },
+    {
+      "id": "m2b_voice",
+      "type": "audio.voice.play",
+      "planned": 6,
+      "audioId": "voice_placeholder",
+      "expectsStart": true
+    },
+    {
+      "id": "m2b_duck",
+      "type": "audio.ducking",
+      "planned": 6,
+      "audioId": null,
+      "expectsStart": false
+    },
+    {
+      "id": "m2b_crossfade",
+      "type": "audio.bgm.crossfade",
+      "planned": 8,
+      "audioId": "bgm_ost_03_school_road",
+      "expectsStart": true
+    },
+    {
+      "id": "m2b_stop",
+      "type": "audio.bgm.stop",
+      "planned": 12,
+      "audioId": null,
+      "expectsStart": false
+    },
+    {
+      "id": "m3b_same_1",
+      "type": "audio.sfx.play",
+      "planned": 8,
+      "audioId": "sfx_chime",
+      "expectsStart": true
+    },
+    {
+      "id": "m3b_same_2",
+      "type": "audio.ducking",
+      "planned": 8,
+      "audioId": null,
+      "expectsStart": false
+    },
+    {
+      "id": "m3b_abs_xfade",
+      "type": "audio.bgm.crossfade",
+      "planned": 10,
+      "audioId": "bgm_ost_06_night",
+      "expectsStart": true
+    }
+  ],
+  "carriers": {
+    "A-editor-timeline": {
+      "label": "编辑器时间轴预览",
+      "cold": {
+        "carrier": "A-editor-timeline",
+        "phase": "冷启动首次播放",
+        "status": "MEASURED",
+        "samples": 5,
+        "visualChanges": 214,
+        "plannedTime": "PF.schedule(node[0].performance.actions) 的音频槽 start（见 plannedSlots）",
+        "actualDispatch": 3,
+        "onlineAttackTime": "play-started / crossfade / precise-crossfade（换算到 performance.now 基准）",
+        "visualChangeTime": "MutationObserver / performance.now",
+        "audioVisualDelta": {
+          "count": 1,
+          "mean": 4,
+          "p50": 4,
+          "p95": 4,
+          "max": 4
+        },
+        "dispatchDriftM3A": {
+          "count": 9,
+          "meanMs": 4.26,
+          "p50Ms": 3.5,
+          "p95Ms": 11,
+          "maxMs": 11,
+          "minMs": 2.8
+        },
+        "pairs": [
+          {
+            "audioAt": 5563.8,
+            "visualAt": 5567.8,
+            "deltaMs": 4,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "visual": "translate(0%, 0%) scale(1.0067)"
+          }
+        ],
+        "unpaired": [
+          {
+            "audioAt": 7570.8,
+            "kind": "play-started",
+            "audioId": "voice_placeholder",
+            "nearestMs": 443.1
+          },
+          {
+            "audioAt": 9548.8,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_03_school_road",
+            "nearestMs": 2421.1
+          },
+          {
+            "audioAt": 9565.8,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "nearestMs": 2438.1
+          },
+          {
+            "audioAt": 11547.8,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_06_night",
+            "nearestMs": 4151.3
+          }
+        ],
+        "missingTriggers": 1,
+        "expectedStarts": 6,
+        "duplicateTriggers": 0,
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        },
+        "mode": "stream",
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "note": "不含扬声器/声卡回环；stream 模式下 play-started 为 HTMLAudioElement.play() 成功，非采样级排程"
+      },
+      "hot": {
+        "carrier": "A-editor-timeline",
+        "phase": "前台热态正常",
+        "status": "MEASURED",
+        "samples": 5,
+        "visualChanges": 218,
+        "plannedTime": "PF.schedule(node[0].performance.actions) 的音频槽 start（见 plannedSlots）",
+        "actualDispatch": 3,
+        "onlineAttackTime": "play-started / crossfade / precise-crossfade（换算到 performance.now 基准）",
+        "visualChangeTime": "MutationObserver / performance.now",
+        "audioVisualDelta": {
+          "count": 1,
+          "mean": 3.5,
+          "p50": 3.5,
+          "p95": 3.5,
+          "max": 3.5
+        },
+        "dispatchDriftM3A": {
+          "count": 9,
+          "meanMs": 10.42,
+          "p50Ms": 10.5,
+          "p95Ms": 10.8,
+          "maxMs": 10.8,
+          "minMs": 9.6
+        },
+        "pairs": [
+          {
+            "audioAt": 5538.9,
+            "visualAt": 5542.4,
+            "deltaMs": 3.5,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "visual": "translate(0%, 0%) scale(1.0063)"
+          }
+        ],
+        "unpaired": [
+          {
+            "audioAt": 7544.9,
+            "kind": "play-started",
+            "audioId": "voice_placeholder",
+            "nearestMs": 443.1
+          },
+          {
+            "audioAt": 9532.9,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_03_school_road",
+            "nearestMs": 2431.1
+          },
+          {
+            "audioAt": 9547.9,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "nearestMs": 2446.1
+          },
+          {
+            "audioAt": 11531.9,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_06_night",
+            "nearestMs": 4150.3
+          }
+        ],
+        "missingTriggers": 1,
+        "expectedStarts": 6,
+        "duplicateTriggers": 0,
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        },
+        "mode": "stream",
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "note": "不含扬声器/声卡回环；stream 模式下 play-started 为 HTMLAudioElement.play() 成功，非采样级排程"
+      },
+      "drop": {
+        "carrier": "A-editor-timeline",
+        "phase": "掉帧环境（注入 350ms 忙循环）",
+        "status": "MEASURED",
+        "samples": 5,
+        "visualChanges": 220,
+        "plannedTime": "PF.schedule(node[0].performance.actions) 的音频槽 start（见 plannedSlots）",
+        "actualDispatch": 3,
+        "onlineAttackTime": "play-started / crossfade / precise-crossfade（换算到 performance.now 基准）",
+        "visualChangeTime": "MutationObserver / performance.now",
+        "audioVisualDelta": {
+          "count": 1,
+          "mean": 2.3,
+          "p50": 2.3,
+          "p95": 2.3,
+          "max": 2.3
+        },
+        "dispatchDriftM3A": {
+          "count": 9,
+          "meanMs": 7.18,
+          "p50Ms": 7,
+          "p95Ms": 9,
+          "maxMs": 9,
+          "minMs": 6.1
+        },
+        "pairs": [
+          {
+            "audioAt": 5544.2,
+            "visualAt": 5541.9,
+            "deltaMs": 2.3,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "visual": "translate(0%, 0%) scale(1.0048)"
+          }
+        ],
+        "unpaired": [
+          {
+            "audioAt": 7548.2,
+            "kind": "play-started",
+            "audioId": "voice_placeholder",
+            "nearestMs": 437.2
+          },
+          {
+            "audioAt": 9533.2,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_03_school_road",
+            "nearestMs": 2422.2
+          },
+          {
+            "audioAt": 9544.2,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "nearestMs": 2433.2
+          },
+          {
+            "audioAt": 11533.2,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_06_night",
+            "nearestMs": 4149.5
+          }
+        ],
+        "missingTriggers": 1,
+        "expectedStarts": 6,
+        "duplicateTriggers": 0,
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        },
+        "mode": "stream",
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "note": "不含扬声器/声卡回环；stream 模式下 play-started 为 HTMLAudioElement.play() 成功，非采样级排程"
+      },
+      "hotP95Ms": 3.5,
+      "hotMeetsGoal": true
+    },
+    "C-single-html": {
+      "label": "单文件 HTML",
+      "cold": {
+        "carrier": "C-single-html",
+        "phase": "冷启动首次播放",
+        "status": "MEASURED",
+        "samples": 4,
+        "visualChanges": 221,
+        "plannedTime": "PF.schedule(node[0].performance.actions) 的音频槽 start（见 plannedSlots）",
+        "actualDispatch": 3,
+        "onlineAttackTime": "play-started / crossfade / precise-crossfade（换算到 performance.now 基准）",
+        "visualChangeTime": "MutationObserver / performance.now",
+        "audioVisualDelta": {
+          "count": 1,
+          "mean": 4.7,
+          "p50": 4.7,
+          "p95": 4.7,
+          "max": 4.7
+        },
+        "dispatchDriftM3A": null,
+        "pairs": [
+          {
+            "audioAt": 5269,
+            "visualAt": 5273.7,
+            "deltaMs": 4.7,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "visual": "translate(0%, 0%) scale(1.0051)"
+          }
+        ],
+        "unpaired": [
+          {
+            "audioAt": 7277,
+            "kind": "play-started",
+            "audioId": "voice_placeholder",
+            "nearestMs": 433
+          },
+          {
+            "audioAt": 9276,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "nearestMs": 2432
+          },
+          {
+            "audioAt": 11340,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_06_night",
+            "nearestMs": 4073.7
+          }
+        ],
+        "missingTriggers": 2,
+        "expectedStarts": 6,
+        "duplicateTriggers": 0,
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        },
+        "mode": "stream",
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "note": "不含扬声器/声卡回环；stream 模式下 play-started 为 HTMLAudioElement.play() 成功，非采样级排程"
+      },
+      "hot": {
+        "carrier": "C-single-html",
+        "phase": "前台热态正常",
+        "status": "MEASURED",
+        "samples": 4,
+        "visualChanges": 221,
+        "plannedTime": "PF.schedule(node[0].performance.actions) 的音频槽 start（见 plannedSlots）",
+        "actualDispatch": 3,
+        "onlineAttackTime": "play-started / crossfade / precise-crossfade（换算到 performance.now 基准）",
+        "visualChangeTime": "MutationObserver / performance.now",
+        "audioVisualDelta": {
+          "count": 1,
+          "mean": 1.1,
+          "p50": 1.1,
+          "p95": 1.1,
+          "max": 1.1
+        },
+        "dispatchDriftM3A": null,
+        "pairs": [
+          {
+            "audioAt": 5233.6,
+            "visualAt": 5232.5,
+            "deltaMs": 1.1,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "visual": "translate(0%, 0%) scale(1.0015)"
+          }
+        ],
+        "unpaired": [
+          {
+            "audioAt": 7237.6,
+            "kind": "play-started",
+            "audioId": "voice_placeholder",
+            "nearestMs": 425.1
+          },
+          {
+            "audioAt": 9237.6,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "nearestMs": 2425.1
+          },
+          {
+            "audioAt": 11312.6,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_06_night",
+            "nearestMs": 4070
+          }
+        ],
+        "missingTriggers": 2,
+        "expectedStarts": 6,
+        "duplicateTriggers": 0,
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        },
+        "mode": "stream",
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "note": "不含扬声器/声卡回环；stream 模式下 play-started 为 HTMLAudioElement.play() 成功，非采样级排程"
+      },
+      "drop": {
+        "carrier": "C-single-html",
+        "phase": "掉帧环境（注入 350ms 忙循环）",
+        "status": "MEASURED",
+        "samples": 4,
+        "visualChanges": 221,
+        "plannedTime": "PF.schedule(node[0].performance.actions) 的音频槽 start（见 plannedSlots）",
+        "actualDispatch": 3,
+        "onlineAttackTime": "play-started / crossfade / precise-crossfade（换算到 performance.now 基准）",
+        "visualChangeTime": "MutationObserver / performance.now",
+        "audioVisualDelta": {
+          "count": 1,
+          "mean": 2.9,
+          "p50": 2.9,
+          "p95": 2.9,
+          "max": 2.9
+        },
+        "dispatchDriftM3A": null,
+        "pairs": [
+          {
+            "audioAt": 5223.7,
+            "visualAt": 5226.6,
+            "deltaMs": 2.9,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "visual": "translate(0%, 0%) scale(1.004)"
+          }
+        ],
+        "unpaired": [
+          {
+            "audioAt": 7220.7,
+            "kind": "play-started",
+            "audioId": "voice_placeholder",
+            "nearestMs": 424.3
+          },
+          {
+            "audioAt": 9224.7,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "nearestMs": 2428.3
+          },
+          {
+            "audioAt": 11297.7,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_06_night",
+            "nearestMs": 4069
+          }
+        ],
+        "missingTriggers": 2,
+        "expectedStarts": 6,
+        "duplicateTriggers": 0,
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        },
+        "mode": "stream",
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "note": "不含扬声器/声卡回环；stream 模式下 play-started 为 HTMLAudioElement.play() 成功，非采样级排程"
+      },
+      "hotP95Ms": 1.1,
+      "hotMeetsGoal": true
+    },
+    "E-independent-exe": {
+      "label": "Windows 独立游戏 EXE",
+      "cold": {
+        "carrier": "E-independent-exe",
+        "phase": "冷启动首次播放",
+        "status": "MEASURED",
+        "samples": 5,
+        "visualChanges": 221,
+        "plannedTime": "PF.schedule(node[0].performance.actions) 的音频槽 start（见 plannedSlots）",
+        "actualDispatch": 3,
+        "onlineAttackTime": "play-started / crossfade / precise-crossfade（换算到 performance.now 基准）",
+        "visualChangeTime": "MutationObserver / performance.now",
+        "audioVisualDelta": {
+          "count": 1,
+          "mean": 2.9,
+          "p50": 2.9,
+          "p95": 2.9,
+          "max": 2.9
+        },
+        "dispatchDriftM3A": null,
+        "pairs": [
+          {
+            "audioAt": 5410.3,
+            "visualAt": 5413.2,
+            "deltaMs": 2.9,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "visual": "translate(0%, 0%) scale(1.0039)"
+          }
+        ],
+        "unpaired": [
+          {
+            "audioAt": 7411.3,
+            "kind": "play-started",
+            "audioId": "voice_placeholder",
+            "nearestMs": 428
+          },
+          {
+            "audioAt": 9412.3,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "nearestMs": 2429
+          },
+          {
+            "audioAt": 9514.3,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_03_school_road",
+            "nearestMs": 2531
+          },
+          {
+            "audioAt": 11474.3,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_06_night",
+            "nearestMs": 4079.2
+          }
+        ],
+        "missingTriggers": 1,
+        "expectedStarts": 6,
+        "duplicateTriggers": 0,
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        },
+        "mode": "stream",
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "note": "不含扬声器/声卡回环；stream 模式下 play-started 为 HTMLAudioElement.play() 成功，非采样级排程"
+      },
+      "hot": {
+        "carrier": "E-independent-exe",
+        "phase": "前台热态正常",
+        "status": "MEASURED",
+        "samples": 4,
+        "visualChanges": 221,
+        "plannedTime": "PF.schedule(node[0].performance.actions) 的音频槽 start（见 plannedSlots）",
+        "actualDispatch": 3,
+        "onlineAttackTime": "play-started / crossfade / precise-crossfade（换算到 performance.now 基准）",
+        "visualChangeTime": "MutationObserver / performance.now",
+        "audioVisualDelta": {
+          "count": 1,
+          "mean": 2.6,
+          "p50": 2.6,
+          "p95": 2.6,
+          "max": 2.6
+        },
+        "dispatchDriftM3A": null,
+        "pairs": [
+          {
+            "audioAt": 5230.5,
+            "visualAt": 5233.1,
+            "deltaMs": 2.6,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "visual": "translate(0%, 0%) scale(1.0033)"
+          }
+        ],
+        "unpaired": [
+          {
+            "audioAt": 7230.5,
+            "kind": "play-started",
+            "audioId": "voice_placeholder",
+            "nearestMs": 427.1
+          },
+          {
+            "audioAt": 9232.5,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "nearestMs": 2429.1
+          },
+          {
+            "audioAt": 11299.5,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_06_night",
+            "nearestMs": 4073.9
+          }
+        ],
+        "missingTriggers": 2,
+        "expectedStarts": 6,
+        "duplicateTriggers": 0,
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        },
+        "mode": "stream",
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "note": "不含扬声器/声卡回环；stream 模式下 play-started 为 HTMLAudioElement.play() 成功，非采样级排程"
+      },
+      "drop": {
+        "carrier": "E-independent-exe",
+        "phase": "掉帧环境（注入 350ms 忙循环）",
+        "status": "MEASURED",
+        "samples": 4,
+        "visualChanges": 221,
+        "plannedTime": "PF.schedule(node[0].performance.actions) 的音频槽 start（见 plannedSlots）",
+        "actualDispatch": 3,
+        "onlineAttackTime": "play-started / crossfade / precise-crossfade（换算到 performance.now 基准）",
+        "visualChangeTime": "MutationObserver / performance.now",
+        "audioVisualDelta": {
+          "count": 1,
+          "mean": 1,
+          "p50": 1,
+          "p95": 1,
+          "max": 1
+        },
+        "dispatchDriftM3A": null,
+        "pairs": [
+          {
+            "audioAt": 5216.8,
+            "visualAt": 5215.8,
+            "deltaMs": 1,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "visual": "translate(0%, 0%) scale(1.0016)"
+          }
+        ],
+        "unpaired": [
+          {
+            "audioAt": 7218.8,
+            "kind": "play-started",
+            "audioId": "voice_placeholder",
+            "nearestMs": 422.6
+          },
+          {
+            "audioAt": 9217.8,
+            "kind": "play-started",
+            "audioId": "sfx_chime",
+            "nearestMs": 2421.6
+          },
+          {
+            "audioAt": 11299.8,
+            "kind": "precise-crossfade",
+            "audioId": "bgm_ost_06_night",
+            "nearestMs": 4066.2
+          }
+        ],
+        "missingTriggers": 2,
+        "expectedStarts": 6,
+        "duplicateTriggers": 0,
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        },
+        "mode": "stream",
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "note": "不含扬声器/声卡回环；stream 模式下 play-started 为 HTMLAudioElement.play() 成功，非采样级排程"
+      },
+      "hotP95Ms": 2.6,
+      "hotMeetsGoal": true
+    }
+  },
+  "problems": [],
+  "ok": true
+}

@@ -13,7 +13,7 @@ const { ROOT, ELECTRON, sleep, freePort, waitPage, connect, kill } = require('./
 
 const DEV = process.env.PVN_DEV === '1';
 const SKIP_LONG = process.env.PVN_SKIP_LONG === '1';
-const PACKAGED = path.join(ROOT, 'release', 'PaperVNStudio-0.8.1-win-x64', 'PaperVNStudio.exe');
+const PACKAGED = path.join(ROOT, 'release', 'PaperVNStudio-' + require('../package.json').version + '-win-x64', 'PaperVNStudio.exe');
 const SRC = path.join(ROOT, 'release', 'wanfeng-v081rc3', '晚风·循环试听工程');
 const WORK = path.join(ROOT, 'release', 'v082m2b-verify');
 fs.mkdirSync(WORK, { recursive: true });

@@ -1,0 +1,391 @@
+{
+  "at": "2026-11-26T17:36:07.050Z",
+  "version": "V0.8.2-M3B",
+  "carrier": "单文件 HTML（真实窗口）",
+  "stages": {
+    "单文件 HTML 载体存在": {
+      "ok": true,
+      "detail": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m3b\\exports\\晚风-M3B单文件试玩版.html"
+    },
+    "首节点（含 blocking 演出）状态": {
+      "ok": true,
+      "detail": {
+        "i": 0,
+        "hint": "演出中 · 点击可跳过",
+        "run": {
+          "acts": 14,
+          "slots": 9,
+          "animate": true,
+          "err": ""
+        },
+        "timers": 9
+      }
+    },
+    "阻塞演出点击跳过：结算到终态且不卡死": {
+      "ok": true,
+      "detail": "{\"before\":\"演出中 · 点击可跳过\",\"after\":\"点击 / 空格继续 ▸\",\"state\":\"playing\"}"
+    },
+    "跳过阻塞演出后剧情仍可继续推进": {
+      "ok": true,
+      "detail": "{\"from\":0,\"to\":2}"
+    },
+    "分支 0：到达 choice 节点并出现 2 个选项": {
+      "ok": true,
+      "detail": "{\"i\":24,\"choices\":[\"和她一起走\",\"先去车棚找林澈\"]}"
+    },
+    "分支 0：点击选项后进入对应分支并到达汇合点 27": {
+      "ok": true,
+      "detail": "{\"afterChoiceI\":25,\"mergeI\":27,\"text\":\"那就一起走。\"}"
+    },
+    "分支 0：切换后无真实播放失败 / 异常双 BGM / 退役实例残留": {
+      "ok": true,
+      "detail": "{\"stats\":{\"requested\":0,\"started\":0,\"completed\":0,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0},\"dualBgm\":false,\"timers\":0}"
+    },
+    "分支 1：到达 choice 节点并出现 2 个选项": {
+      "ok": true,
+      "detail": "{\"i\":24,\"choices\":[\"和她一起走\",\"先去车棚找林澈\"]}"
+    },
+    "分支 1：点击选项后进入对应分支并到达汇合点 27": {
+      "ok": true,
+      "detail": "{\"afterChoiceI\":26,\"mergeI\":27,\"text\":\"我先去车棚找他。\"}"
+    },
+    "分支 1：切换后无真实播放失败 / 异常双 BGM / 退役实例残留": {
+      "ok": true,
+      "detail": "{\"stats\":{\"requested\":0,\"started\":0,\"completed\":0,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0},\"dualBgm\":false,\"timers\":0}"
+    },
+    "两条分支在汇合点的剧情文本一致": {
+      "ok": true,
+      "detail": "{\"a\":\"那我们一起走。\",\"b\":\"那我们一起走。\"}"
+    },
+    "两条分支在汇合点的舞台视觉状态一致（镜头 / 渐暗 / 图层）": {
+      "ok": true,
+      "detail": "{\"a\":{\"cam\":\"translate(0px, 0px) scale(1)\",\"imgs\":3},\"b\":{\"cam\":\"translate(0px, 0px) scale(1)\",\"imgs\":3}}"
+    },
+    "两条分支在汇合点的音频目标状态一致（BGM / 总线 / Ducking）": {
+      "ok": true,
+      "detail": "{\"a\":{\"id\":\"bgm_ost_03_school_road\",\"paused\":false,\"time\":2.51},\"b\":{\"id\":\"bgm_ost_03_school_road\",\"paused\":false,\"time\":2.36}}"
+    },
+    "快速连续点击／快进等价路径：剧情持续推进且不卡死": {
+      "ok": true,
+      "detail": "{\"before\":0,\"after\":23,\"state\":\"playing\",\"stats\":{\"requested\":0,\"started\":0,\"completed\":0,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0},\"dualBgm\":false,\"timers\":0}"
+    },
+    "跨节点后无真实播放失败、无异常双 BGM、无未执行定时器残留": {
+      "ok": true,
+      "detail": "{\"stats\":{\"requested\":0,\"started\":0,\"completed\":0,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0},\"dualBgm\":false,\"timers\":0}"
+    },
+    "自动播放（独立 UI 按钮）": {
+      "ok": null,
+      "status": "NOT_RUN",
+      "reason": "发布播放器 #playBar 只有 上一步/重新开始/菜单，没有自动播放按钮；本轮以「连续点击推进」覆盖等价的剧情推进路径"
+    },
+    "快进（独立 UI 按钮）": {
+      "ok": null,
+      "status": "NOT_RUN",
+      "reason": "发布播放器没有独立快进按钮；本轮以「快速连续点击 + 阻塞演出点击跳过」覆盖等价行为"
+    },
+    "会话无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "firstNode": {
+      "i": 0,
+      "state": "playing",
+      "trailLen": 0,
+      "text": "六点二十，二楼的走廊还没完全亮起来。",
+      "hint": "演出中 · 点击可跳过",
+      "choices": [],
+      "cam": "translate(0px, 0px) scale(1)",
+      "dim": "0.879678",
+      "imgs": [
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABocAAAOtCAIAAA"
+      ],
+      "audio": {
+        "bgm": null,
+        "buses": {
+          "bgm": 1,
+          "sfx": 1,
+          "voice": 1
+        },
+        "ducking": {
+          "enabled": true,
+          "level": 0.35,
+          "attack": 0.25,
+          "release": 0.6,
+          "active": false,
+          "factor": 1,
+          "hold": 0
+        },
+        "instances": {
+          "bgm": 0,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 0
+        },
+        "dualBgm": false,
+        "stats": {
+          "requested": 0,
+          "started": 0,
+          "completed": 0,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "mode": "stream"
+      },
+      "timers": 9,
+      "run": {
+        "acts": 14,
+        "slots": 9,
+        "animate": true,
+        "err": ""
+      }
+    },
+    "afterBlockingSkip": {
+      "i": 0,
+      "state": "playing",
+      "trailLen": 0,
+      "text": "六点二十，二楼的走廊还没完全亮起来。",
+      "hint": "点击 / 空格继续 ▸",
+      "choices": [],
+      "cam": "translate(0px, 0px) scale(1)",
+      "dim": "0",
+      "imgs": [
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABocAAAOtCAIAAA"
+      ],
+      "audio": {
+        "bgm": {
+          "id": "bgm_ost_06_night",
+          "paused": false,
+          "time": 0.26
+        },
+        "buses": {
+          "bgm": 1,
+          "sfx": 1,
+          "voice": 1
+        },
+        "ducking": {
+          "enabled": true,
+          "level": 0.4,
+          "attack": 0.2,
+          "release": 0.6,
+          "active": false,
+          "factor": 1,
+          "hold": 0
+        },
+        "instances": {
+          "bgm": 1,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 0
+        },
+        "dualBgm": false,
+        "stats": {
+          "requested": 0,
+          "started": 0,
+          "completed": 0,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "mode": "precise"
+      },
+      "timers": 0,
+      "run": {
+        "acts": 14,
+        "slots": 9,
+        "animate": true,
+        "err": ""
+      }
+    },
+    "branchPaths": [
+      {
+        "option": 0,
+        "optionText": "和她一起走",
+        "atChoice": 24,
+        "afterChoiceI": 25,
+        "afterChoiceText": "那就一起走。",
+        "mergeI": 27,
+        "merged": {
+          "i": 27,
+          "state": "playing",
+          "trailLen": 26,
+          "text": "那我们一起走。",
+          "hint": "点击 / 空格继续 ▸",
+          "choices": [],
+          "cam": "translate(0px, 0px) scale(1)",
+          "dim": "0",
+          "imgs": [
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABogAAAOtCAIAAA",
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAYACAYAAA",
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAYACAYAAA"
+          ],
+          "audio": {
+            "bgm": {
+              "id": "bgm_ost_03_school_road",
+              "paused": false,
+              "time": 2.51
+            },
+            "buses": {
+              "bgm": 1,
+              "sfx": 1,
+              "voice": 1
+            },
+            "ducking": {
+              "enabled": true,
+              "level": 0.35,
+              "attack": 0.22,
+              "release": 0.8,
+              "active": false,
+              "factor": 1,
+              "hold": 0
+            },
+            "instances": {
+              "bgm": 1,
+              "retiring": 0,
+              "sfx": 0,
+              "voice": 0,
+              "title": 0
+            },
+            "dualBgm": false,
+            "stats": {
+              "requested": 0,
+              "started": 0,
+              "completed": 0,
+              "cancelled": 0,
+              "failed": 0,
+              "decodeFailed": 0,
+              "fallback": 0
+            },
+            "mode": "precise"
+          },
+          "timers": 0,
+          "run": {
+            "acts": 2,
+            "slots": 0,
+            "animate": true,
+            "err": ""
+          }
+        }
+      },
+      {
+        "option": 1,
+        "optionText": "先去车棚找林澈",
+        "atChoice": 24,
+        "afterChoiceI": 26,
+        "afterChoiceText": "我先去车棚找他。",
+        "mergeI": 27,
+        "merged": {
+          "i": 27,
+          "state": "playing",
+          "trailLen": 26,
+          "text": "那我们一起走。",
+          "hint": "点击 / 空格继续 ▸",
+          "choices": [],
+          "cam": "translate(0px, 0px) scale(1)",
+          "dim": "0",
+          "imgs": [
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABogAAAOtCAIAAA",
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAYACAYAAA",
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAYACAYAAA"
+          ],
+          "audio": {
+            "bgm": {
+              "id": "bgm_ost_03_school_road",
+              "paused": false,
+              "time": 2.36
+            },
+            "buses": {
+              "bgm": 1,
+              "sfx": 1,
+              "voice": 1
+            },
+            "ducking": {
+              "enabled": true,
+              "level": 0.35,
+              "attack": 0.22,
+              "release": 0.8,
+              "active": false,
+              "factor": 1,
+              "hold": 0
+            },
+            "instances": {
+              "bgm": 1,
+              "retiring": 0,
+              "sfx": 0,
+              "voice": 0,
+              "title": 0
+            },
+            "dualBgm": false,
+            "stats": {
+              "requested": 0,
+              "started": 0,
+              "completed": 0,
+              "cancelled": 0,
+              "failed": 0,
+              "decodeFailed": 0,
+              "fallback": 0
+            },
+            "mode": "precise"
+          },
+          "timers": 0,
+          "run": {
+            "acts": 2,
+            "slots": 0,
+            "animate": true,
+            "err": ""
+          }
+        }
+      }
+    ],
+    "fastAdvance": {
+      "before": 0,
+      "after": 23,
+      "state": "playing",
+      "stats": {
+        "requested": 0,
+        "started": 0,
+        "completed": 0,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "dualBgm": false,
+      "timers": 0
+    }
+  },
+  "classification": {
+    "PASS": [
+      "单文件 HTML 载体存在",
+      "首节点（含 blocking 演出）状态",
+      "阻塞演出点击跳过：结算到终态且不卡死",
+      "跳过阻塞演出后剧情仍可继续推进",
+      "分支 0：到达 choice 节点并出现 2 个选项",
+      "分支 0：点击选项后进入对应分支并到达汇合点 27",
+      "分支 0：切换后无真实播放失败 / 异常双 BGM / 退役实例残留",
+      "分支 1：到达 choice 节点并出现 2 个选项",
+      "分支 1：点击选项后进入对应分支并到达汇合点 27",
+      "分支 1：切换后无真实播放失败 / 异常双 BGM / 退役实例残留",
+      "两条分支在汇合点的剧情文本一致",
+      "两条分支在汇合点的舞台视觉状态一致（镜头 / 渐暗 / 图层）",
+      "两条分支在汇合点的音频目标状态一致（BGM / 总线 / Ducking）",
+      "快速连续点击／快进等价路径：剧情持续推进且不卡死",
+      "跨节点后无真实播放失败、无异常双 BGM、无未执行定时器残留",
+      "会话无渲染进程异常"
+    ],
+    "FAIL": [],
+    "NOT_RUN": [
+      "自动播放（独立 UI 按钮）",
+      "快进（独立 UI 按钮）"
+    ],
+    "BLOCKED": []
+  },
+  "ok": true
+}

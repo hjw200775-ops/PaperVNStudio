@@ -14,7 +14,7 @@ const { spawn } = require('node:child_process');
 const { ROOT, ELECTRON, sleep, freePort, waitPage, connect, kill } = require('./rc2-cdp.cjs');
 
 const DEV = process.env.PVN_DEV === '1';
-const PACKAGED = path.join(ROOT, 'release', 'PaperVNStudio-0.8.1-win-x64', 'PaperVNStudio.exe');
+const PACKAGED = path.join(ROOT, 'release', 'PaperVNStudio-' + require('../package.json').version + '-win-x64', 'PaperVNStudio.exe');
 const SRC = path.join(ROOT, 'release', 'wanfeng-v081rc3', '晚风·循环试听工程');
 const WORK = path.join(ROOT, 'release', 'v082m3a');
 fs.mkdirSync(WORK, { recursive: true });

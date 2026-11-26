@@ -1,0 +1,300 @@
+{
+  "at": "2026-11-26T17:34:51.132Z",
+  "version": "V0.8.2-M3B",
+  "decision": {
+    "soak900Required": false,
+    "reason": "M3A 对 audio.js 仅新增 voicePlay(spec.offset) 的 currentTime 恢复（4 行，不传 offset 时逐字节兼容）；M3B 未改 audio.js。改动不触及长期播放循环、解码缓存/64MiB 预算、资源释放、代际隔离与活动节点生命周期。",
+    "priorSoakEvidence": {
+      "at": "2026-11-24T17:53:09.120Z",
+      "seconds": 901,
+      "ok": true
+    },
+    "note": "若后续修改触及上述任一项，必须重跑真实 ≥900 秒严格浸泡；本结论不替代那次测试。"
+  },
+  "strictVoiceVerifyRC31": {
+    "at": "2026-11-26T17:20:18.588Z",
+    "startLatencyMs": 188,
+    "afterStart": {
+      "stats": {
+        "requested": 1,
+        "started": 1,
+        "completed": 0,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "errors": []
+    },
+    "afterInterrupt": {
+      "stats": {
+        "requested": 1,
+        "started": 1,
+        "completed": 0,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "errors": []
+    },
+    "afterMissing": {
+      "stats": {
+        "requested": 1,
+        "started": 1,
+        "completed": 0,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "errors": [
+        "音频素材缺失:missing"
+      ]
+    },
+    "covers": [
+      "正常 Voice 播放",
+      "起播后切句中断（合法 AbortError 不记失败）",
+      "真实缺失素材必被发现"
+    ]
+  },
+  "releaseCarriers": {
+    "C": {
+      "playbackStats": {
+        "requested": 4,
+        "started": 4,
+        "completed": 3,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 1
+      },
+      "dualBgm": false,
+      "instances": {
+        "bgm": 0,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "title": 1
+      },
+      "graph": {
+        "state": "running",
+        "sampleRate": 48000,
+        "baseLatency": 0.01
+      },
+      "playStartedEvents": [
+        {
+          "at": 1795714236168,
+          "cat": "sfx",
+          "audioId": "sfx_chime"
+        },
+        {
+          "at": 1795714234155,
+          "cat": "voice",
+          "audioId": "voice_placeholder"
+        }
+      ],
+      "failedEvents": [],
+      "perfStarts": {
+        "hits": [
+          {
+            "kind": "play-started",
+            "at": 1795714232167,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "play-requested",
+            "at": 1795714232153,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "play-completed",
+            "at": 1795714233419,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "play-started",
+            "at": 1795714234155,
+            "audioId": "voice_placeholder"
+          },
+          {
+            "kind": "play-requested",
+            "at": 1795714234143,
+            "audioId": "voice_placeholder"
+          },
+          {
+            "kind": "play-started",
+            "at": 1795714236168,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "play-requested",
+            "at": 1795714236157,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "precise-crossfade",
+            "at": 1795714236266,
+            "audioId": "bgm_ost_03_school_road"
+          },
+          {
+            "kind": "play-completed",
+            "at": 1795714237415,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "play-completed",
+            "at": 1795714237415,
+            "audioId": "voice_placeholder"
+          },
+          {
+            "kind": "precise-crossfade",
+            "at": 1795714238223,
+            "audioId": "bgm_ost_06_night"
+          }
+        ],
+        "bgm": null,
+        "stats": {
+          "requested": 4,
+          "started": 4,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 1
+        },
+        "totalEvents": 31
+      }
+    },
+    "E": {
+      "playbackStats": {
+        "requested": 3,
+        "started": 3,
+        "completed": 3,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "dualBgm": false,
+      "instances": {
+        "bgm": 0,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "title": 0
+      },
+      "graph": {
+        "state": "running",
+        "sampleRate": 48000,
+        "baseLatency": 0.01
+      },
+      "playStartedEvents": [
+        {
+          "at": 1795714259414,
+          "cat": "sfx",
+          "audioId": "sfx_chime"
+        },
+        {
+          "at": 1795714257416,
+          "cat": "voice",
+          "audioId": "voice_placeholder"
+        }
+      ],
+      "failedEvents": [],
+      "perfStarts": {
+        "hits": [
+          {
+            "kind": "play-started",
+            "at": 1795714255416,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "play-requested",
+            "at": 1795714255407,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "play-completed",
+            "at": 1795714256645,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "play-started",
+            "at": 1795714257416,
+            "audioId": "voice_placeholder"
+          },
+          {
+            "kind": "play-requested",
+            "at": 1795714257407,
+            "audioId": "voice_placeholder"
+          },
+          {
+            "kind": "play-started",
+            "at": 1795714259414,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "play-requested",
+            "at": 1795714259407,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "precise-crossfade",
+            "at": 1795714259507,
+            "audioId": "bgm_ost_03_school_road"
+          },
+          {
+            "kind": "play-completed",
+            "at": 1795714260685,
+            "audioId": "voice_placeholder"
+          },
+          {
+            "kind": "play-completed",
+            "at": 1795714260665,
+            "audioId": "sfx_chime"
+          },
+          {
+            "kind": "precise-crossfade",
+            "at": 1795714261490,
+            "audioId": "bgm_ost_06_night"
+          }
+        ],
+        "bgm": null,
+        "stats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "totalEvents": 29
+      }
+    }
+  },
+  "packagedVerify": {
+    "ok": true,
+    "timelinePlay": {
+      "fired": 1,
+      "state": "playing",
+      "curT": 1.627
+    }
+  },
+  "unitTests": "npm run check（含 audio-negative / audio-playback-events / audio-bgm-restore / audio-precise / audio-performance / audio-export / player-flow / player-interaction / player-audio-schedule）",
+  "coverage": {
+    "正常 Voice 播放": "RC3.1 voice-verify + 发布载体 play-started",
+    "Voice 中断 / 合法 AbortError": "RC3.1 voice-verify afterInterrupt（failed=0）",
+    "暂停续播": "tests/audio-bgm-restore.test.cjs（Voice offset）",
+    "快速切句": "tests/audio-negative.test.cjs + RC3.1 afterInterrupt",
+    "BGM 恢复": "tests/audio-bgm-restore.test.cjs + tests/audio-precise.test.cjs",
+    "流式回退": "发布载体 playbackStats.fallback + events.precise-fallback",
+    "精确循环": "tests/audio-precise.test.cjs + release/audio-loop-*.json（历史证据）",
+    "异步任务代际隔离": "tests/audio-precise.test.cjs（loadSeq / generation）",
+    "活动节点生命周期": "tests/audio-playback-events.test.cjs + 发布载体 instances / dualBgm",
+    "真实播放失败必 FAIL": "tests/audio-negative.test.cjs（负向用例真实触发 FAIL）"
+  },
+  "problems": [],
+  "ok": true
+}

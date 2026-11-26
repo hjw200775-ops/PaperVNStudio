@@ -905,7 +905,7 @@ function icoToPngDataUrl(buf) {
 function createWindow() {
   win = new BrowserWindow({
     width: 1440, height: 920, minWidth: 1120, minHeight: 720,
-    title: '纸间 PaperVNStudio · 桌面预览版',
+    title: '纸间 PaperVNStudio · V0.8.2-M3B',
     backgroundColor: '#f5f7f0',
     autoHideMenuBar: false,
     webPreferences: {

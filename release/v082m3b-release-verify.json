@@ -1,0 +1,1452 @@
+{
+  "at": "2026-11-26T17:30:00.387Z",
+  "version": "V0.8.2-M3B",
+  "mode": "packaged-win-x64",
+  "editor": "F:\\新建文件夹\\PaperVNStudio-src\\release\\PaperVNStudio-0.8.2-M3B-win-x64\\PaperVNStudio.exe",
+  "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m3b\\晚风-M3B发布验收副本",
+  "scope": "单文件 HTML / 目录版 / 独立 EXE 的真实窗口与真实音频事件",
+  "limitation": "不含操作系统扬声器/声卡回环输出；AudioContext 排程 ≠ 扬声器发声",
+  "phases": {
+    "M3B-2 隔离测试工程（原工程与素材只读复制）": {
+      "ok": true,
+      "detail": {
+        "nodes": 40,
+        "acts": 14,
+        "extra": 5,
+        "perfOnlyAudio": [
+          "bgm_ost_02_morning",
+          "sfx_chime",
+          "voice_placeholder",
+          "bgm_ost_03_school_road",
+          "bgm_ost_06_night"
+        ]
+      }
+    },
+    "隔离副本含补充动作（零时长 / 同刻多动作 / 显式绝对 start / 交叉淡化 / 相对 after）": {
+      "ok": true,
+      "detail": "{\"nodes\":40,\"acts\":14,\"extra\":5,\"perfOnlyAudio\":[\"bgm_ost_02_morning\",\"sfx_chime\",\"voice_placeholder\",\"bgm_ost_03_school_road\",\"bgm_ost_06_night\"]}"
+    },
+    "存在「仅在演出动作中引用」的音频素材（用于验证不被裁剪）": {
+      "ok": true,
+      "detail": "{\"perfOnlyAudio\":[\"bgm_ost_02_morning\",\"sfx_chime\",\"voice_placeholder\",\"bgm_ost_03_school_road\",\"bgm_ost_06_night\"]}"
+    },
+    "编辑器启动并打开隔离工程（40 节点）": {
+      "ok": true,
+      "detail": "{\"nodes\":40,\"exe\":\"F:\\\\新建文件夹\\\\PaperVNStudio-src\\\\release\\\\PaperVNStudio-0.8.2-M3B-win-x64\\\\PaperVNStudio.exe\"}"
+    },
+    "时间轴动作表（绝对/相对混排、零时长、同刻、交叉淡化、阻塞）": {
+      "ok": true,
+      "detail": {
+        "n": 14,
+        "withStart": 13,
+        "zero": 1,
+        "sameStart": 4,
+        "relative": 1,
+        "crossfade": 2,
+        "blocking": 1
+      }
+    },
+    "正式播放器可读到显式 start 与相对动作混排": {
+      "ok": true,
+      "detail": "{\"n\":14,\"withStart\":13,\"zero\":1,\"sameStart\":4,\"relative\":1,\"crossfade\":2,\"blocking\":1}"
+    },
+    "A 编辑器时间轴预览：归一化状态已采集": {
+      "ok": true,
+      "detail": {
+        "cam": "translate(0%, 0%) scale(1.42)",
+        "dim": "0",
+        "bgm": null,
+        "total": 14.75
+      }
+    },
+    "A 舞台 DOM 真实变化次数（MutationObserver）": {
+      "ok": true,
+      "detail": {
+        "changes": 6
+      }
+    },
+    "B 编辑器普通试玩：归一化状态已采集": {
+      "ok": true,
+      "detail": {
+        "cam": "translate(0%, 0%) scale(1.42)",
+        "dim": "0",
+        "bgm": null
+      }
+    },
+    "C 单文件 HTML 由编辑器真实导出函数生成": {
+      "ok": true,
+      "detail": {
+        "bytes": 38015387,
+        "file": "晚风-M3B单文件试玩版.html"
+      }
+    },
+    "C 单文件 HTML 内嵌音频与图片资源（自包含）": {
+      "ok": true,
+      "detail": "{\"dataAudio\":8,\"dataImage\":14}"
+    },
+    "C 单文件 HTML 资源全部内嵌、结构不依赖本机协议": {
+      "ok": true,
+      "detail": "{\"structuralBad\":false,\"inlineProtocolAssets\":0}"
+    },
+    "C 仅在演出动作中引用的音频素材未被裁剪": {
+      "ok": true,
+      "detail": "{\"perfOnlyAudio\":[\"bgm_ost_02_morning\",\"sfx_chime\",\"voice_placeholder\",\"bgm_ost_03_school_road\",\"bgm_ost_06_night\"],\"present\":true}"
+    },
+    "C 产物保留演出数据字段 m3b_zero": {
+      "ok": true,
+      "detail": "缺少字段：m3b_zero"
+    },
+    "C 产物保留演出数据字段 m3b_abs_xfade": {
+      "ok": true,
+      "detail": "缺少字段：m3b_abs_xfade"
+    },
+    "C 产物保留演出数据字段 loopStart": {
+      "ok": true,
+      "detail": "缺少字段：loopStart"
+    },
+    "C 产物保留演出数据字段 equalPower": {
+      "ok": true,
+      "detail": "缺少字段：equalPower"
+    },
+    "C 产物保留演出数据字段 \"start\":8": {
+      "ok": true,
+      "detail": "缺少字段：\"start\":8"
+    },
+    "C 单文件 HTML 真实窗口启动（file:// → 开始游戏）": {
+      "ok": true,
+      "detail": {
+        "started": true,
+        "url": "file://"
+      }
+    },
+    "C 单文件 HTML 演出执行状态已采集": {
+      "ok": true,
+      "detail": {
+        "state": "playing",
+        "i": 0,
+        "run": {
+          "acts": 14,
+          "slots": 9,
+          "animate": true,
+          "err": ""
+        },
+        "bgm": null,
+        "domChanges": 228
+      }
+    },
+    "C 正式播放器以动画方式执行演出（run.animate=true）": {
+      "ok": true,
+      "detail": "{\"acts\":14,\"slots\":9,\"animate\":true,\"err\":\"\"}"
+    },
+    "C 演出音频（非标题音乐）有真实起播证据": {
+      "ok": true,
+      "detail": "{\"hits\":[{\"kind\":\"play-started\",\"at\":1795714232167,\"audioId\":\"sfx_chime\"},{\"kind\":\"play-requested\",\"at\":1795714232153,\"audioId\":\"sfx_chime\"},{\"kind\":\"play-completed\",\"at\":1795714233419,\"audioId\":\"sfx_chime\"},{\"kind\":\"play-started\",\"at\":1795714234155,\"audioId\":\"voice_placeholder\"},{\"kind\":\"play-requested\",\"at\":1795714234143,\"audioId\":\"voice_placeholder\"},{\"kind\":\"play-started\",\"at\":1795714236168,\"audioId\":\"sfx_chime\"},{\"kind\":\"play-requested\",\"at\":1795714236157,\"audioId\":\"sfx_chime\"},{\"kind\":\"precise-crossfade\",\"at\":1795714236266,\"audioId\":\"bgm_ost_03_school_road\"}],\"bgm\":null,\"stats\":{\"requested\":4,\"started\":4,\"completed\":3,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":1},\"note\":\"标题音乐 bgm_ost_01_title 不计入演出音频证据\"}"
+    },
+    "C 真实播放失败计数为 0": {
+      "ok": true,
+      "detail": "{\"requested\":4,\"started\":4,\"completed\":3,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":1}"
+    },
+    "D 目录版游戏由真实发行面板导出完成": {
+      "ok": true,
+      "detail": {
+        "outDir": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m3b\\exports"
+      }
+    },
+    "D 导出产物含 EXE 与 content/index.html": {
+      "ok": true,
+      "detail": "{\"dir\":\"F:\\\\新建文件夹\\\\PaperVNStudio-src\\\\release\\\\v082m3b\\\\exports\\\\晚风M3B发布验收-0.8.2-M3B-win-x64-独立游戏\",\"exe\":\"F:\\\\新建文件夹\\\\PaperVNStudio-src\\\\release\\\\v082m3b\\\\exports\\\\晚风M3B发布验收-0.8.2-M3B-win-x64-独立游戏\\\\晚风M3B发布验收.exe\",\"content\":\"F:\\\\新建文件夹\\\\PaperVNStudio-src\\\\release\\\\v082m3b\\\\exports\\\\晚风M3B发布验收-0.8.2-M3B-win-x64-独立游戏\\\\resources\\\\app\\\\content\\\\index.html\",\"gameJson\":\"F:\\\\新建文件夹\\\\PaperVNStudio-src\\\\release\\\\v082m3b\\\\exports\\\\晚风M3B发布验收-0.8.2-M3B-win-x64-独立游戏\\\\resources\\\\app\\\\content\\\\game.json\",\"htmlBytes\":289969}"
+    },
+    "D 目录版 content 保留演出数据与演出专属音频引用": {
+      "ok": true,
+      "detail": "{\"perfPresent\":true,\"hasXfade\":true,\"bytes\":262183}"
+    },
+    "E Windows 独立 EXE 启动（papergame://）": {
+      "ok": true,
+      "detail": {
+        "started": true,
+        "url": "papergame://game/index.html"
+      }
+    },
+    "E 独立 EXE 演出执行状态已采集": {
+      "ok": true,
+      "detail": {
+        "state": "playing",
+        "i": 0,
+        "run": {
+          "acts": 14,
+          "slots": 9,
+          "animate": true,
+          "err": ""
+        },
+        "bgm": null,
+        "domChanges": 228
+      }
+    },
+    "E 正式播放器以动画方式执行演出（run.animate=true）": {
+      "ok": true,
+      "detail": "{\"acts\":14,\"slots\":9,\"animate\":true,\"err\":\"\"}"
+    },
+    "E 演出音频（非标题音乐）有真实起播证据": {
+      "ok": true,
+      "detail": "{\"hits\":[{\"kind\":\"play-started\",\"at\":1795714255416,\"audioId\":\"sfx_chime\"},{\"kind\":\"play-requested\",\"at\":1795714255407,\"audioId\":\"sfx_chime\"},{\"kind\":\"play-completed\",\"at\":1795714256645,\"audioId\":\"sfx_chime\"},{\"kind\":\"play-started\",\"at\":1795714257416,\"audioId\":\"voice_placeholder\"},{\"kind\":\"play-requested\",\"at\":1795714257407,\"audioId\":\"voice_placeholder\"},{\"kind\":\"play-started\",\"at\":1795714259414,\"audioId\":\"sfx_chime\"},{\"kind\":\"play-requested\",\"at\":1795714259407,\"audioId\":\"sfx_chime\"},{\"kind\":\"precise-crossfade\",\"at\":1795714259507,\"audioId\":\"bgm_ost_03_school_road\"}],\"bgm\":null,\"stats\":{\"requested\":3,\"started\":3,\"completed\":3,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0},\"note\":\"precise 模式下起播以 crossfade/precise-crossfade 事件为准，标题音乐不计入\"}"
+    },
+    "E 真实播放失败计数为 0": {
+      "ok": true,
+      "detail": "{\"requested\":3,\"started\":3,\"completed\":3,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0}"
+    },
+    "A/B 语义目标状态逐字段一致（BGM/音量/循环/总线/Ducking）": {
+      "ok": true,
+      "detail": "{\"A\":{\"bgm\":{\"audioId\":\"bgm_ost_06_night\",\"volume\":0.65,\"loop\":{\"mode\":\"region\",\"start\":0.5,\"end\":2.5}},\"buses\":{\"bgm\":1},\"ducking\":{\"enabled\":true,\"level\":0.4}},\"B\":{\"bgm\":{\"audioId\":\"bgm_ost_06_night\",\"volume\":0.65,\"loop\":{\"mode\":\"region\",\"start\":0.5,\"end\":2.5}},\"buses\":{\"bgm\":1},\"ducking\":{\"enabled\":true,\"level\":0.4}}}"
+    },
+    "A/B 视觉终态一致（镜头 transform / 渐暗 opacity）": {
+      "ok": true,
+      "detail": "{\"A\":{\"cam\":\"translate(0%, 0%) scale(1.42)\",\"dim\":\"0\"},\"B\":{\"cam\":\"translate(0%, 0%) scale(1.42)\",\"dim\":\"0\"}}"
+    },
+    "发布产物携带完整动作 ID（调度确定性可复现）": {
+      "ok": true,
+      "detail": "{\"plannedSlots\":14,\"acts\":14}"
+    },
+    "环境 C 已纳入归一化比对": {
+      "ok": true,
+      "detail": {
+        "state": "playing",
+        "hasAudio": true,
+        "bgm": null
+      }
+    },
+    "环境 D 状态比对": {
+      "ok": null,
+      "status": "NOT_RUN",
+      "reason": "未采集到该环境状态"
+    },
+    "环境 E 已纳入归一化比对": {
+      "ok": true,
+      "detail": {
+        "state": "playing",
+        "hasAudio": true,
+        "bgm": null
+      }
+    },
+    "C 会话无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    },
+    "E 会话无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    },
+    "交互 1 正常点击推进": {
+      "ok": true,
+      "detail": "{\"from\":0,\"to\":2,\"advanced\":true}"
+    },
+    "交互 2 快速连续点击不卡死 / 无真实播放失败": {
+      "ok": true,
+      "detail": "{\"from\":2,\"i\":12,\"state\":\"playing\",\"failed\":0,\"dualBgm\":false}"
+    },
+    "交互 8 存档": {
+      "ok": true,
+      "detail": "{\"text\":\"进度已保存。\",\"ok\":true}"
+    },
+    "交互 9 读档后剧情与 BGM 状态一致、无失败、无异常双 BGM": {
+      "ok": true,
+      "detail": "{\"bgmBeforeLoad\":\"bgm_ost_06_night\",\"i\":12,\"state\":\"playing\",\"bgm\":\"bgm_ost_06_night\",\"failed\":0,\"dualBgm\":false}"
+    },
+    "交互 10 返回标题": {
+      "ok": true,
+      "detail": "{\"atTitle\":true}"
+    },
+    "交互 11 继续游戏": {
+      "ok": true,
+      "detail": "{\"contDisabled\":false,\"state\":\"playing\"}"
+    },
+    "交互 12 重新开始游戏": {
+      "ok": true,
+      "detail": "{\"i\":0,\"state\":\"playing\"}"
+    },
+    "交互 4 非阻塞演出跨节点 / 6 自动播放 / 7 快进": {
+      "ok": null,
+      "status": "NOT_RUN",
+      "reason": "发布播放器未提供对应 UI 按钮（#playBar 只有上一步/重开/菜单），本轮不做假断言"
+    },
+    "交互 5 分支选择及汇合": {
+      "ok": null,
+      "status": "NOT_RUN",
+      "reason": "需要推进到分支节点并完成两条路径，本轮时间盒内未执行真实点击路径"
+    },
+    "音画同步原始证据 C-single-html（起音事件 + 舞台变化，非 P95 结论）": {
+      "ok": true,
+      "detail": {
+        "playStarted": 2,
+        "domChanges": 489,
+        "mode": "precise"
+      }
+    },
+    "音画同步原始证据 E-independent-exe（起音事件 + 舞台变化，非 P95 结论）": {
+      "ok": true,
+      "detail": {
+        "playStarted": 2,
+        "domChanges": 228,
+        "mode": "stream"
+      }
+    }
+  },
+  "environments": {
+    "A": {
+      "visual": {
+        "cam": "translate(0%, 0%) scale(1.42)",
+        "dim": "0"
+      },
+      "semantic": {
+        "bgm": {
+          "audioId": "bgm_ost_06_night",
+          "volume": 0.65,
+          "loop": {
+            "mode": "region",
+            "start": 0.5,
+            "end": 2.5
+          }
+        },
+        "buses": {
+          "bgm": 1
+        },
+        "ducking": {
+          "enabled": true,
+          "level": 0.4
+        }
+      },
+      "actual": {
+        "bgm": null,
+        "instances": {
+          "bgm": 0,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 0
+        },
+        "dualBgm": false,
+        "playbackStats": {
+          "requested": 0,
+          "started": 0,
+          "completed": 0,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "events": [],
+        "errors": []
+      },
+      "schedule": [
+        {
+          "id": "m2b_bgm",
+          "start": 0,
+          "type": "audio.bgm.play"
+        },
+        {
+          "id": "m2b_fadein",
+          "start": 0,
+          "type": "screen.fade"
+        },
+        {
+          "id": "m2b_zoom",
+          "start": 4,
+          "type": "camera.zoom"
+        },
+        {
+          "id": "m2b_sfx",
+          "start": 4,
+          "type": "audio.sfx.play"
+        },
+        {
+          "id": "m2b_voice",
+          "start": 6,
+          "type": "audio.voice.play"
+        },
+        {
+          "id": "m2b_duck",
+          "start": 6,
+          "type": "audio.ducking"
+        },
+        {
+          "id": "m2b_crossfade",
+          "start": 8,
+          "type": "audio.bgm.crossfade"
+        },
+        {
+          "id": "m2b_fadeout",
+          "start": 12,
+          "type": "screen.fade"
+        },
+        {
+          "id": "m2b_stop",
+          "start": 12,
+          "type": "audio.bgm.stop"
+        },
+        {
+          "id": "m3b_zero",
+          "start": 8,
+          "type": "screen.flash"
+        },
+        {
+          "id": "m3b_same_1",
+          "start": 8,
+          "type": "audio.sfx.play"
+        },
+        {
+          "id": "m3b_same_2",
+          "start": 8,
+          "type": "audio.ducking"
+        },
+        {
+          "id": "m3b_abs_xfade",
+          "start": 10,
+          "type": "audio.bgm.crossfade"
+        },
+        {
+          "id": "m3b_rel_after",
+          "start": 14.15,
+          "type": "camera.zoom"
+        }
+      ],
+      "driver": {
+        "applies": 1,
+        "fired": 0,
+        "oneShots": 0,
+        "stateEvents": 0,
+        "stops": 0,
+        "skippedStale": 0,
+        "last": "",
+        "err": "",
+        "lastT": 14.75,
+        "active": false,
+        "bgmOffset": 0,
+        "voiceResume": null,
+        "recent": [],
+        "sync": {
+          "count": 0,
+          "meanMs": 0,
+          "p50Ms": 0,
+          "p95Ms": 0,
+          "maxMs": 0,
+          "minMs": 0
+        },
+        "syncSamples": []
+      }
+    },
+    "B": {
+      "visual": {
+        "cam": "translate(0%, 0%) scale(1.42)",
+        "dim": "0"
+      },
+      "semantic": {
+        "bgm": {
+          "audioId": "bgm_ost_06_night",
+          "volume": 0.65,
+          "loop": {
+            "mode": "region",
+            "start": 0.5,
+            "end": 2.5
+          }
+        },
+        "buses": {
+          "bgm": 1
+        },
+        "ducking": {
+          "enabled": true,
+          "level": 0.4
+        }
+      },
+      "actual": {
+        "bgm": null,
+        "instances": {
+          "bgm": 0,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 0
+        },
+        "dualBgm": false,
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "events": [
+          {
+            "at": 1795714218014,
+            "kind": "bgm-stop"
+          },
+          {
+            "at": 1795714216012,
+            "kind": "precise-crossfade",
+            "to": "bgm_ost_06_night",
+            "ms": 1200,
+            "curve": "equalPower"
+          },
+          {
+            "at": 1795714215305,
+            "kind": "play-completed",
+            "cat": "voice",
+            "audioId": "voice_placeholder"
+          },
+          {
+            "at": 1795714215285,
+            "kind": "play-completed",
+            "cat": "sfx",
+            "audioId": "sfx_chime"
+          },
+          {
+            "at": 1795714214187,
+            "kind": "precise-crossfade",
+            "to": "bgm_ost_03_school_road",
+            "ms": 2500,
+            "curve": "equalPower"
+          },
+          {
+            "at": 1795714214029,
+            "kind": "play-started",
+            "cat": "sfx",
+            "audioId": "sfx_chime"
+          },
+          {
+            "at": 1795714214014,
+            "kind": "sfx",
+            "audioId": "sfx_chime",
+            "key": "m3b_a"
+          },
+          {
+            "at": 1795714214014,
+            "kind": "play-requested",
+            "cat": "sfx",
+            "audioId": "sfx_chime",
+            "label": "演出音效"
+          },
+          {
+            "at": 1795714212030,
+            "kind": "play-started",
+            "cat": "voice",
+            "audioId": "voice_placeholder"
+          },
+          {
+            "at": 1795714212013,
+            "kind": "voice",
+            "audioId": "voice_placeholder"
+          },
+          {
+            "at": 1795714212013,
+            "kind": "play-requested",
+            "cat": "voice",
+            "audioId": "voice_placeholder",
+            "label": "演出配音"
+          },
+          {
+            "at": 1795714211265,
+            "kind": "play-completed",
+            "cat": "sfx",
+            "audioId": "sfx_chime"
+          }
+        ],
+        "errors": []
+      },
+      "schedule": [
+        {
+          "id": "m2b_bgm",
+          "start": 0,
+          "type": "audio.bgm.play"
+        },
+        {
+          "id": "m2b_fadein",
+          "start": 0,
+          "type": "screen.fade"
+        },
+        {
+          "id": "m2b_zoom",
+          "start": 4,
+          "type": "camera.zoom"
+        },
+        {
+          "id": "m2b_sfx",
+          "start": 4,
+          "type": "audio.sfx.play"
+        },
+        {
+          "id": "m2b_voice",
+          "start": 6,
+          "type": "audio.voice.play"
+        },
+        {
+          "id": "m2b_duck",
+          "start": 6,
+          "type": "audio.ducking"
+        },
+        {
+          "id": "m2b_crossfade",
+          "start": 8,
+          "type": "audio.bgm.crossfade"
+        },
+        {
+          "id": "m2b_fadeout",
+          "start": 12,
+          "type": "screen.fade"
+        },
+        {
+          "id": "m2b_stop",
+          "start": 12,
+          "type": "audio.bgm.stop"
+        },
+        {
+          "id": "m3b_zero",
+          "start": 8,
+          "type": "screen.flash"
+        },
+        {
+          "id": "m3b_same_1",
+          "start": 8,
+          "type": "audio.sfx.play"
+        },
+        {
+          "id": "m3b_same_2",
+          "start": 8,
+          "type": "audio.ducking"
+        },
+        {
+          "id": "m3b_abs_xfade",
+          "start": 10,
+          "type": "audio.bgm.crossfade"
+        },
+        {
+          "id": "m3b_rel_after",
+          "start": 14.15,
+          "type": "camera.zoom"
+        }
+      ],
+      "driver": {
+        "applies": 1,
+        "fired": 0,
+        "oneShots": 0,
+        "stateEvents": 0,
+        "stops": 3,
+        "skippedStale": 0,
+        "last": "",
+        "err": "",
+        "lastT": 0,
+        "active": false,
+        "bgmOffset": 0,
+        "voiceResume": null,
+        "recent": [],
+        "sync": {
+          "count": 0,
+          "meanMs": 0,
+          "p50Ms": 0,
+          "p95Ms": 0,
+          "maxMs": 0,
+          "minMs": 0
+        },
+        "syncSamples": []
+      }
+    },
+    "C": {
+      "visual": {
+        "cam": "translate(0px, 0px) scale(1)",
+        "dim": "0",
+        "imgs": [
+          {
+            "opacity": "",
+            "transform": "scale(1) rotate(0deg)",
+            "loaded": true
+          }
+        ],
+        "text": "六点二十，二楼的走廊还没完全亮起来。"
+      },
+      "semantic": null,
+      "actual": {
+        "bgm": null,
+        "buses": {
+          "bgm": 1,
+          "sfx": 1,
+          "voice": 1
+        },
+        "ducking": {
+          "enabled": true,
+          "level": 1,
+          "attack": 0.2,
+          "release": 0.6,
+          "active": false,
+          "factor": 1,
+          "hold": 0
+        },
+        "instances": {
+          "bgm": 0,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 1
+        },
+        "dualBgm": false,
+        "playbackStats": {
+          "requested": 4,
+          "started": 4,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 1
+        },
+        "events": [
+          {
+            "at": 1795714240152,
+            "kind": "bgm-stop"
+          },
+          {
+            "at": 1795714238223,
+            "kind": "precise-crossfade",
+            "to": "bgm_ost_06_night",
+            "ms": 1200,
+            "curve": "equalPower"
+          },
+          {
+            "at": 1795714237415,
+            "kind": "play-completed",
+            "cat": "sfx",
+            "audioId": "sfx_chime"
+          },
+          {
+            "at": 1795714237415,
+            "kind": "play-completed",
+            "cat": "voice",
+            "audioId": "voice_placeholder"
+          },
+          {
+            "at": 1795714236266,
+            "kind": "precise-crossfade",
+            "to": "bgm_ost_03_school_road",
+            "ms": 2500,
+            "curve": "equalPower"
+          },
+          {
+            "at": 1795714236168,
+            "kind": "play-started",
+            "cat": "sfx",
+            "audioId": "sfx_chime"
+          },
+          {
+            "at": 1795714236157,
+            "kind": "sfx",
+            "audioId": "sfx_chime",
+            "key": "m3b_a"
+          },
+          {
+            "at": 1795714236157,
+            "kind": "play-requested",
+            "cat": "sfx",
+            "audioId": "sfx_chime",
+            "label": "演出音效"
+          },
+          {
+            "at": 1795714234155,
+            "kind": "play-started",
+            "cat": "voice",
+            "audioId": "voice_placeholder"
+          },
+          {
+            "at": 1795714234143,
+            "kind": "voice",
+            "audioId": "voice_placeholder"
+          },
+          {
+            "at": 1795714234143,
+            "kind": "play-requested",
+            "cat": "voice",
+            "audioId": "voice_placeholder",
+            "label": "演出配音"
+          },
+          {
+            "at": 1795714233419,
+            "kind": "play-completed",
+            "cat": "sfx",
+            "audioId": "sfx_chime"
+          }
+        ],
+        "errors": [],
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        }
+      },
+      "run": {
+        "acts": 14,
+        "slots": 9,
+        "animate": true,
+        "err": ""
+      },
+      "state": "playing",
+      "i": 0,
+      "nodes": 40,
+      "hasAudio": true,
+      "trailLen": 0
+    },
+    "E": {
+      "visual": {
+        "cam": "translate(0px, 0px) scale(1)",
+        "dim": "0",
+        "imgs": [
+          {
+            "opacity": "",
+            "transform": "scale(1) rotate(0deg)",
+            "loaded": true
+          }
+        ],
+        "text": "六点二十，二楼的走廊还没完全亮起来。"
+      },
+      "semantic": null,
+      "actual": {
+        "bgm": null,
+        "buses": {
+          "bgm": 1,
+          "sfx": 1,
+          "voice": 1
+        },
+        "ducking": {
+          "enabled": true,
+          "level": 1,
+          "attack": 0.2,
+          "release": 0.6,
+          "active": false,
+          "factor": 1,
+          "hold": 0
+        },
+        "instances": {
+          "bgm": 0,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 0
+        },
+        "dualBgm": false,
+        "playbackStats": {
+          "requested": 3,
+          "started": 3,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "events": [
+          {
+            "at": 1795714263408,
+            "kind": "bgm-stop"
+          },
+          {
+            "at": 1795714261490,
+            "kind": "precise-crossfade",
+            "to": "bgm_ost_06_night",
+            "ms": 1200,
+            "curve": "equalPower"
+          },
+          {
+            "at": 1795714260685,
+            "kind": "play-completed",
+            "cat": "voice",
+            "audioId": "voice_placeholder"
+          },
+          {
+            "at": 1795714260665,
+            "kind": "play-completed",
+            "cat": "sfx",
+            "audioId": "sfx_chime"
+          },
+          {
+            "at": 1795714259507,
+            "kind": "precise-crossfade",
+            "to": "bgm_ost_03_school_road",
+            "ms": 2500,
+            "curve": "equalPower"
+          },
+          {
+            "at": 1795714259414,
+            "kind": "play-started",
+            "cat": "sfx",
+            "audioId": "sfx_chime"
+          },
+          {
+            "at": 1795714259407,
+            "kind": "sfx",
+            "audioId": "sfx_chime",
+            "key": "m3b_a"
+          },
+          {
+            "at": 1795714259407,
+            "kind": "play-requested",
+            "cat": "sfx",
+            "audioId": "sfx_chime",
+            "label": "演出音效"
+          },
+          {
+            "at": 1795714257416,
+            "kind": "play-started",
+            "cat": "voice",
+            "audioId": "voice_placeholder"
+          },
+          {
+            "at": 1795714257407,
+            "kind": "voice",
+            "audioId": "voice_placeholder"
+          },
+          {
+            "at": 1795714257407,
+            "kind": "play-requested",
+            "cat": "voice",
+            "audioId": "voice_placeholder",
+            "label": "演出配音"
+          },
+          {
+            "at": 1795714256645,
+            "kind": "play-completed",
+            "cat": "sfx",
+            "audioId": "sfx_chime"
+          }
+        ],
+        "errors": [],
+        "graph": {
+          "state": "running",
+          "sampleRate": 48000,
+          "baseLatency": 0.01
+        }
+      },
+      "run": {
+        "acts": 14,
+        "slots": 9,
+        "animate": true,
+        "err": ""
+      },
+      "state": "playing",
+      "i": 0,
+      "nodes": 40,
+      "hasAudio": true,
+      "trailLen": 0
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "perfAudioIds": [
+      "bgm_ost_02_morning",
+      "sfx_chime",
+      "voice_placeholder",
+      "bgm_ost_03_school_road",
+      "bgm_ost_06_night"
+    ],
+    "perfOnlyAudio": [
+      "bgm_ost_02_morning",
+      "sfx_chime",
+      "voice_placeholder",
+      "bgm_ost_03_school_road",
+      "bgm_ost_06_night"
+    ],
+    "A_audio": {
+      "playStartedEvents": [],
+      "failedEvents": [],
+      "playbackStats": {
+        "requested": 0,
+        "started": 0,
+        "completed": 0,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "dualBgm": false,
+      "instances": {
+        "bgm": 0,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "title": 0
+      },
+      "bgm": null,
+      "buses": null,
+      "ducking": null,
+      "graph": null,
+      "errors": []
+    },
+    "B_audio": {
+      "playStartedEvents": [
+        {
+          "at": 1795714214029,
+          "cat": "sfx",
+          "audioId": "sfx_chime"
+        },
+        {
+          "at": 1795714212030,
+          "cat": "voice",
+          "audioId": "voice_placeholder"
+        }
+      ],
+      "failedEvents": [],
+      "playbackStats": {
+        "requested": 3,
+        "started": 3,
+        "completed": 3,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "dualBgm": false,
+      "instances": {
+        "bgm": 0,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "title": 0
+      },
+      "bgm": null,
+      "buses": null,
+      "ducking": null,
+      "graph": null,
+      "errors": []
+    },
+    "singleHtml": {
+      "bytes": 38015387,
+      "dataAudio": 8,
+      "dataImage": 14,
+      "perfOnlyAudioPresent": true
+    },
+    "C_audio": {
+      "playStartedEvents": [
+        {
+          "at": 1795714236168,
+          "cat": "sfx",
+          "audioId": "sfx_chime"
+        },
+        {
+          "at": 1795714234155,
+          "cat": "voice",
+          "audioId": "voice_placeholder"
+        }
+      ],
+      "failedEvents": [],
+      "playbackStats": {
+        "requested": 4,
+        "started": 4,
+        "completed": 3,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 1
+      },
+      "dualBgm": false,
+      "instances": {
+        "bgm": 0,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "title": 1
+      },
+      "bgm": null,
+      "buses": {
+        "bgm": 1,
+        "sfx": 1,
+        "voice": 1
+      },
+      "ducking": {
+        "enabled": true,
+        "level": 1,
+        "attack": 0.2,
+        "release": 0.6,
+        "active": false,
+        "factor": 1,
+        "hold": 0
+      },
+      "graph": {
+        "state": "running",
+        "sampleRate": 48000,
+        "baseLatency": 0.01
+      },
+      "errors": []
+    },
+    "C_perfStarts": {
+      "hits": [
+        {
+          "kind": "play-started",
+          "at": 1795714232167,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "play-requested",
+          "at": 1795714232153,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "play-completed",
+          "at": 1795714233419,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "play-started",
+          "at": 1795714234155,
+          "audioId": "voice_placeholder"
+        },
+        {
+          "kind": "play-requested",
+          "at": 1795714234143,
+          "audioId": "voice_placeholder"
+        },
+        {
+          "kind": "play-started",
+          "at": 1795714236168,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "play-requested",
+          "at": 1795714236157,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "precise-crossfade",
+          "at": 1795714236266,
+          "audioId": "bgm_ost_03_school_road"
+        },
+        {
+          "kind": "play-completed",
+          "at": 1795714237415,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "play-completed",
+          "at": 1795714237415,
+          "audioId": "voice_placeholder"
+        },
+        {
+          "kind": "precise-crossfade",
+          "at": 1795714238223,
+          "audioId": "bgm_ost_06_night"
+        }
+      ],
+      "bgm": null,
+      "stats": {
+        "requested": 4,
+        "started": 4,
+        "completed": 3,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 1
+      },
+      "totalEvents": 31
+    },
+    "folderContent": {
+      "bytes": 262183,
+      "perfPresent": true,
+      "hasXfade": true
+    },
+    "E_audio": {
+      "playStartedEvents": [
+        {
+          "at": 1795714259414,
+          "cat": "sfx",
+          "audioId": "sfx_chime"
+        },
+        {
+          "at": 1795714257416,
+          "cat": "voice",
+          "audioId": "voice_placeholder"
+        }
+      ],
+      "failedEvents": [],
+      "playbackStats": {
+        "requested": 3,
+        "started": 3,
+        "completed": 3,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "dualBgm": false,
+      "instances": {
+        "bgm": 0,
+        "retiring": 0,
+        "sfx": 0,
+        "voice": 0,
+        "title": 0
+      },
+      "bgm": null,
+      "buses": {
+        "bgm": 1,
+        "sfx": 1,
+        "voice": 1
+      },
+      "ducking": {
+        "enabled": true,
+        "level": 1,
+        "attack": 0.2,
+        "release": 0.6,
+        "active": false,
+        "factor": 1,
+        "hold": 0
+      },
+      "graph": {
+        "state": "running",
+        "sampleRate": 48000,
+        "baseLatency": 0.01
+      },
+      "errors": []
+    },
+    "E_perfStarts": {
+      "hits": [
+        {
+          "kind": "play-started",
+          "at": 1795714255416,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "play-requested",
+          "at": 1795714255407,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "play-completed",
+          "at": 1795714256645,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "play-started",
+          "at": 1795714257416,
+          "audioId": "voice_placeholder"
+        },
+        {
+          "kind": "play-requested",
+          "at": 1795714257407,
+          "audioId": "voice_placeholder"
+        },
+        {
+          "kind": "play-started",
+          "at": 1795714259414,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "play-requested",
+          "at": 1795714259407,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "precise-crossfade",
+          "at": 1795714259507,
+          "audioId": "bgm_ost_03_school_road"
+        },
+        {
+          "kind": "play-completed",
+          "at": 1795714260685,
+          "audioId": "voice_placeholder"
+        },
+        {
+          "kind": "play-completed",
+          "at": 1795714260665,
+          "audioId": "sfx_chime"
+        },
+        {
+          "kind": "precise-crossfade",
+          "at": 1795714261490,
+          "audioId": "bgm_ost_06_night"
+        }
+      ],
+      "bgm": null,
+      "stats": {
+        "requested": 3,
+        "started": 3,
+        "completed": 3,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "totalEvents": 29
+    },
+    "interaction": {
+      "normalAdvance": {
+        "from": 0,
+        "to": 2,
+        "advanced": true
+      },
+      "fastClick": {
+        "from": 2,
+        "i": 12,
+        "state": "playing",
+        "failed": 0,
+        "dualBgm": false
+      },
+      "save": {
+        "text": "进度已保存。",
+        "ok": true
+      },
+      "load": {
+        "bgmBeforeLoad": "bgm_ost_06_night",
+        "i": 12,
+        "state": "playing",
+        "bgm": "bgm_ost_06_night",
+        "failed": 0,
+        "dualBgm": false
+      },
+      "backTitle": {
+        "atTitle": true
+      },
+      "continue": {
+        "contDisabled": false,
+        "state": "playing"
+      },
+      "restart": {
+        "i": 0,
+        "state": "playing"
+      }
+    },
+    "avsync": {
+      "method": "视觉 DOM 变化时间戳 vs 音频 play-started 事件时间戳；编辑器侧另采集 driver.sync 派发漂移（不同口径单独报告）",
+      "carriers": {
+        "A-editor-timeline": {
+          "metric": "JS 派发漂移（M3A 口径，非音画偏差）",
+          "sync": {
+            "count": 0,
+            "meanMs": 0,
+            "p50Ms": 0,
+            "p95Ms": 0,
+            "maxMs": 0,
+            "minMs": 0
+          }
+        },
+        "C-single-html": {
+          "metric": "真实音频起音事件 + 舞台 DOM 变化（时间基准不同，不强行相减）",
+          "playStarted": 2,
+          "domChanges": 489,
+          "firstEvents": [
+            {
+              "at": 1795714236168,
+              "kind": "play-started",
+              "cat": "sfx",
+              "audioId": "sfx_chime"
+            },
+            {
+              "at": 1795714234155,
+              "kind": "play-started",
+              "cat": "voice",
+              "audioId": "voice_placeholder"
+            }
+          ],
+          "graph": {
+            "state": "running",
+            "sampleRate": 48000,
+            "baseLatency": 0.01
+          },
+          "mode": "precise",
+          "p50": null,
+          "p95": null,
+          "max": null,
+          "reason": "audio.snapshot().events 使用 Date.now()，MutationObserver 使用 performance.now()；两套时钟基准不同，按 M3B-5「不得将不同测量口径的数据直接比较」不换算成偏差值。"
+        },
+        "E-independent-exe": {
+          "metric": "真实音频起音事件 + 舞台 DOM 变化（时间基准不同，不强行相减）",
+          "playStarted": 2,
+          "domChanges": 228,
+          "firstEvents": [
+            {
+              "at": 1795714259414,
+              "kind": "play-started",
+              "cat": "sfx",
+              "audioId": "sfx_chime"
+            },
+            {
+              "at": 1795714257416,
+              "kind": "play-started",
+              "cat": "voice",
+              "audioId": "voice_placeholder"
+            }
+          ],
+          "graph": {
+            "state": "running",
+            "sampleRate": 48000,
+            "baseLatency": 0.01
+          },
+          "mode": "stream",
+          "p50": null,
+          "p95": null,
+          "max": null,
+          "reason": "audio.snapshot().events 使用 Date.now()，MutationObserver 使用 performance.now()；两套时钟基准不同，按 M3B-5「不得将不同测量口径的数据直接比较」不换算成偏差值。"
+        }
+      },
+      "note": "不含扬声器/声卡回环；AudioContext 排程 ≠ 扬声器发声",
+      "hotP95TargetMs": 50,
+      "conclusion": "本脚本只采集配套原始证据；P50/P95/max、冷热态与掉帧的实测结论由独立脚本 scripts/v082m3b-avsync.cjs 产出（release/v082m3b-avsync.json），不在本脚本里给出半成品偏差值。",
+      "avsyncReport": null
+    }
+  },
+  "shots": [
+    "docs/screenshots/v082m3b-A-编辑器时间轴预览.png",
+    "docs/screenshots/v082m3b-B-编辑器普通试玩.png",
+    "docs/screenshots/v082m3b-C-单文件HTML.png",
+    "docs/screenshots/v082m3b-E-独立EXE.png"
+  ],
+  "classification": {
+    "PASS": [
+      "M3B-2 隔离测试工程（原工程与素材只读复制）",
+      "隔离副本含补充动作（零时长 / 同刻多动作 / 显式绝对 start / 交叉淡化 / 相对 after）",
+      "存在「仅在演出动作中引用」的音频素材（用于验证不被裁剪）",
+      "编辑器启动并打开隔离工程（40 节点）",
+      "时间轴动作表（绝对/相对混排、零时长、同刻、交叉淡化、阻塞）",
+      "正式播放器可读到显式 start 与相对动作混排",
+      "A 编辑器时间轴预览：归一化状态已采集",
+      "A 舞台 DOM 真实变化次数（MutationObserver）",
+      "B 编辑器普通试玩：归一化状态已采集",
+      "C 单文件 HTML 由编辑器真实导出函数生成",
+      "C 单文件 HTML 内嵌音频与图片资源（自包含）",
+      "C 单文件 HTML 资源全部内嵌、结构不依赖本机协议",
+      "C 仅在演出动作中引用的音频素材未被裁剪",
+      "C 产物保留演出数据字段 m3b_zero",
+      "C 产物保留演出数据字段 m3b_abs_xfade",
+      "C 产物保留演出数据字段 loopStart",
+      "C 产物保留演出数据字段 equalPower",
+      "C 产物保留演出数据字段 \"start\":8",
+      "C 单文件 HTML 真实窗口启动（file:// → 开始游戏）",
+      "C 单文件 HTML 演出执行状态已采集",
+      "C 正式播放器以动画方式执行演出（run.animate=true）",
+      "C 演出音频（非标题音乐）有真实起播证据",
+      "C 真实播放失败计数为 0",
+      "D 目录版游戏由真实发行面板导出完成",
+      "D 导出产物含 EXE 与 content/index.html",
+      "D 目录版 content 保留演出数据与演出专属音频引用",
+      "E Windows 独立 EXE 启动（papergame://）",
+      "E 独立 EXE 演出执行状态已采集",
+      "E 正式播放器以动画方式执行演出（run.animate=true）",
+      "E 演出音频（非标题音乐）有真实起播证据",
+      "E 真实播放失败计数为 0",
+      "A/B 语义目标状态逐字段一致（BGM/音量/循环/总线/Ducking）",
+      "A/B 视觉终态一致（镜头 transform / 渐暗 opacity）",
+      "发布产物携带完整动作 ID（调度确定性可复现）",
+      "环境 C 已纳入归一化比对",
+      "环境 E 已纳入归一化比对",
+      "C 会话无渲染进程异常",
+      "E 会话无渲染进程异常",
+      "交互 1 正常点击推进",
+      "交互 2 快速连续点击不卡死 / 无真实播放失败",
+      "交互 8 存档",
+      "交互 9 读档后剧情与 BGM 状态一致、无失败、无异常双 BGM",
+      "交互 10 返回标题",
+      "交互 11 继续游戏",
+      "交互 12 重新开始游戏",
+      "音画同步原始证据 C-single-html（起音事件 + 舞台变化，非 P95 结论）",
+      "音画同步原始证据 E-independent-exe（起音事件 + 舞台变化，非 P95 结论）"
+    ],
+    "FAIL": [],
+    "NOT_RUN": [
+      "环境 D 状态比对",
+      "交互 4 非阻塞演出跨节点 / 6 自动播放 / 7 快进",
+      "交互 5 分支选择及汇合"
+    ],
+    "BLOCKED": []
+  },
+  "ok": true
+}

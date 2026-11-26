@@ -1,0 +1,275 @@
+{
+  "at": "2026-11-26T17:34:27.888Z",
+  "version": "V0.8.2-M3B",
+  "project": "F:/pvn-1gib-m3-valid",
+  "scope": "仅复验与本轮变更相关的大型工程资源与运行时行为",
+  "stages": {
+    "复用已有 1.47 GiB 工程（不重新生成素材）": {
+      "ok": true,
+      "detail": "F:/pvn-1gib-m3-valid"
+    },
+    "保存重开 / 目录版导出 / 启动导出游戏：复用 V0.7.6-M3 既有真实窗口证据（不重复跑）": {
+      "ok": true,
+      "detail": {
+        "evidence": "release/large-project-acceptance.json",
+        "stages6_7_9_10": "PASS"
+      }
+    },
+    "大型工程真实窗口打开（≥500 节点）": {
+      "ok": true,
+      "detail": "{\"nodes\":576,\"assets\":100,\"audio\":104,\"chapters\":12,\"revision\":0,\"past\":0,\"future\":0,\"openMs\":716}"
+    },
+    "不引入大型 Base64 运行时数据（工程 JSON 保持轻量、资源走受控 URL）": {
+      "ok": true,
+      "detail": "{\"jsonBytes\":533885,\"inlineDataUris\":0,\"assetUrls\":204,\"assets\":100,\"audio\":104,\"nodes\":576}"
+    },
+    "打开后音频缓存读数": {
+      "ok": true,
+      "detail": {
+        "cache": {
+          "entries": 0,
+          "bytes": 0,
+          "budget": 67108864,
+          "ids": [],
+          "mode": "stream"
+        },
+        "mem": {
+          "budgetBytes": 67108864,
+          "cacheBytes": 0,
+          "cacheEntries": 0,
+          "activeBufferBytes": 0,
+          "decoding": 0,
+          "decodingBytes": 0,
+          "decodePeakBytes": 0,
+          "decodeCancelled": 0,
+          "decodeRejected": 0,
+          "streamChannels": 0,
+          "workingSetBytes": 0
+        },
+        "mode": "stream",
+        "graph": null
+      }
+    },
+    "64 MiB 音频缓存预算未被破坏": {
+      "ok": true,
+      "detail": "{\"entries\":0,\"bytes\":0,\"budget\":67108864,\"ids\":[],\"mode\":\"stream\"}"
+    },
+    "时间轴动作可编辑（追加显式 start 的音频演出动作）": {
+      "ok": true,
+      "detail": "{\"before\":0,\"after\":1,\"hasProbe\":true,\"audioId\":\"au_0089b53247a02d31\"}"
+    },
+    "实际音视频预览（时间轴播放）": {
+      "ok": true,
+      "detail": {
+        "fired": 1,
+        "stats": {
+          "requested": 1,
+          "started": 1,
+          "completed": 0,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 0
+        },
+        "cache": {
+          "entries": 1,
+          "bytes": 23040000,
+          "budget": 67108864,
+          "ids": [
+            "au_0089b53247a02d31"
+          ],
+          "mode": "stream"
+        }
+      }
+    },
+    "实际音视频预览：编辑后的演出动作真实触发音频起播": {
+      "ok": true,
+      "detail": "{\"fired\":1,\"stats\":{\"requested\":1,\"started\":1,\"completed\":0,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0}}"
+    },
+    "预览无真实播放失败、无异常双 BGM": {
+      "ok": true,
+      "detail": "{\"stats\":{\"requested\":1,\"started\":1,\"completed\":0,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":0},\"dualBgm\":false,\"errors\":[]}"
+    },
+    "音频按需加载：缓存增长受 64 MiB 预算约束且未无条件全解码": {
+      "ok": true,
+      "detail": "{\"beforeBytes\":0,\"afterBytes\":23040000,\"cache\":{\"entries\":1,\"bytes\":23040000,\"budget\":67108864,\"ids\":[\"au_0089b53247a02d31\"],\"mode\":\"stream\"}}"
+    },
+    "不丢失演出素材引用（引用扫描覆盖全部演出动作）": {
+      "ok": true,
+      "detail": "{\"audioRefs\":39,\"imageRefs\":100,\"perfAudio\":1,\"perfImage\":0,\"missingAudio\":[],\"missingImage\":[]}"
+    },
+    "时间轴编辑可撤销且原工程未被落盘修改": {
+      "ok": true,
+      "detail": "{\"hasPerformance\":false,\"n\":0,\"probeGone\":true}"
+    },
+    "会话无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "priorV076M3": {
+      "at": "2026-11-22T19:31:23.796Z",
+      "ok": true,
+      "stages": {
+        "测试工程素材总量与去重统计": true,
+        "9a 真实窗口打开 1 GiB 工程": true,
+        "1 真实窗口流式导入（无 Base64 / 哈希正确 / 重复不增磁盘）": true,
+        "2 真实窗口编辑剧本": true,
+        "3 真实窗口撤销与重做": true,
+        "4 切换章节/场景并显示背景与立绘（真实窗口解码）": true,
+        "5 真实窗口播放 BGM / SFX / Voice": true,
+        "5b 单文件 HTML 200MB 上限引导目录版（无 Invalid string length）": true,
+        "6 真实窗口保存 1 GiB 工程（JSON 与素材一致）": true,
+        "7 关闭并重开工程（含异常退出后重启路径）": true,
+        "8 大型工程完整预览（pvres:// 按需加载）": true,
+        "9 目录版游戏导出（轻量页面 + 资源分离）": true,
+        "10 启动导出的游戏并实际验证资源加载": true,
+        "全流程素材完整性与稳定性（含真实窗口异常事件判定）": true
+      }
+    },
+    "openMs": 716,
+    "runtimeShape": {
+      "jsonBytes": 533885,
+      "inlineDataUris": 0,
+      "assetUrls": 204,
+      "assets": 100,
+      "audio": 104,
+      "nodes": 576
+    },
+    "cacheBefore": {
+      "cache": {
+        "entries": 0,
+        "bytes": 0,
+        "budget": 67108864,
+        "ids": [],
+        "mode": "stream"
+      },
+      "mem": {
+        "budgetBytes": 67108864,
+        "cacheBytes": 0,
+        "cacheEntries": 0,
+        "activeBufferBytes": 0,
+        "decoding": 0,
+        "decodingBytes": 0,
+        "decodePeakBytes": 0,
+        "decodeCancelled": 0,
+        "decodeRejected": 0,
+        "streamChannels": 0,
+        "workingSetBytes": 0
+      },
+      "mode": "stream",
+      "graph": null
+    },
+    "preview": {
+      "fired": 1,
+      "skippedStale": 0,
+      "sync": {
+        "count": 1,
+        "meanMs": 2.6,
+        "p50Ms": 2.6,
+        "p95Ms": 2.6,
+        "maxMs": 2.6,
+        "minMs": 2.6
+      },
+      "stats": {
+        "requested": 1,
+        "started": 1,
+        "completed": 0,
+        "cancelled": 0,
+        "failed": 0,
+        "decodeFailed": 0,
+        "fallback": 0
+      },
+      "events": [
+        {
+          "at": 1795714469277,
+          "kind": "play-started",
+          "cat": "sfx",
+          "audioId": "au_0089b53247a02d31"
+        },
+        {
+          "at": 1795714469254,
+          "kind": "sfx",
+          "audioId": "au_0089b53247a02d31",
+          "key": "m3b_large"
+        },
+        {
+          "at": 1795714469254,
+          "kind": "play-requested",
+          "cat": "sfx",
+          "audioId": "au_0089b53247a02d31",
+          "label": "演出音效"
+        }
+      ],
+      "cache": {
+        "entries": 1,
+        "bytes": 23040000,
+        "budget": 67108864,
+        "ids": [
+          "au_0089b53247a02d31"
+        ],
+        "mode": "stream"
+      },
+      "mem": {
+        "budgetBytes": 67108864,
+        "cacheBytes": 23040000,
+        "cacheEntries": 1,
+        "activeBufferBytes": 0,
+        "decoding": 0,
+        "decodingBytes": 0,
+        "decodePeakBytes": 2376,
+        "decodeCancelled": 0,
+        "decodeRejected": 0,
+        "streamChannels": 1,
+        "workingSetBytes": 23040000
+      },
+      "dualBgm": false,
+      "errors": []
+    },
+    "refs": {
+      "audioRefs": 39,
+      "imageRefs": 100,
+      "perfAudio": 1,
+      "perfImage": 0,
+      "missingAudio": [],
+      "missingImage": []
+    },
+    "timelineEdit": {
+      "edited": {
+        "before": 0,
+        "after": 1,
+        "hasProbe": true,
+        "audioId": "au_0089b53247a02d31"
+      },
+      "undone": {
+        "hasPerformance": false,
+        "n": 0,
+        "probeGone": true
+      }
+    }
+  },
+  "ok": true,
+  "classification": {
+    "PASS": [
+      "复用已有 1.47 GiB 工程（不重新生成素材）",
+      "保存重开 / 目录版导出 / 启动导出游戏：复用 V0.7.6-M3 既有真实窗口证据（不重复跑）",
+      "大型工程真实窗口打开（≥500 节点）",
+      "不引入大型 Base64 运行时数据（工程 JSON 保持轻量、资源走受控 URL）",
+      "打开后音频缓存读数",
+      "64 MiB 音频缓存预算未被破坏",
+      "时间轴动作可编辑（追加显式 start 的音频演出动作）",
+      "实际音视频预览（时间轴播放）",
+      "实际音视频预览：编辑后的演出动作真实触发音频起播",
+      "预览无真实播放失败、无异常双 BGM",
+      "音频按需加载：缓存增长受 64 MiB 预算约束且未无条件全解码",
+      "不丢失演出素材引用（引用扫描覆盖全部演出动作）",
+      "时间轴编辑可撤销且原工程未被落盘修改",
+      "会话无渲染进程异常"
+    ],
+    "FAIL": [],
+    "NOT_RUN": [],
+    "BLOCKED": []
+  }
+}

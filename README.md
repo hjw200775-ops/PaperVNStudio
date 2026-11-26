@@ -1,11 +1,18 @@
 # 纸间 PaperVNStudio
 
 <p>
-  <img alt="version" src="https://img.shields.io/badge/version-0.8.1--RC3.1-2F6F5E?style=flat-square">
+  <img alt="version" src="https://img.shields.io/badge/version-0.8.2--M3B-2F6F5E?style=flat-square">
   <img alt="electron" src="https://img.shields.io/badge/Electron-45-47848F?style=flat-square&logo=electron&logoColor=white">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square">
   <img alt="platform" src="https://img.shields.io/badge/Windows-10%2F11%20x64-0078D4?style=flat-square">
 </p>
+
+> **当前开发构建：`V0.8.2-M3B`（发布运行时一致性阶段）。** 这是开发中的里程碑版本，
+> **不是正式 V0.8.2 发布版**。本轮聚焦「最终发布的游戏能否正确执行创作者在时间轴里编排的演出」，
+> 交付与验收记录见 [M3B 验收报告](docs/V0.8.2_M3B_ACCEPTANCE.md)。
+> 软件版本统一以 `package.json` 的 `version` / `versionLabel` 为唯一来源，
+> 由 `tests/version-consistency.test.cjs` 强制校验；工程 schema、存档格式、内置示例
+> `sampleVersion` 与作品自身的 `publish.version` 是各自独立的技术版本，不随软件版本改动。
 
 **一个跑在本地的视觉小说（Galgame / 文字冒险）创作工具。** 左边排剧情，右边摆图层，逐句加演出，最后导出成一个双击就能玩、断网也能玩的作品——不需要服务器，不需要账号，工程就是你自己的一个目录。
 

@@ -1,0 +1,181 @@
+{
+  "at": "2026-11-26T17:38:39.946Z",
+  "version": "V0.8.2-M3B",
+  "carrier": "D 目录版游戏（独立 APPDATA / 独立端口的第二次运行会话）",
+  "stages": {
+    "目录版导出产物 EXE 存在": {
+      "ok": true,
+      "detail": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m3b\\exports\\晚风M3B发布验收-0.8.2-M3B-win-x64-独立游戏\\晚风M3B发布验收.exe"
+    },
+    "主验收脚本的环境 E 状态可比对": {
+      "ok": true,
+      "detail": {
+        "from": "release/v082m3b-release-verify.json"
+      }
+    },
+    "D 目录版独立会话状态已采集": {
+      "ok": true,
+      "detail": {
+        "i": 0,
+        "state": "playing",
+        "bgm": null,
+        "run": {
+          "acts": 14,
+          "slots": 9,
+          "animate": true,
+          "err": ""
+        },
+        "protocol": "papergame:"
+      }
+    },
+    "D 在 papergame:// 环境真实运行": {
+      "ok": true,
+      "detail": "{\"protocol\":\"papergame:\",\"state\":\"playing\"}"
+    },
+    "D 正式播放器以动画方式执行演出": {
+      "ok": true,
+      "detail": "{\"acts\":14,\"slots\":9,\"animate\":true,\"err\":\"\"}"
+    },
+    "D 无真实播放失败 / 异常双 BGM": {
+      "ok": true,
+      "detail": "{\"stats\":{\"requested\":4,\"started\":4,\"completed\":3,\"cancelled\":0,\"failed\":0,\"decodeFailed\":0,\"fallback\":1},\"dualBgm\":false}"
+    },
+    "D 与 E 归一化状态一致（剧情索引 / 视觉 / 音频目标 / 演出调度）": {
+      "ok": true,
+      "detail": "{\"D\":{\"state\":\"playing\",\"i\":0,\"hasAudio\":true,\"visual\":{\"cam\":\"translate(0px, 0px) scale(1)\",\"dim\":\"0\"},\"audio\":{\"bgmId\":null,\"buses\":{\"bgm\":1,\"sfx\":1,\"voice\":1},\"ducking\":{\"enabled\":true,\"level\":1,\"attack\":0.2,\"release\":0.6,\"active\":false,\"factor\":1,\"hold\":0},\"dualBgm\":false},\"run\":{\"acts\":14,\"slots\":9,\"animate\":true,\"err\":\"\"}},\"E\":{\"state\":\"playing\",\"i\":0,\"hasAudio\":true,\"visual\":{\"cam\":\"translate(0px, 0px) scale(1)\",\"dim\":\"0\"},\"audio\":{\"bgmId\":null,\"buses\":{\"bgm\":1,\"sfx\":1,\"voice\":1},\"ducking\":{\"enabled\":true,\"level\":1,\"attack\":0.2,\"release\":0.6,\"active\":false,\"factor\":1,\"hold\":0},\"dualBgm\":false},\"run\":{\"acts\":14,\"slots\":9,\"animate\":true,\"err\":\"\"}}}"
+    },
+    "D 会话无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "D": {
+      "i": 0,
+      "state": "playing",
+      "stateNodes": 40,
+      "hasAudio": true,
+      "visual": {
+        "cam": "translate(0px, 0px) scale(1)",
+        "dim": "0",
+        "imgCount": 1
+      },
+      "audio": {
+        "bgmId": null,
+        "bgmPaused": null,
+        "bgmLoop": null,
+        "buses": {
+          "bgm": 1,
+          "sfx": 1,
+          "voice": 1
+        },
+        "ducking": {
+          "enabled": true,
+          "level": 1,
+          "attack": 0.2,
+          "release": 0.6,
+          "active": false,
+          "factor": 1,
+          "hold": 0
+        },
+        "instances": {
+          "bgm": 0,
+          "retiring": 0,
+          "sfx": 0,
+          "voice": 0,
+          "title": 1
+        },
+        "dualBgm": false,
+        "stats": {
+          "requested": 4,
+          "started": 4,
+          "completed": 3,
+          "cancelled": 0,
+          "failed": 0,
+          "decodeFailed": 0,
+          "fallback": 1
+        },
+        "mode": "stream"
+      },
+      "run": {
+        "acts": 14,
+        "slots": 9,
+        "animate": true,
+        "err": ""
+      },
+      "timers": 9,
+      "origin": "papergame://game",
+      "protocol": "papergame:"
+    },
+    "comparison": {
+      "D": {
+        "state": "playing",
+        "i": 0,
+        "hasAudio": true,
+        "visual": {
+          "cam": "translate(0px, 0px) scale(1)",
+          "dim": "0"
+        },
+        "audio": {
+          "bgmId": null,
+          "buses": {
+            "bgm": 1,
+            "sfx": 1,
+            "voice": 1
+          },
+          "ducking": {
+            "enabled": true,
+            "level": 1,
+            "attack": 0.2,
+            "release": 0.6,
+            "active": false,
+            "factor": 1,
+            "hold": 0
+          },
+          "dualBgm": false
+        },
+        "run": {
+          "acts": 14,
+          "slots": 9,
+          "animate": true,
+          "err": ""
+        }
+      },
+      "E": {
+        "state": "playing",
+        "i": 0,
+        "hasAudio": true,
+        "visual": {
+          "cam": "translate(0px, 0px) scale(1)",
+          "dim": "0"
+        },
+        "audio": {
+          "bgmId": null,
+          "buses": {
+            "bgm": 1,
+            "sfx": 1,
+            "voice": 1
+          },
+          "ducking": {
+            "enabled": true,
+            "level": 1,
+            "attack": 0.2,
+            "release": 0.6,
+            "active": false,
+            "factor": 1,
+            "hold": 0
+          },
+          "dualBgm": false
+        },
+        "run": {
+          "acts": 14,
+          "slots": 9,
+          "animate": true,
+          "err": ""
+        }
+      }
+    }
+  },
+  "ok": true
+}

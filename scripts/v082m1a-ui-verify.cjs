@@ -18,7 +18,7 @@ const { spawn } = require('node:child_process');
 const { ROOT, ELECTRON, sleep, freePort, waitPage, connect, kill } = require('./rc2-cdp.cjs');
 
 const DEV = process.env.PVN_DEV === '1';
-const PACKAGED = path.join(ROOT, 'release', 'PaperVNStudio-0.8.1-win-x64', 'PaperVNStudio.exe');
+const PACKAGED = path.join(ROOT, 'release', 'PaperVNStudio-' + require('../package.json').version + '-win-x64', 'PaperVNStudio.exe');
 const SRC = path.join(ROOT, 'release', 'wanfeng-v081rc3', '晚风·循环试听工程');
 /* 副本放在工作区内。fs.cpSync 在本运行环境会被拦截，改为逐文件复制（29 个文件 / 29 MiB）。 */
 const WORK = path.join(ROOT, 'release', 'v082m1a-verify');

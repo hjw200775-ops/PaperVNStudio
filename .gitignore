@@ -57,3 +57,11 @@ backups/
 !release/v082m2b-ui-verify.json
 !release/av-sync-benchmark.json
 !release/runtime-consistency.json
+# V0.8.2-M3B：发布运行时验收的文字证据（不含素材本体 / exe / 38MB 试玩 HTML）
+!release/v082m3b-release-verify.json
+!release/v082m3b-avsync.json
+!release/v082m3b-large-project.json
+!release/v082m3b-packaged-verify.json
+!release/v082m3b-audio-regression.json
+!release/v082m3b-interaction-extra.json
+!release/v082m3b-env-d.json
