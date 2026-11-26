@@ -1,0 +1,147 @@
+{
+  "at": "2026-11-26T16:39:47.153Z",
+  "version": "0.8.2-M3A",
+  "mode": "source-electron",
+  "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m3a\\晚风-M3A一致性副本",
+  "stages": {
+    "编辑器启动": {
+      "ok": true,
+      "detail": {
+        "nodes": 40
+      }
+    },
+    "统一演出测试工程已注入": {
+      "ok": true,
+      "detail": "{\"total\":4,\"n\":8}"
+    },
+    "时间轴预览终态归一化状态已采集": {
+      "ok": true,
+      "detail": {
+        "cam": "translate(0%, 0%) scale(1.35)",
+        "dim": "0.6",
+        "bgm": "bgm_ost_02_morning"
+      }
+    },
+    "普通试玩终态归一化状态已采集": {
+      "ok": true,
+      "detail": {
+        "cam": "translate(0%, 0%) scale(1.35)",
+        "dim": "0.6",
+        "bgm": "bgm_ost_02_morning"
+      }
+    },
+    "视觉终态一致（镜头 transform / 渐暗 opacity 逐字段相等）": {
+      "ok": true,
+      "detail": "{\"tl\":{\"cam\":\"translate(0%, 0%) scale(1.35)\",\"dim\":\"0.6\"},\"play\":{\"cam\":\"translate(0%, 0%) scale(1.35)\",\"dim\":\"0.6\"}}"
+    },
+    "音频终态一致（BGM 素材/音量/循环/总线/Ducking 逐字段相等）": {
+      "ok": true,
+      "detail": "{\"tlAudio\":{\"bgm\":{\"audioId\":\"bgm_ost_02_morning\",\"volume\":0.7,\"loop\":{\"mode\":\"all\",\"start\":0,\"end\":0}},\"buses\":{\"bgm\":0.6},\"ducking\":{\"enabled\":true,\"level\":0.35}},\"playAudio\":{\"bgm\":{\"audioId\":\"bgm_ost_02_morning\",\"volume\":0.7,\"loop\":{\"mode\":\"all\",\"start\":0,\"end\":0}},\"buses\":{\"bgm\":0.6},\"ducking\":{\"enabled\":true,\"level\":0.35}}}"
+    },
+    "音频引擎实际 BGM 与演出目标一致（时间轴 vs 试玩）": {
+      "ok": true,
+      "detail": "{\"tlBgm\":\"bgm_ost_02_morning\",\"playBgm\":\"bgm_ost_02_morning\"}"
+    },
+    "会话无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "timeline": {
+      "cam": "translate(0%, 0%) scale(1.35)",
+      "dim": "0.6",
+      "audio": {
+        "bgm": {
+          "audioId": "bgm_ost_02_morning",
+          "volume": 0.7,
+          "loop": {
+            "mode": "all",
+            "start": 0,
+            "end": 0
+          }
+        },
+        "buses": {
+          "bgm": 0.6
+        },
+        "ducking": {
+          "enabled": true,
+          "level": 0.35
+        }
+      }
+    },
+    "play": {
+      "cam": "translate(0%, 0%) scale(1.35)",
+      "dim": "0.6",
+      "audio": {
+        "bgm": {
+          "audioId": "bgm_ost_02_morning",
+          "volume": 0.7,
+          "loop": {
+            "mode": "all",
+            "start": 0,
+            "end": 0
+          }
+        },
+        "buses": {
+          "bgm": 0.6
+        },
+        "ducking": {
+          "enabled": true,
+          "level": 0.35
+        }
+      }
+    },
+    "timelineBgm": {
+      "audioId": "bgm_ost_02_morning",
+      "itemVolume": 0.699999988079071,
+      "fade": 1,
+      "volume": 0.3359999942779541,
+      "time": 0.4106666666666666,
+      "duration": 41.4,
+      "paused": false,
+      "loop": {
+        "mode": "all",
+        "start": 0,
+        "end": 0
+      },
+      "mode": "precise",
+      "owner": "story",
+      "startedAt": 0.52
+    },
+    "playBgm": {
+      "audioId": "bgm_ost_02_morning",
+      "itemVolume": 1,
+      "fade": 1,
+      "volume": 0.8,
+      "time": 3.309333333333333,
+      "duration": 41.4,
+      "paused": false,
+      "loop": {
+        "mode": "all",
+        "start": 0,
+        "end": 0
+      },
+      "mode": "precise",
+      "owner": "story",
+      "startedAt": 2.6613333333333333
+    }
+  },
+  "classification": {
+    "shared": [
+      "PF.schedule（相对/绝对混排、并行、零时长、同刻多事件的确定性排序）",
+      "PF.stateAt / PF.commit / PF.replay（终态与任意时刻求值）",
+      "A.pure.audioActionSpec（音频动作归一化，三环境共用的副作用入口）"
+    ],
+    "semanticEqual": [
+      "编辑器时间轴预览与普通试玩共享同一份演出计划 + 同一套纯函数，终态逐字段一致",
+      "正式播放器（player.js）与编辑器试玩共用 PF.commit/replay 重放 trail，一致性由 tests/runtime-consistency.test.cjs 固化"
+    ],
+    "notTested": [
+      "正式播放器（player.js）真实窗口逐句推进的发布载体矩阵 —— 交 M3B",
+      "跨节点时间轴、音频裁剪/变速、视频/Live2D —— 本轮不做"
+    ]
+  },
+  "ok": true
+}

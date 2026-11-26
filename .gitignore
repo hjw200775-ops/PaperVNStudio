@@ -55,3 +55,5 @@ backups/
 !release/v082m1b-ui-verify.json
 !release/v082m2a-ui-verify.json
 !release/v082m2b-ui-verify.json
+!release/av-sync-benchmark.json
+!release/runtime-consistency.json

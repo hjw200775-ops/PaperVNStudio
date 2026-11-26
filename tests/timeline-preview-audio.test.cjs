@@ -31,24 +31,27 @@ function acts() {
 function mockRuntime(bgmTime) {
   const calls = [];
   let time = bgmTime == null ? null : bgmTime;
+  let voice = null;
   const rt = {
     applyAudioState(state, options) { calls.push({ type: 'applyAudioState', state, options: options || null }); },
     stopAll() { calls.push({ type: 'stopAll' }); },
-    snapshot() { return { bgm: time == null ? null : { time } }; },
-    setBgmTime(t) { time = t; }
+    voicePlay(spec) { calls.push({ type: 'voicePlay', spec }); },
+    snapshot() { return { bgm: time == null ? null : { time }, voice }; },
+    setBgmTime(t) { time = t; },
+    setVoice(v) { voice = v; }
   };
   return { rt, calls };
 }
 
-function driver(fired, m, actsList) {
-  return createPreviewAudioDriver({
+function driver(fired, m, actsList, opts) {
+  return createPreviewAudioDriver(Object.assign({
     PF, TL, P,
     getActions: () => actsList,
     getLayers: () => [],
     getBefore: () => PF.emptyState(),
     perfAudioAction: (a) => fired.push(a.type),
     runtime: () => m.rt
-  });
+  }, opts || {}));
 }
 
 (async () => {
@@ -126,12 +129,12 @@ function driver(fired, m, actsList) {
     const d = driver(fired, m, acts());
     d.onEvent('previewStart', { t: 2 });
     d.onTick(2);
-    d.onTick(3);                              /* [2,3]：命中 2s sfx */
+    d.onTick(2.2);                            /* [2,2.2]：命中 2s sfx（短步进不触发过期跳过） */
     assert.deepEqual(fired, ['audio.sfx.play'], '第一轮触发 2s sfx');
     d.onEvent('previewLoop', { t: 2 });       /* 回绕到区间起点 */
     assert.ok(m.calls.some((c) => c.type === 'applyAudioState'), '回绕时重建起点状态');
     d.onTick(2);
-    d.onTick(3);                              /* [2,3]：再次命中 2s sfx */
+    d.onTick(2.2);                            /* [2,2.2]：再次命中 2s sfx */
     assert.equal(fired.filter((t) => t === 'audio.sfx.play').length, 2, '回绕后区间内 sfx 重新触发');
   }
 
@@ -167,12 +170,54 @@ function driver(fired, m, actsList) {
     const fired = [], m = mockRuntime();
     const d = driver(fired, m, acts());
     d.onEvent('previewStart', { t: 0 });
-    d.onTick(6);                              /* 触发 0/2/4 事件 */
+    d.onTick(2);                              /* [0,2]：0s bgm + 2s sfx */
+    d.onTick(4);                              /* (2,4]：4s sfx */
+    d.onTick(6);                              /* (4,6]：6s voice */
     d.onEvent('previewEnd', { t: 8.5 });      /* 结束时补扫 (6, 8.5] */
     assert.ok(fired.includes('audio.voice.play'), '结束补扫命中 6s voice');
     assert.ok(fired.includes('audio.bgm.crossfade'), '结束补扫命中 8s crossfade');
     assert.equal(d.debug().active, false);
   }
 
-  console.log('PASS: 预览音频驱动（任意时间开始/区间触发/历史不重放/暂停offset恢复/循环复位/seek/停止/结束补扫）与 audioSideEffectsBetween 区间语义');
+  /* 9. Voice 暂停恢复：暂停保存位置，继续续播剩余部分（不再从头重播） */
+  {
+    const fired = [], m = mockRuntime();
+    const d = driver(fired, m, acts());
+    m.rt.setVoice({ audioId: 'v1', time: 2.5, duration: 8, paused: false });
+    d.onEvent('previewStart', { t: 0 });
+    d.onEvent('previewPause', { t: 6 });
+    d.onEvent('previewResume', { t: 6 });
+    const vp = m.calls.filter((c) => c.type === 'voicePlay');
+    assert.equal(vp.length, 1, '暂停后继续恢复正在播的 Voice');
+    assert.equal(vp[0].spec.audioId, 'v1', '恢复同一条 Voice');
+    assert.ok(Math.abs(vp[0].spec.offset - 2.5) < 0.001, 'Voice 从暂停位置续播剩余部分');
+  }
+
+  /* 10. 严重过期的一次性音频跳过补发，持久状态命令仍恢复 */
+  {
+    const fired = [], m = mockRuntime();
+    const d = driver(fired, m, acts());
+    d.onEvent('previewStart', { t: 0 });
+    d.onTick(3.0);                            /* 掉帧跨到 3s：2s sfx 已过期 >500ms */
+    assert.ok(!fired.includes('audio.sfx.play'), '严重过期的一次性 SFX 不补发');
+    assert.ok(fired.includes('audio.bgm.play'), '持久状态 BGM 仍触发');
+    assert.ok(d.debug().skippedStale >= 1, '跳过被记录（不静默）');
+  }
+
+  /* 11. 音画同步采样：计划时间 vs 实际派发时间偏差统计 */
+  {
+    let wall = 0;
+    const fired = [], m = mockRuntime();
+    const d = driver(fired, m, acts(), { now: () => wall });
+    d.onEvent('previewStart', { t: 0 });      /* startWall=0, startT=0 */
+    wall = 16; d.onTick(0.016);               /* 0s bgm：drift=16ms */
+    wall = 2016; d.onTick(2.016);             /* 2s sfx：expected=2000，drift=16ms */
+    wall = 4016; d.onTick(4.016);             /* 4s sfx：drift=16ms */
+    const st = d.syncStats();
+    assert.equal(st.count, 3, '采集 3 个同步样本');
+    assert.ok(Math.abs(st.meanMs - 16) < 1, '平均偏差约 16ms（受控时钟）');
+    assert.ok(st.p95Ms <= 20, 'P95 偏差在预期内');
+  }
+
+  console.log('PASS: 预览音频驱动（任意时间开始/区间触发/历史不重放/暂停offset恢复/Voice暂停续播/严重过期跳过/同步采样统计/循环复位/seek/停止/结束补扫）与 audioSideEffectsBetween 区间语义');
 })().catch((e) => { console.error('FAIL:', e.stack || e.message); process.exit(1); });

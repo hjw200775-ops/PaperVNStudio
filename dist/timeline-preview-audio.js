@@ -27,9 +27,12 @@ function createPreviewAudioDriver(opts) {
   const rt = o.runtime || (() => null);
   const hint = o.hint || (() => {});
   const now = o.now || (() => Date.now());
-  let active = false, lastT = 0, boundaryInclusive = false, bgmOffset = 0;
-  const dbg = { applies: 0, fired: 0, oneShots: 0, stateEvents: 0, stops: 0,
-    last: '', err: '', lastT: 0, active: false, bgmOffset: 0, recent: [] };
+  let active = false, lastT = 0, boundaryInclusive = false, bgmOffset = 0, voiceResume = null;
+  let startWall = 0, startT = 0, anchorSet = false;   /* 音画同步锚点：预览起播时的墙钟与计划时间 */
+  const syncSamples = [];                 /* 每个音频事件的计划时间 vs 实际派发时间偏差 */
+  const STALE_MS = 500;                   /* 一次性音频的「严重过期」阈值：超过则不补发 */
+  const dbg = { applies: 0, fired: 0, oneShots: 0, stateEvents: 0, stops: 0, skippedStale: 0,
+    last: '', err: '', lastT: 0, active: false, bgmOffset: 0, voiceResume: null, recent: [] };
 
   function currentRuntime() { try { return rt(); } catch (e) { return null; } }
 
@@ -58,17 +61,35 @@ function createPreviewAudioDriver(opts) {
   function inRange(start, from, to, inclusive) {
     return inclusive ? (start >= from && start <= to) : (start > from && start <= to);
   }
+  function recordSync(planned) {
+    if (!anchorSet) return;
+    const dispatched = now();
+    const expected = startWall + (planned - startT) * 1000;
+    syncSamples.push({ planned: +planned.toFixed(3), driftMs: +(dispatched - expected).toFixed(2) });
+    if (syncSamples.length > 4000) syncSamples.shift();
+  }
   function scan(from, to, inclusive) {
     const slots = audioSlotsSorted();
     let fired = 0;
     for (const s of slots) {
       if (!inRange(s.start, from, to, inclusive)) continue;
+      const oneShot = TL.isOneShotAudio(s.action.type);
+      /* 掉帧恢复后「严重过期」的一次性音频跳过补发，避免渲染恢复瞬间播放大量历史音效。
+         持久状态命令（BGM/总线音量/循环/Ducking）永远不跳过，恢复到当前正确状态；
+         短时掉帧（≤ STALE_MS）仍按「执行」规则补触发，不无声遗漏。 */
+      if (oneShot && anchorSet && (to - s.start) * 1000 > STALE_MS) {
+        dbg.skippedStale++;
+        dbg.recent.push({ type: s.action.type, planned: +s.start.toFixed(3), wall: now(), skipped: 'stale' });
+        if (dbg.recent.length > 60) dbg.recent.shift();
+        continue;
+      }
       try {
         perfAudioAction(s.action);
         fired++; dbg.last = s.action.type;
+        recordSync(s.start);
         dbg.recent.push({ type: s.action.type, planned: +s.start.toFixed(3), wall: now() });
         if (dbg.recent.length > 60) dbg.recent.shift();
-        if (TL.isOneShotAudio(s.action.type)) dbg.oneShots++; else dbg.stateEvents++;
+        if (oneShot) dbg.oneShots++; else dbg.stateEvents++;
       } catch (e) { dbg.err = String((e && e.message) || e); }
     }
     dbg.fired += fired;
@@ -78,7 +99,23 @@ function createPreviewAudioDriver(opts) {
     const r = currentRuntime();
     if (!r) return;
     if (recordPos) {
-      try { const snap = r.snapshot(); if (snap && snap.bgm && Number.isFinite(snap.bgm.time)) bgmOffset = Number(snap.bgm.time) || 0; } catch (e) {}
+      try {
+        const snap = r.snapshot();
+        if (snap && snap.bgm && Number.isFinite(snap.bgm.time)) bgmOffset = Number(snap.bgm.time) || 0;
+        /* M3A：暂停即保存正在播的 Voice 位置，继续时续播剩余部分（不再从头重播）。 */
+        if (snap && snap.voice && snap.voice.audioId && Number.isFinite(snap.voice.time)) {
+          const acts = getActions() || [];
+          const va = acts.find((a) => a && a.type === 'audio.voice.play' && a.params && a.params.audioId === snap.voice.audioId);
+          voiceResume = {
+            audioId: snap.voice.audioId,
+            offset: Number(snap.voice.time) || 0,
+            volume: va && Number.isFinite(va.params.volume) ? va.params.volume / 100 : 1,
+            duck: !(va && va.params.duck === false)
+          };
+        } else voiceResume = null;
+      } catch (e) {}
+    } else {
+      voiceResume = null;
     }
     try { r.stopAll(); } catch (e) { dbg.err = String((e && e.message) || e); }
     dbg.stops++; hint();
@@ -88,27 +125,41 @@ function createPreviewAudioDriver(opts) {
     const t = Number(e && e.t) || 0;
     switch (name) {
       case 'previewStart':                 /* 从头或任意时间开始：落地状态、起点事件首个推进命中 */
-        active = true; lastT = t; boundaryInclusive = true; bgmOffset = 0;
+        active = true; lastT = t; boundaryInclusive = true; bgmOffset = 0; voiceResume = null;
+        syncSamples.length = 0;            /* 全新播放会话：清空上一会话的同步样本，冷/热态独立统计 */
+        startWall = now(); startT = t; anchorSet = true;
         applyStateAt(t);
         break;
-      case 'previewResume':                /* 继续：按暂停时记录的位置恢复 BGM */
+      case 'previewResume':                /* 继续：按暂停时记录的位置恢复 BGM，并续播 Voice 剩余部分 */
         active = true; lastT = t; boundaryInclusive = true;
+        if (voiceResume) {
+          const r = currentRuntime();
+          if (r && typeof r.voicePlay === 'function') {
+            try {
+              r.voicePlay({ audioId: voiceResume.audioId, volume: voiceResume.volume, duck: voiceResume.duck, offset: voiceResume.offset });
+            } catch (e2) { dbg.err = String((e2 && e2.message) || e2); }
+          }
+          voiceResume = null;
+        }
+        startWall = now(); startT = t; anchorSet = true;
         applyStateAt(t, bgmOffset);
         break;
       case 'previewSeek':                  /* 拖动定位：只落状态音频，绝不重放一次性事件 */
-        lastT = t; boundaryInclusive = false;
+        lastT = t; boundaryInclusive = false; voiceResume = null;
+        startWall = now(); startT = t; anchorSet = true;
         applyStateAt(t);
         break;
       case 'previewLoop':                  /* 区间回绕到 a：重建 a 时刻状态，区间内事件下一轮重新触发 */
-        active = true; lastT = t; boundaryInclusive = true; bgmOffset = 0;
+        active = true; lastT = t; boundaryInclusive = true; bgmOffset = 0; voiceResume = null;
+        startWall = now(); startT = t; anchorSet = true;
         applyStateAt(t);
         break;
-      case 'previewPause':                 /* 暂停：画面冻结，音频同步停，记录 BGM 位置供继续恢复 */
+      case 'previewPause':                 /* 暂停：画面冻结，音频同步停，记录 BGM/Voice 位置供继续恢复 */
         active = false;
         stopAudio(true);
         break;
       case 'previewStop':                  /* 停止：清理本预览全部播放任务，恢复起点，无残留声音 */
-        active = false; lastT = 0; boundaryInclusive = false; bgmOffset = 0;
+        active = false; lastT = 0; boundaryInclusive = false; bgmOffset = 0; voiceResume = null;
         stopAudio(false);
         break;
       case 'previewEnd':                   /* 自动结束：补扫最后一段，一次性音频自然收尾 */
@@ -117,7 +168,7 @@ function createPreviewAudioDriver(opts) {
         break;
       default: break;
     }
-    dbg.lastT = lastT; dbg.active = active; dbg.bgmOffset = bgmOffset;
+    dbg.lastT = lastT; dbg.active = active; dbg.bgmOffset = bgmOffset; dbg.voiceResume = voiceResume ? { ...voiceResume } : null;
   }
   function onTick(t) {
     if (!active) return;
@@ -128,7 +179,15 @@ function createPreviewAudioDriver(opts) {
     boundaryInclusive = false;
     dbg.lastT = lastT;
   }
-  function dispose() { active = false; lastT = 0; boundaryInclusive = false; bgmOffset = 0; stopAudio(false); }
-  return { onEvent, onTick, dispose, debug: () => ({ ...dbg }) };
+  function syncStats() {
+    if (!syncSamples.length) return { count: 0, meanMs: 0, p50Ms: 0, p95Ms: 0, maxMs: 0, minMs: 0 };
+    const d = syncSamples.map((s) => Math.abs(s.driftMs)).sort((a, b) => a - b);
+    const n = d.length;
+    const mean = d.reduce((a, b) => a + b, 0) / n;
+    const q = (p) => d[Math.min(n - 1, Math.ceil(p * n) - 1)];
+    return { count: n, meanMs: +mean.toFixed(2), p50Ms: +q(0.5).toFixed(2), p95Ms: +q(0.95).toFixed(2), maxMs: +d[n - 1].toFixed(2), minMs: +d[0].toFixed(2) };
+  }
+  function dispose() { active = false; lastT = 0; boundaryInclusive = false; bgmOffset = 0; voiceResume = null; stopAudio(false); }
+  return { onEvent, onTick, dispose, syncStats, debug: () => ({ ...dbg, sync: syncStats(), syncSamples: syncSamples.slice(-200) }) };
 }
 if (typeof module !== 'undefined') module.exports = createPreviewAudioDriver;

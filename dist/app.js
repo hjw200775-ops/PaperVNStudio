@@ -2464,6 +2464,7 @@ function initTimelinePanel() {
     getBefore: () => timelineBaseline(),
     perfAudioAction: (a) => perfAudioAction(a),
     runtime: () => runtime(),
+    now: () => (typeof performance !== 'undefined' ? performance.now() : Date.now()),
     hint: () => timelineAudioHint()
   });
   timelinePanel = createTimelinePanel({

@@ -1111,6 +1111,10 @@ function createPaperAudio(){
    const ch=channel('voice',spec.audioId,spec.volume,false,label);
    if(!ch)return {ok:false};
    voice=ch;
+   /* M3A：暂停后继续——从保存的位置续播剩余部分（HTMLAudioElement 用 currentTime 恢复，
+      与 BGM 的 applyAudioState offset 同源语义）。不传 offset 时行为与之前逐字节一致。 */
+   const offset=Math.max(0,Number(spec.offset)||0);
+   if(offset>0)try{ch.el.currentTime=offset}catch{}
    ch.el.onended=()=>{if(voice!==ch)return;voice=null;duckPop();noteAudio({kind:'play-completed',cat:'voice',audioId:ch.audioId});emit()};
    if(spec.duck!==false)duckPush();
    start(ch,myGen).then(r=>{if(!r.ok&&voice===ch){voice=null;duckPop()}});

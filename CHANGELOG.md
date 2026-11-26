@@ -1,5 +1,38 @@
 # 更新日志
 
+## V0.8.2-M3-A — 演出调度一致性与同步精度修复（2026-11-27）
+
+基线 `777a6b3`（M2-B），分支 `feature/v0.8.2-timeline`。冻结模块核心语义未改
+（`performance.js` 调度与求值 / `player.js` / `core.js` 迁移 / V0.7.6 资源存储）。
+`audio.js` 仅最小扩展 `voicePlay(spec.offset)`（暂停后续播 Voice 剩余部分，向后兼容）。
+
+- **架构审查（M3A-0）**：确认三套运行环境（时间轴预览 / 普通试玩 / 正式播放器）共享
+  `PF.schedule` / `PF.stateAt` / `PF.blockUntil` / `A.pure.audioActionSpec`；三份 `perfAudioAction`
+  逐字节等价但独立存在，用一致性契约测试固化，不强行合并。
+- **音画同步精度实测（M3A-1）**：`scripts/v082m3a-avsync.cjs` 分层采集计划时间/JS 派发时间/
+  AudioContext 排程/在线音频图 RMS；**前台热态 P95=9.1ms（≤ 50ms 达标）**，冷态 8.7ms、
+  掉帧 55.3ms、受限（throttling×4）11.3ms 单独统计；测量仅覆盖在线音频图 + 渲染层。
+- **掉帧处理（M3A-2）**：一次性音频短时掉帧（≤ 500ms）补触发、严重过期跳过并记录 `skippedStale`；
+  持久状态命令永远恢复到当前正确状态；预览驱动新增同步采样统计（P50/P95/max）。
+- **Voice 暂停续播（M3A-3）**：`voicePlay(spec.offset)` 从保存位置续播剩余部分；预览驱动暂停时
+  保存 Voice 位置与 duck 参数，继续时续播而非从头重播。
+- **BGM 状态恢复（M3A-4）**：precise `AudioBufferSourceNode.start(when, offset)` / stream `currentTime`
+  恢复；同曲不重启；`dualBgm` 检测合法交叉淡化单源不误报、precise+stream 异常残留可检出。
+- **跨运行时一致性（M3A-5）**：`tests/runtime-consistency.test.cjs` + `scripts/v082m3a-runtime-consistency.cjs`
+  固化调度确定性、终态逐字段一致、边界语义（t=0/start/end/回退）、音频序列、阻塞推进；
+  真实窗口里时间轴 seek 终态与普通试玩播完终态视觉/音频逐字段一致。
+- **剧情交互一致性（M3A-6）**：阻塞结算、快进/读档重放 trail、历史一次性音频不重放、
+  分支代际取消、BGM 跨句沿用语义保持不变（本轮不做跨节点时间轴）。
+- **严格负向验收（M3A-7）**：保留 V0.8.1-RC3.1 严格播放验收；新增 `audio-bgm-restore.test.cjs`
+  负向/边界用例（真正失败必被发现、合法取消不误报、过期跳过、dualBgm 残留、offset 恢复）。
+- 新增 `tests/runtime-consistency.test.cjs`、`tests/audio-bgm-restore.test.cjs`、扩展
+  `tests/timeline-preview-audio.test.cjs`（Voice 续播/过期跳过/同步采样）；新增
+  `scripts/v082m3a-avsync.cjs`、`scripts/v082m3a-runtime-consistency.cjs`；
+  `release/av-sync-benchmark.json`、`release/runtime-consistency.json`、
+  `docs/V0.8.2_M3A_ACCEPTANCE.md`、`docs/V0.8.2_M3B_HANDOFF.md`。
+- `npm run check` 全绿；两个真实窗口脚本 PASS。
+- **V0.8.2-M3A 核心演出调度与同步技术验收通过，完整发布载体验收留待 M3B。**
+
 ## V0.8.2-M2-B — 时间轴实时音视频同步预览（2026-11-26）
 
 基线 `186cc0f`（M2-A），分支 `feature/v0.8.2-timeline`。冻结模块核心语义未改

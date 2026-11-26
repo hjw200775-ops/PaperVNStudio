@@ -1,0 +1,212 @@
+{
+  "at": "2026-11-26T16:41:57.320Z",
+  "version": "0.8.2-M3A",
+  "mode": "source-electron",
+  "scope": "在线音频图 + 渲染层（不含扬声器/声卡回环输出）",
+  "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m3a\\晚风-M3A同步测试副本",
+  "stages": {
+    "编辑器启动": {
+      "ok": true,
+      "detail": {
+        "nodes": 40
+      }
+    },
+    "启用声音（真实用户手势）": {
+      "ok": true,
+      "detail": "{\"ok\":true,\"message\":\"声音已启用\"}"
+    },
+    "同步测试节点已注入（12 组视觉标志 + 短促 SFX）": {
+      "ok": true,
+      "detail": "{\"total\":7.45,\"n\":25,\"sfx\":12}"
+    },
+    "冷态首次播放：音频事件按时间轴触发（SFX 样本充足）": {
+      "ok": true,
+      "detail": "{\"fired\":12,\"sync\":{\"count\":12,\"meanMs\":8.68,\"p50Ms\":8.8,\"p95Ms\":9.4,\"maxMs\":9.4,\"minMs\":6}}"
+    },
+    "冷态同步偏差（单独统计，不混入热态）": {
+      "ok": true,
+      "detail": {
+        "count": 12,
+        "meanMs": 8.68,
+        "p50Ms": 8.8,
+        "p95Ms": 9.4,
+        "maxMs": 9.4,
+        "minMs": 6
+      }
+    },
+    "热态正常：音频事件持续按时间轴触发（≥30 样本、无失败、无双 BGM）": {
+      "ok": true,
+      "detail": "{\"count\":34,\"failed\":false,\"dualBgm\":false,\"fired\":46}"
+    },
+    "热态正常音画同步 P95 ≤ 50ms（主指标）": {
+      "ok": true,
+      "detail": "{\"p95\":10.6,\"p50\":0.8,\"mean\":2.23,\"max\":10.6,\"n\":34}"
+    },
+    "在线音频图持续有输出（RMS 非零采样点，真实发声）": {
+      "ok": true,
+      "detail": "{\"rmsSamples\":[0.0072,0.0367,0.0029,0.0629,0.1107,0.0196,0.0513,0.0678]}"
+    },
+    "短时掉帧后：渲染恢复、事件不静默遗漏（补触发或明确记录跳过）": {
+      "ok": true,
+      "detail": "{\"before\":50,\"after\":53,\"skipped\":0}"
+    },
+    "短时掉帧同步偏差（单独统计）": {
+      "ok": true,
+      "detail": {
+        "count": 6,
+        "meanMs": 10.8,
+        "p50Ms": 2,
+        "p95Ms": 55.2,
+        "maxMs": 55.2,
+        "minMs": 1.7
+      }
+    },
+    "受限环境（CPU throttling×4）同步偏差（单独统计，不混入热态）": {
+      "ok": true,
+      "detail": {
+        "throttled": true,
+        "count": 13,
+        "meanMs": 2.7,
+        "p50Ms": 2.4,
+        "p95Ms": 3.9,
+        "maxMs": 3.9,
+        "minMs": 1.9
+      }
+    },
+    "会话无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "cold": {
+      "elapsedMs": 7559,
+      "sync": {
+        "count": 12,
+        "meanMs": 8.68,
+        "p50Ms": 8.8,
+        "p95Ms": 9.4,
+        "maxMs": 9.4,
+        "minMs": 6
+      },
+      "fired": 12,
+      "skippedStale": 0,
+      "rms": [
+        0.05601,
+        0.07419,
+        0.05694,
+        0.08229,
+        0.08088
+      ]
+    },
+    "hot": {
+      "elapsedMs": 21854,
+      "sync": {
+        "count": 34,
+        "meanMs": 2.23,
+        "p50Ms": 0.8,
+        "p95Ms": 10.6,
+        "maxMs": 10.6,
+        "minMs": 0.5
+      },
+      "fired": 46,
+      "oneShots": 45,
+      "skippedStale": 0,
+      "loopCount": 3,
+      "rms": [
+        0.0072,
+        0.0367,
+        0.0029,
+        0.0629,
+        0.1107,
+        0.0196,
+        0.0513,
+        0.0678,
+        0.0663,
+        0.0124,
+        0.029,
+        0.0357,
+        0.0088,
+        0.0362
+      ],
+      "dualBgm": false,
+      "failed": false
+    },
+    "drop": {
+      "beforeFired": 50,
+      "fired": 53,
+      "skippedStale": 0,
+      "sync": {
+        "count": 6,
+        "meanMs": 10.8,
+        "p50Ms": 2,
+        "p95Ms": 55.2,
+        "maxMs": 55.2,
+        "minMs": 1.7
+      },
+      "recent": [
+        {
+          "type": "audio.bgm.play",
+          "planned": 0,
+          "wall": 30615.39999999106
+        },
+        {
+          "type": "audio.sfx.play",
+          "planned": 0.6,
+          "wall": 31215.5
+        },
+        {
+          "type": "audio.sfx.play",
+          "planned": 1.2,
+          "wall": 31815.69999998808
+        },
+        {
+          "type": "audio.sfx.play",
+          "planned": 1.8,
+          "wall": 32469
+        },
+        {
+          "type": "audio.sfx.play",
+          "planned": 2.4,
+          "wall": 33015.79999999702
+        },
+        {
+          "type": "audio.sfx.play",
+          "planned": 3,
+          "wall": 33615.69999998808
+        }
+      ]
+    },
+    "throttled": {
+      "throttled": true,
+      "sync": {
+        "count": 13,
+        "meanMs": 2.7,
+        "p50Ms": 2.4,
+        "p95Ms": 3.9,
+        "maxMs": 3.9,
+        "minMs": 1.9
+      },
+      "fired": 66,
+      "skippedStale": 0
+    },
+    "layers": {
+      "l1_plan": "driver.sync.planned（时间轴计划秒）",
+      "l2_dispatch": "driver.sync.driftMs（performance.now() 派发 − 预期墙钟）",
+      "l3_audioContext": "流式 HTMLAudioElement（无采样级排程）",
+      "l4_onlineRms": "AnalyserNode 时域 RMS（总线后/master 前）",
+      "graph": {
+        "state": "running",
+        "sampleRate": 48000,
+        "baseLatency": 0.01
+      },
+      "mode": "stream",
+      "preciseReason": ""
+    }
+  },
+  "goal": {
+    "hotP95Ms": 50
+  },
+  "ok": true
+}
