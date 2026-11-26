@@ -1,5 +1,38 @@
 # 更新日志
 
+## V0.8.2-M2-A — 音频波形与时间轴预览基础（2026-11-26）
+
+基线 `941dc00`（M1-B），分支 `feature/v0.8.2-timeline`。冻结模块未改
+（`audio.js` 核心 / `player.js` / `performance.js` 核心调度与求值 / `core.js` 迁移 / V0.7.6 资源存储）。
+
+- **波形数据层** `dist/timeline-waveform.js`：复用 `runtime().decodeWaveform` 生成真实峰值摘要
+  （min/max、时长、采样率、声道、SHA-256 内容标识）；懒加载、串行请求避免 `loadSeq` 互判 stale、
+  重复素材复用、加载中/失败标记、过期结果丢弃、切节点 scope、2 MiB 摘要缓存上限、长素材降 bins、
+  超预算拒绝；只缓存摘要不存 PCM，不绕过 64 MiB 音频缓存。
+- **波形显示**：BGM/SFX/Voice 片段内 Canvas；**时间轴 1 秒 = 素材 1 秒**，BGM 淡入不压缩整曲、
+  不暗示裁剪/变速；超素材时长标注「持续/循环」；淡入淡出遮罩；零时长事件保留 `◆` 并展示素材时长；
+  随缩放/滚动/移动/拉伸/折叠/素材替换/删除/撤销更新，`relayout()` 不重建片段 DOM。
+- **预览控制器** `dist/timeline-preview.js`：`idle/playing/paused/stopped/ended`，单调时钟
+  （`anchorT + (now-anchorWall)/1000`，不累加固定帧增量）；播放/暂停/继续/停止/重播/任意起点/
+  自动结束；单个 rAF 幂等；帧率与最差帧统计；不写工程、不建撤销。
+- **连续视觉预览**：每帧 `stateAt()` 从进入前状态重算 + `applyDOM()`；终态与直接定位一致、
+  反复播放无漂移、循环复位重新求值、不触发历史音频副作用。
+- **区间循环**：编辑器临时视图状态，不写工程、不混入 BGM 素材循环配置；区间高亮、循环重算。
+  明确区分 A 时间轴演出循环预览与 B BGM 素材精确音乐循环。
+- **界面**：播放/暂停/停止/重播/起点、区间循环、自动跟随、区间设置与清除、状态/时间/总时长；
+  Space / Esc / Home 遵守焦点规则；播放头边缘自动滚动、用户滚动缩放后抑制跟随；每帧不重建片段 DOM。
+- **稳定性**：播放中编辑/撤销/删除/切节点停止旧计划并递增代际；`dispose()` 释放 rAF、
+  波形缓存与全部全局监听器；不产生多个并行控制器，不影响游戏试玩。
+- **M2B 接口准备**：`previewStart/Pause/Resume/Seek/Stop/Loop/End` 只 emit 不执行音频；
+  界面标注「当前为视觉连续预览，完整音频同步将在 M2B 接入」。
+- 新增 `tests/timeline-waveform.test.cjs`（10 组）、`tests/timeline-preview.test.cjs`（12 组）、
+  `scripts/v082m2a-ui-verify.cjs`、`release/v082m2a-ui-verify.json`、6 张截图、
+  `docs/V0.8.2_M2A_ACCEPTANCE.md`、`docs/V0.8.2_M2B_HANDOFF.md`。
+- `npm run check` 全绿、`packaged-smoke` PASS、最终便携版实机验收通过；真实波形摘要 41.4s
+  与素材一致、canvas 非零像素 25072；播放 fps≈100；区间循环 ≥10 次；100 动作渲染 ≈18ms；
+  连续启停 100 次无重复 rAF；连续循环预览 5 分钟以上真实采样。
+- **V0.8.2-M2A 技术验收通过，完整音视频同步留待 M2B**；完成后立即停止，未提前宣布 M2 整体完成。
+
 ## V0.8.2-M1-B — 多轨时间轴编辑交互完善（2026-11-26）
 
 基线 `0720e48`（M1-A），分支 `feature/v0.8.2-timeline`。单节点作用域不变，冻结模块未改

@@ -32,6 +32,8 @@ const ALLOWED = {
   '/loop-audition.js': 'text/javascript; charset=utf-8',
   '/timeline.js': 'text/javascript; charset=utf-8',
   '/timeline-panel.js': 'text/javascript; charset=utf-8',
+  '/timeline-waveform.js': 'text/javascript; charset=utf-8',
+  '/timeline-preview.js': 'text/javascript; charset=utf-8',
   '/desktop-bridge.js': 'text/javascript; charset=utf-8'
 };
 

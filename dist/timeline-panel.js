@@ -15,7 +15,11 @@ function createTimelinePanel(opts) {
   const TL = opts.TL, PF = opts.PF;
   const LABEL_W = 92;                        // 左侧轨道名列宽（与 CSS 保持一致）
   const MIN_PPS = 1, MAX_PPS = 4000;         // 1px/s 可总览 300s+，4000px/s 可精修 0.5s
+  const AUDIO_TRACKS = ['BGM', 'SFX', 'Voice'];
   const lanes = opts.lanes, panel = opts.panel;
+  /* M2A：波形摘要由 app.js 注入（走 runtime().decodeWaveform 与 64 MiB 缓存），
+     预览控制器只管单调时钟/状态/区间，不执行音频副作用。 */
+  const waves = opts.waves || createWaveformCache({ decode: opts.decodeWaveform, assetOf: opts.assetOf });
   const drag = TL.createDragSession();
   const resize = TL.createResizeSession();
   const batch = TL.createBatchDragSession();
@@ -37,6 +41,17 @@ function createTimelinePanel(opts) {
   let scrubActive = false, scrubPointer = null;
   let activeClip = null, activePointer = null, interaction = null, lastAlt = false;
   let snapTarget = null, panelFocused = false;
+  /* M2A 状态：波形元数据、render 代际（丢弃过期波形结果）、用户滚动抑制、可释放监听器 */
+  let waveInfo = new Map(), renderGen = 0, userScrollUntil = 0, disposed = false;
+  const domListeners = [];
+  let rangeEl = null;
+  const preview = createPreviewController({
+    now: () => (typeof performance !== 'undefined' ? performance.now() : Date.now()),
+    total: () => total,
+    onTick: (t) => onPreviewTick(t),
+    onState: (s) => onPreviewState(s),
+    onEvent: (name, e) => { if (opts.onPreviewEvent) opts.onPreviewEvent(name, e); }
+  });
 
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const fmt = (v) => Number(v || 0).toFixed(2);
@@ -58,6 +73,177 @@ function createTimelinePanel(opts) {
   }
   function xOf(t) { return LABEL_W + t * pps; }      /* content 坐标：刻度 / 播放头 / 参考线 */
   function clipX(t) { return t * pps; }               /* 轨道 body 坐标：片段（body 已偏移 LABEL_W） */
+  function wallNow() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
+  /* 可释放的全局监听器登记（dispose 时全部移除，避免残留 rAF 之外的监听器） */
+  function listen(target, type, fn, options) {
+    target.addEventListener(type, fn, options);
+    domListeners.push({ target, type, fn, options });
+  }
+
+  /* ---------- M2A · 波形（真实音频摘要，按时间轴时间映射，不压缩/不裁剪） ---------- */
+  function waveMeta(ev) {
+    const p = (ev.action && ev.action.params) || {};
+    const audioId = String(p.audioId || '');
+    if (!audioId || AUDIO_TRACKS.indexOf(ev.track) < 0) return null;
+    const isBgm = ev.track === 'BGM';
+    return {
+      audioId, duration: ev.duration,
+      fadeIn: Math.max(0, Number(p.fadeIn) || 0),
+      fadeOut: Math.max(0, Number(p.fadeOut) || 0),
+      kind: ev.duration > 0 ? (isBgm ? 'bgm' : 'oneshot') : 'zero',
+      loopMode: String(p.loopMode || ''),
+      loopStart: Number(p.loopStart) || 0, loopEnd: Number(p.loopEnd) || 0
+    };
+  }
+  function clipWidthPx(clip) {
+    const r = clip && clip.getBoundingClientRect ? clip.getBoundingClientRect().width : 0;
+    return Math.max(1, Math.round(r || parseFloat(clip && clip.style.width) || 1));
+  }
+  function drawWave(clip) {
+    const id = clip.dataset.tlClip, info = waveInfo.get(id);
+    const cv = clip && clip.querySelector ? clip.querySelector('.tl-wave') : null;
+    if (!info || !cv || !clip.isConnected) return;
+    const w = clipWidthPx(clip), h = 20, dpr = 2;
+    cv.width = Math.max(1, w * dpr); cv.height = h * dpr;
+    cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    const g = cv.getContext('2d');
+    if (!g) return;
+    g.clearRect(0, 0, cv.width, cv.height);
+    const s = waves.peek(info.audioId);
+    /* 零时长瞬时事件：保留 ◆ 标记，用标签/提示展示素材真实时长，不画误导性的窄波形 */
+    if (info.kind === 'zero') {
+      clip.dataset.waveState = 'event';
+      if (s && s.ok) {
+        clip.dataset.waveDuration = String(s.duration);
+        if (!clip.dataset.waveTitled) {
+          clip.title += ' · 素材总时长 ' + Number(s.duration).toFixed(2) + 's（瞬时触发）';
+          clip.dataset.waveTitled = '1';
+        }
+      }
+      g.clearRect(0, 0, cv.width, cv.height);
+      return;
+    }
+    if (!s || !s.ok) {
+      g.fillStyle = 'rgba(60,90,70,.30)';
+      g.fillRect(0, h * dpr / 2 - 1, cv.width, 2);
+      g.fillStyle = 'rgba(55,80,64,.85)';
+      g.font = (9 * dpr) + 'px monospace';
+      g.fillText(s && !s.ok ? '波形不可用（按普通片段显示）' : '波形生成中…', 4 * dpr, 13 * dpr);
+      return;
+    }
+    const assetDur = Math.max(0.001, s.duration);
+    /* 时间轴 1 秒 = 素材 1 秒：BGM 淡入 1s 只显示素材开头 1s 的真实波形，
+       绝不把 40s 音乐压缩进 1s，也不暗示音频裁剪/变速。 */
+    const wpx = Math.min(w, Math.max(1, Math.ceil(assetDur * pps)));
+    g.fillStyle = 'rgba(20,55,38,.66)';
+    for (let px = 0; px < wpx; px++) {
+      const tSec = px / pps;
+      const idx = Math.min(s.bins - 1, Math.max(0, Math.floor(tSec / assetDur * s.bins)));
+      const amp = s.peaks[idx] || 0;
+      const hh = Math.max(0.6, amp * (h * dpr / 2 - 1.5));
+      g.fillRect(px * dpr, h * dpr / 2 - hh, Math.max(1, dpr), hh * 2);
+    }
+    if (w > wpx) {
+      g.fillStyle = 'rgba(60,90,70,.10)';
+      g.fillRect(wpx * dpr, 0, (w - wpx) * dpr, h * dpr);
+      g.strokeStyle = 'rgba(60,90,70,.25)'; g.lineWidth = dpr;
+      for (let x = wpx; x < w; x += 8) {
+        g.beginPath(); g.moveTo(x * dpr, h * dpr); g.lineTo(Math.min(w, x + 6) * dpr, 0); g.stroke();
+      }
+      g.fillStyle = 'rgba(40,70,50,.8)'; g.font = (8 * dpr) + 'px monospace';
+      g.fillText(info.kind === 'bgm' ? '持续 / 循环' : '素材已结束', (wpx + 3) * dpr, 13 * dpr);
+    }
+    /* 淡入 / 淡出只画半透明遮罩，明确区分淡变时长与素材时长 */
+    if (info.fadeIn > 0) {
+      const fw = Math.min(wpx * dpr, info.fadeIn * pps * dpr);
+      const grad = g.createLinearGradient(0, 0, Math.max(1, fw), 0);
+      grad.addColorStop(0, 'rgba(255,255,255,.48)'); grad.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grad; g.fillRect(0, 0, Math.max(1, fw), h * dpr);
+    }
+    if (info.fadeOut > 0) {
+      const fw = Math.min(wpx * dpr, info.fadeOut * pps * dpr);
+      const grad = g.createLinearGradient(cv.width - Math.max(1, fw), 0, cv.width, 0);
+      grad.addColorStop(0, 'rgba(255,255,255,0)'); grad.addColorStop(1, 'rgba(255,255,255,.48)');
+      g.fillStyle = grad; g.fillRect(cv.width - Math.max(1, fw), 0, Math.max(1, fw), h * dpr);
+    }
+    clip.dataset.waveState = 'drawn';
+    clip.dataset.waveBins = String(s.bins);
+    clip.dataset.waveDuration = String(s.duration);
+  }
+  function redrawWaves() {
+    clipEls.forEach((clip, id) => { if (waveInfo.has(id)) drawWave(clip); });
+  }
+  /* 只为当前节点可见的音频素材请求波形；重复素材由缓存复用，过期结果丢弃 */
+  function scheduleWaves() {
+    const gen = renderGen;
+    const wanted = new Map();
+    waveInfo.forEach((info, id) => {
+      const clip = clipEls.get(id);
+      if (!clip || !info.audioId) return;
+      const row = clip.closest('.tl-lane');
+      if (row && row.classList.contains('collapsed')) return;   /* 折叠轨道不加载 */
+      const w = clipWidthPx(clip);
+      wanted.set(info.audioId, Math.max(wanted.get(info.audioId) || 0, w));
+    });
+    wanted.forEach((widthPx, audioId) => {
+      Promise.resolve(waves.request(audioId, pps, widthPx)).then(() => {
+        if (disposed || gen !== renderGen) return;              /* 切节点/重绘后的过期结果 */
+        clipEls.forEach((clip, id) => {
+          const info = waveInfo.get(id);
+          if (info && info.audioId === audioId) drawWave(clip);
+        });
+      }).catch(() => {});
+    });
+    /* 先画一次（可能命中缓存，或显示加载中/失败标记） */
+    redrawWaves();
+  }
+
+  /* ---------- M2A · 预览 tick / 自动跟随 ---------- */
+  let programmaticScroll = false;
+  function markUserScroll() { userScrollUntil = wallNow() + 1200; }
+  function autoFollow(t) {
+    const snap = preview.snapshot();
+    if (!snap.follow || wallNow() < userScrollUntil) return;
+    const W = viewportW(), usable = Math.max(60, W - LABEL_W);
+    const x = xOf(t) - lanes.scrollLeft;
+    let next = null;
+    if (x > LABEL_W + usable * 0.82) next = xOf(t) - LABEL_W - usable * 0.45;
+    else if (x < LABEL_W + 4) next = xOf(t) - LABEL_W - usable * 0.15;
+    if (next != null) {
+      const v = Math.max(0, next);
+      if (Math.abs(v - lanes.scrollLeft) > 2) { programmaticScroll = true; lanes.scrollLeft = v; }
+    }
+  }
+  function onPreviewTick(t) {
+    setPlayhead(t);            /* 只更新播放头 + stateAt()/applyDOM()，不触发音频副作用 */
+    autoFollow(t);
+  }
+  function onPreviewState(s) {
+    const map = { idle: '空闲', playing: '播放中', paused: '已暂停', stopped: '已停止', ended: '播放结束' };
+    setText('tlPreviewState', map[s] || s);
+    const play = document.getElementById('tlPlay'), pause = document.getElementById('tlPause');
+    if (play) play.disabled = s === 'playing';
+    /* 暂停按钮在 paused 态变成「继续」，必须保持可点，否则无法从暂停位置继续 */
+    if (pause) { pause.disabled = false; pause.textContent = s === 'paused' ? '▶ 继续' : '⏸ 暂停'; }
+    if (panel) panel.dataset.previewState = s;
+  }
+  /* 预览区间是编辑器临时状态，只画视图高亮，绝不写入工程或素材循环配置 */
+  function drawRange() {
+    if (!rangeEl) return;
+    const r = preview.snapshot().range;
+    if (!r) { rangeEl.classList.remove('shown'); return; }
+    rangeEl.style.left = xOf(r.start) + 'px';
+    rangeEl.style.width = Math.max(2, (r.end - r.start) * pps) + 'px';
+    rangeEl.classList.add('shown');
+    setText('tlRangeLabel', '区间 ' + r.start.toFixed(2) + '–' + r.end.toFixed(2) + 's');
+  }
+  function togglePlay() {
+    const st = preview.snapshot().state;
+    if (st === 'playing') preview.pause();
+    else if (st === 'paused') preview.resume();
+    else if (st === 'ended') preview.replay();
+    else preview.play(curT);
+  }
 
   /* ---------- 布局：缩放只更新样式，不重建 DOM（避免无意义全量重绘） ---------- */
   function layoutSize() {
@@ -92,14 +278,21 @@ function createTimelinePanel(opts) {
     }
     if (ph) ph.style.left = xOf(curT) + 'px';
     if (snapLine) snapLine.style.left = xOf(snapTarget == null ? 0 : snapTarget) + 'px';
+    drawRange();
     setText('tlZoomLabel', Math.round(pps) + ' px/s');
+    redrawWaves();                         /* 缩放后 canvas 尺寸随片段宽度变化，用已有真实摘要重绘 */
     if (opts.refreshHead) opts.refreshHead({ total, tracks: tracks.length, clips: events.length, pps });
   }
 
   /* ---------- 渲染：唯一事实来源 = 动作列表 ---------- */
   function render() {
-    if (!lanes) return;
+    if (!lanes || disposed) return;
     dbg.renderCount++;
+    renderGen++;
+    /* 播放期间的编辑 / 撤销重做 / 删除：停止旧计划并重建，绝不混入旧计划数据 */
+    const ps = preview.snapshot().state;
+    if (ps === 'playing' || ps === 'paused') preview.invalidate('edit');
+    waveInfo.clear();
     const actions = opts.getActions() || [];
     events = TL.toTimeline(actions);
     clipOrder = events.map((e) => e.id);
@@ -134,6 +327,7 @@ function createTimelinePanel(opts) {
 
     ph = el('div', 'tl-playhead', content);
     el('div', 'tl-playhead-knob', ph);
+    rangeEl = el('div', 'tl-range', content);         /* 预览区间高亮（临时视图状态） */
     snapLine = el('div', 'tl-snapline', content);
 
     layoutSize();
@@ -144,8 +338,10 @@ function createTimelinePanel(opts) {
     }
     ph.style.left = xOf(curT) + 'px';
     hideSnapLine();
+    drawRange();
     setText('tlTime', fmt(curT) + ' / ' + fmt(realTotal) + 's');
     setText('tlZoomLabel', Math.round(pps) + ' px/s');
+    scheduleWaves();                       /* 当前节点可见音频素材按需生成真实波形 */
     renderSelection();
     if (opts.refreshHead) opts.refreshHead({ total: realTotal, tracks: tracks.length, clips: events.length, pps });
   }
@@ -191,6 +387,20 @@ function createTimelinePanel(opts) {
       ' · ' + ev.start + 's → ' + ev.end + 's · 时长 ' + ev.duration + 's' +
       (absolute ? ' · 绝对开始时间' : ' · 相对时间（after/parallel + delay）') +
       (zero ? ' · 零时长瞬时事件（不可拉伸）' : ' · 拖左右边缘可调时长');
+    /* M2A：BGM/SFX/Voice 且带 audioId 的片段绘制真实波形 canvas */
+    const wm = waveMeta(ev);
+    if (wm) {
+      waveInfo.set(ev.id, wm);
+      clip.classList.add('tl-clip-audio');
+      clip.dataset.waveAudio = wm.audioId;
+      clip.dataset.waveKind = wm.kind;
+      el('canvas', 'tl-wave', clip).setAttribute('aria-hidden', 'true');
+      clip.title += ' · 波形按真实时间显示（1 秒 = 1 秒，不代表音频裁剪或变速）';
+      if (wm.kind === 'zero') clip.title += ' · 零时长触发事件，素材总时长见波形摘要';
+      else if (wm.kind === 'bgm') clip.title += ' · 持续/循环音乐，动作时长不等于素材时长';
+      if (wm.fadeIn || wm.fadeOut) clip.title += ' · 淡入 ' + wm.fadeIn + 's / 淡出 ' + wm.fadeOut + 's';
+      if (wm.loopMode === 'region') clip.title += ' · 素材循环区间 ' + wm.loopStart + '–' + wm.loopEnd + 's（素材自身循环，非时间轴预览循环）';
+    }
     /* 零时长事件没有可拖动的时长，不放拉伸手柄，避免误导 */
     if (!zero) {
       const lh = el('div', 'tl-handle tl-handle-left', clip);
@@ -296,7 +506,7 @@ function createTimelinePanel(opts) {
       if (!m) return;
       const t = snapTime(m.previewStart, e.altKey);
       const clip = clipEls.get(m.id);
-      if (clip) { clip.style.left = clipX(t) + 'px'; clip.classList.add('preview'); }
+      if (clip) { clip.style.left = clipX(t) + 'px'; clip.classList.add('preview'); if (waveInfo.has(m.id)) drawWave(clip); }
       const x = events.find((z) => z.id === m.id);
       setText('tlDragHint', '拖到 ' + t.toFixed(3) + 's（松手才写入）' + (snapTarget != null ? ' · 吸附 ' + snapTarget + 's' : ''));
       if (x) setText('tlResizeHint', '起点 ' + t.toFixed(3) + 's · 终点 ' + (t + x.duration).toFixed(3) + 's · 时长 ' + x.duration.toFixed(3) + 's');
@@ -307,7 +517,7 @@ function createTimelinePanel(opts) {
       const delta = snappedT - m.items[0].start;
       for (const it of m.items) {
         const clip = clipEls.get(it.id);
-        if (clip) { clip.style.left = clipX(r3(it.start + delta)) + 'px'; clip.classList.add('preview'); }
+        if (clip) { clip.style.left = clipX(r3(it.start + delta)) + 'px'; clip.classList.add('preview'); if (waveInfo.has(it.id)) drawWave(clip); }
       }
       setText('tlDragHint', '批量移动 ' + m.items.length + ' 个片段 · Δ ' + (m.deltaSec + delta).toFixed(3) + 's（松手才写入）' +
         (snapTarget != null ? ' · 吸附 ' + snapTarget + 's' : ''));
@@ -323,6 +533,7 @@ function createTimelinePanel(opts) {
         clip.style.left = clipX(st) + 'px';
         clip.style.width = Math.max(2, du * pps) + 'px';
         clip.classList.add('preview');
+        if (waveInfo.has(m.id)) drawWave(clip);   /* 拉伸时波形随片段宽度实时重绘 */
       }
       setText('tlResizeHint', '起点 ' + st.toFixed(3) + 's · 终点 ' + en.toFixed(3) + 's · 时长 ' + du.toFixed(3) + 's' +
         (snapTarget != null ? ' · 吸附 ' + snapTarget + 's' : ''));
@@ -440,14 +651,19 @@ function createTimelinePanel(opts) {
     const tAnchor = clamp((anchorPx + lanes.scrollLeft - LABEL_W) / pps, 0, total);
     pps = clamp(pps * factor, MIN_PPS, MAX_PPS);
     userZoomed = true;
+    markUserScroll();                      /* 用户主动缩放后短暂抑制自动跟随 */
     relayout();
+    programmaticScroll = true;
     lanes.scrollLeft = Math.max(0, xOf(tAnchor) - anchorPx);
   }
   function zoomFit() {
     cancelActiveInteraction('cancel');
     userZoomed = false;
+    markUserScroll();
     defaultPps = fitPps(); pps = defaultPps;
-    relayout(); lanes.scrollLeft = 0;
+    relayout();
+    programmaticScroll = true;
+    lanes.scrollLeft = 0;
   }
   function onWheel(e) {
     if (!e.ctrlKey && !e.metaKey) return;      /* 只有 Ctrl+滚轮缩放，普通滚轮留给滚动 */
@@ -518,7 +734,7 @@ function createTimelinePanel(opts) {
     return ids.length;
   }
 
-  /* ---------- 工具栏与快捷键（只注册一次） ---------- */
+  /* ---------- 工具栏与快捷键（全局监听器只注册一次，dispose 可全部释放） ---------- */
   function bindUi() {
     const bind = (id, fn) => { const e = document.getElementById(id); if (e) e.onclick = fn; };
     bind('tlPlayheadReset', () => { if (opts.resetScrub) opts.resetScrub(); setPlayhead(0); });
@@ -534,40 +750,81 @@ function createTimelinePanel(opts) {
     if (snapSel) { snapGrid = Number(snapSel.value) || 0; snapSel.onchange = () => { snapGrid = Number(snapSel.value) || 0; hideSnapLine(); }; }
     const emptySel = document.getElementById('tlShowEmpty');
     if (emptySel) { showEmpty = !!emptySel.checked; emptySel.onchange = () => { showEmpty = !!emptySel.checked; render(); }; }
-    lanes.addEventListener('wheel', onWheel, { passive: false });
-    /* 滚动期间取消未完成的拖动；滚动本身不重建 DOM，刻度与片段同处 content 天然对齐 */
-    lanes.addEventListener('scroll', () => { if (interaction) cancelActiveInteraction('cancel'); });
+
+    /* M2A 播放控制 */
+    bind('tlPlay', togglePlay);
+    bind('tlPause', togglePlay);
+    bind('tlStop', () => preview.stop());
+    bind('tlReplay', () => preview.replay());
+    bind('tlPreviewHome', () => { preview.stop(); setPlayhead(0); });
+    const loopSel = document.getElementById('tlLoop');
+    if (loopSel) { preview.setLoop(!!loopSel.checked); loopSel.onchange = () => preview.setLoop(!!loopSel.checked); }
+    const followSel = document.getElementById('tlFollow');
+    if (followSel) { preview.setFollow(!!followSel.checked); followSel.onchange = () => preview.setFollow(!!followSel.checked); }
+    bind('tlRangeApply', () => {
+      const a = Number((document.getElementById('tlRangeStart') || {}).value);
+      const b = Number((document.getElementById('tlRangeEnd') || {}).value);
+      if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) {
+        setText('tlRangeLabel', '区间无效：结束时间必须大于开始时间');
+        return;
+      }
+      preview.setRange(a, b);
+      drawRange();
+      setText('tlClipInfo', '已设置预览区间（仅编辑器临时状态）');
+    });
+    bind('tlRangeClear', () => {
+      preview.clearRange(); drawRange();
+      setText('tlRangeLabel', '未设置区间');
+      setText('tlClipInfo', '已清除预览区间');
+    });
+
+    listen(lanes, 'wheel', onWheel, { passive: false });
+    /* 用户主动滚动（非自动跟随）时抑制跟随，避免视图争夺；滚动期间取消未完成拖动 */
+    listen(lanes, 'scroll', () => {
+      if (programmaticScroll) { programmaticScroll = false; return; }
+      markUserScroll();
+      if (interaction) cancelActiveInteraction('cancel');
+    });
     const host = panel || lanes;
-    host.addEventListener('pointerdown', (e) => { if (!e.target.closest('.tl-clip')) focusPanel(); }, true);
-    document.addEventListener('focusin', (e) => { if (isTypingTarget(e.target)) panelFocused = false; });
-    window.addEventListener('resize', () => {
+    listen(host, 'pointerdown', (e) => { if (!e.target.closest('.tl-clip')) focusPanel(); }, true);
+    listen(document, 'focusin', (e) => { if (isTypingTarget(e.target)) panelFocused = false; });
+    listen(window, 'resize', () => {
       if (interaction) return;
       if (!userZoomed) { defaultPps = fitPps(); pps = defaultPps; }
       relayout();
     });
+    listen(window, 'pagehide', () => dispose());
 
-    /* Esc 与编辑快捷键：捕获阶段优先于编辑器既有的图层拖动 Esc 分支 */
-    document.addEventListener('keydown', (e) => {
+    /* Esc / Space / Home 与编辑快捷键：捕获阶段优先于编辑器既有的图层拖动 Esc 分支 */
+    listen(document, 'keydown', (e) => {
       if (isTypingTarget(e.target)) return;              /* 正在输入文字/属性时一律不拦截 */
       if (e.key === 'Escape') {
         if (interaction) { cancelActiveInteraction('escape'); e.preventDefault(); e.stopPropagation(); return; }
+        const st = preview.snapshot().state;
+        if (st === 'playing' || st === 'paused') { preview.stop(); e.preventDefault(); e.stopPropagation(); return; }
         if (selection.size() && timelineFocused()) { selection.clear(); applySelectionClasses(); renderSelection(); e.preventDefault(); }
         return;
       }
       if (!timelineFocused()) return;
       const ctrl = e.ctrlKey || e.metaKey;
-      if (ctrl && e.key.toLowerCase() === 'c') { doCopy(); e.preventDefault(); }
+      if (e.key === ' ' || e.key === 'Spacebar') { togglePlay(); e.preventDefault(); }
+      else if (e.key === 'Home') { preview.stop(); setPlayhead(0); e.preventDefault(); }
+      else if (ctrl && e.key.toLowerCase() === 'c') { doCopy(); e.preventDefault(); }
       else if (ctrl && e.key.toLowerCase() === 'v') { doPaste(curT); e.preventDefault(); }
       else if (ctrl && e.key.toLowerCase() === 'd') { doDuplicate(); e.preventDefault(); }
       else if (e.key === 'Delete' || e.key === 'Backspace') { doDelete(); e.preventDefault(); }
       /* Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z 交给编辑器全局撤销重做，避免重复拦截 */
     }, true);
-    dbg.documentListeners = 1;
+    dbg.documentListeners = 1;                 /* 兼容 M1B：单一组件实例的一组全局监听器 */
+    dbg.registeredListeners = domListeners.length;
+    onPreviewState(preview.snapshot().state);
   }
 
-  /* 切换节点：取消未完成拖动、播放头归零、清空旧节点选择、不留预览 */
+  /* 切换节点：停止旧预览计划、丢弃过期波形请求、清空选择、播放头归零 */
   function reset() {
     if (interaction) cancelActiveInteraction('nodechange');
+    preview.invalidate('nodechange');
+    waves.setScope(opts.getNodeKey ? opts.getNodeKey() : '');
     scrubActive = false; scrubPointer = null;
     selection.clear();
     clipboard = [];
@@ -575,11 +832,28 @@ function createTimelinePanel(opts) {
     hideSnapLine();
     if (opts.clearScrub) opts.clearScrub();
     userZoomed = false;
+    programmaticScroll = true;
     lanes.scrollLeft = 0;
     render();
   }
 
+  /* 关闭面板 / 页面卸载：释放 rAF、波形缓存与全部全局监听器 */
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    preview.dispose();
+    if (waves && waves.clear) waves.clear();
+    for (const r of domListeners) {
+      try { r.target.removeEventListener(r.type, r.fn, r.options); } catch (_) {}
+    }
+    domListeners.length = 0;
+    clipEls.clear(); waveInfo.clear();
+    renderGen++;
+  }
+
   function debug() {
+    let waveDrawn = 0;
+    clipEls.forEach((c) => { if (c.dataset.waveState === 'drawn') waveDrawn++; });
     return Object.assign({}, dbg, {
       pps, defaultPps, pxPerSec: pps, labelWidth: LABEL_W, total, curT,
       scrollLeft: lanes.scrollLeft, contentWidth: contentW,
@@ -588,12 +862,20 @@ function createTimelinePanel(opts) {
       dragActive: !!(drag.state() || resize.state() || batch.state()),
       dragState: drag.state(), resizeState: resize.state(), batchState: batch.state(),
       clipDomCount: clipEls.size, documentListeners: dbg.documentListeners,
+      registeredListeners: domListeners.length, disposed,
+      waveClips: waveInfo.size, waveDrawn, waveCanvases: document.querySelectorAll('#tlLanes .tl-wave').length,
+      preview: preview.snapshot(), waves: waves.snapshot(),
       baseline: opts.getBaselineDebug ? opts.getBaselineDebug() : null
     });
   }
 
   bindUi();
-  if (typeof window !== 'undefined') window.paperTimelineDebug = debug;
-  return { render, reset, debug, setPlayhead, zoomBy, zoomFit };
+  if (typeof window !== 'undefined') {
+    window.paperTimelineDebug = debug;
+    window.paperTimelinePreview = () => preview.snapshot();
+    window.paperTimelineWaves = () => waves.snapshot();
+    window.paperTimelinePanel = { render, reset, debug, dispose, setPlayhead, zoomBy, zoomFit, preview, waves };
+  }
+  return { render, reset, debug, dispose, setPlayhead, zoomBy, zoomFit, preview, waves };
 }
 if (typeof module !== 'undefined') module.exports = createTimelinePanel;

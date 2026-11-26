@@ -1,0 +1,326 @@
+{
+  "at": "2026-11-26T12:14:33.223Z",
+  "version": "0.8.2-M2A",
+  "mode": "packaged-win-x64",
+  "exe": "F:\\新建文件夹\\PaperVNStudio-src\\release\\PaperVNStudio-0.8.1-win-x64\\PaperVNStudio.exe",
+  "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m2a-verify\\晚风-M2A验收副本",
+  "stages": {
+    "可执行文件存在": {
+      "ok": true,
+      "detail": {
+        "mode": "packaged-win-x64",
+        "skipLong": false
+      }
+    },
+    "验收工程为隔离副本": {
+      "ok": true,
+      "detail": {
+        "project": "F:\\新建文件夹\\PaperVNStudio-src\\release\\v082m2a-verify\\晚风-M2A验收副本",
+        "originalKept": "F:\\新建文件夹\\PaperVNStudio-src\\release\\wanfeng-v081rc3\\晚风·循环试听工程"
+      }
+    },
+    "编辑器启动": {
+      "ok": true,
+      "detail": {
+        "nodes": 40
+      }
+    },
+    "未编辑旧工程：预览+保存不写入 start": {
+      "ok": true,
+      "detail": "before=0 after=0"
+    },
+    "未编辑旧工程：原调度一致": {
+      "ok": true,
+      "detail": "调度变化"
+    },
+    "真实音频波形加载并绘制（canvas 有真实像素）": {
+      "ok": true,
+      "detail": "{\"waveClips\":1,\"waveDrawn\":1,\"pixels\":{\"w\":628,\"h\":40,\"nonZero\":25056,\"ratio\":0.997}}"
+    },
+    "波形摘要来自实际素材（时长/采样信息，非占位波形）": {
+      "ok": true,
+      "detail": "{\"shownDur\":41.4,\"assetDur\":41.4,\"decodeCalls\":2,\"lastMs\":6.3,\"bytes\":1448}"
+    },
+    "BGM 动作时长不等于素材时长且波形按 1 秒=1 秒显示（未压缩）": {
+      "ok": true,
+      "detail": "{\"shownDur\":41.4,\"title\":\"播放背景音乐 · 轨道 BGM · 2.4s → 5s · 时长 2.6s · 相对时间（after/parallel + delay） · 拖左右边缘可调时长 · 波形按真实时间显示（1 秒 = 1 秒，不代表音频裁剪或变速） · 持续/循环音乐，动作时长不等于素材时长 · 淡入 2.6s / 淡\"}"
+    },
+    "重复素材波形复用缓存，不重复解码": {
+      "ok": true,
+      "detail": "{\"before\":2,\"after\":2,\"hits\":5,\"entries\":1}"
+    },
+    "缩放后波形随片段宽度重绘且对齐，未全量重建时间轴": {
+      "ok": true,
+      "detail": "{\"beforeZoom\":{\"pps\":123.6,\"dom\":1491,\"renderCount\":10},\"afterZoom\":{\"pps\":185.39999999999998,\"clipW\":482,\"canvasW\":482,\"renderCount\":10}}"
+    },
+    "切换节点丢弃过期波形请求并重建预览状态": {
+      "ok": true,
+      "detail": "{\"before\":2,\"after\":5,\"state\":\"stopped\"}"
+    },
+    "瞬时音频事件保留明确标记并展示素材时长": {
+      "ok": true,
+      "detail": "[{\"kind\":\"oneshot\",\"state\":\"drawn\",\"dur\":\"1.2\",\"title\":\"播放音效 · 轨道 SFX · 1s → 1.4s · 时长 0.4s · 相对时间（after/parallel + delay） · 拖左右边缘可调时长 · 波形按真实时间显示（1 秒 = 1 秒，不代表音频裁剪或变速）\"}]"
+    },
+    "播放头按单调时钟自动推进，只有一个 rAF": {
+      "ok": true,
+      "detail": "{\"curT\":1.314,\"frames\":{\"count\":132,\"worstMs\":10.3,\"avgMs\":9.96,\"fps\":100.4},\"activeRaf\":1}"
+    },
+    "连续视觉预览真实改变舞台 DOM 状态": {
+      "ok": true,
+      "detail": "{\"before\":{\"canvas\":\"\",\"frames\":[]},\"after\":{\"canvas\":\"translate(0%, 0%) scale(1.0219)\",\"frames\":[{\"t\":\"translate(0px, 0px) scale(1)\",\"o\":\"1\"}]}}"
+    },
+    "预览事件钩子 previewStart 已发出，且未触发正式音频演出": {
+      "ok": true,
+      "detail": "{\"events\":[\"previewStop\",\"previewStart\"],\"perfAudioFired\":0}"
+    },
+    "暂停定格并释放 rAF": {
+      "ok": true,
+      "detail": "{\"pausedT\":1.437,\"still\":1.437,\"state\":\"paused\"}"
+    },
+    "从暂停位置继续，无跳变": {
+      "ok": true,
+      "detail": "{\"pausedT\":1.437,\"resumed\":2.152}"
+    },
+    "停止回到预览起点并释放 rAF": {
+      "ok": true,
+      "detail": "{\"state\":\"stopped\",\"curT\":0,\"activeRaf\":0}"
+    },
+    "从中间时间开始预览": {
+      "ok": true,
+      "detail": "{\"curT\":2.001}"
+    },
+    "播放到演出结束后自动停止": {
+      "ok": true,
+      "detail": "{\"state\":\"ended\",\"curT\":5,\"events\":[\"previewStop\",\"previewStart\",\"previewPause\",\"previewResume\",\"previewStop\",\"previewSeek\",\"previewStart\",\"previewEnd\"]}"
+    },
+    "设置局部播放区间并绘制高亮（编辑器临时状态）": {
+      "ok": true,
+      "detail": "{\"range\":{\"start\":0.2,\"end\":0.4},\"shown\":\"tl-range shown\",\"label\":\"区间 0.20–0.40s\"}"
+    },
+    "区间循环预览 ≥10 次且复位不累积": {
+      "ok": true,
+      "detail": "{\"loopCount\":12,\"curT\":0.35,\"frames\":{\"count\":261,\"worstMs\":10.4,\"avgMs\":9.97,\"fps\":100.3}}"
+    },
+    "循环回到起点后舞台状态重新求值（无累积漂移）": {
+      "ok": true,
+      "detail": "{\"resetA\":{\"canvas\":\"translate(0%, 0%) scale(1.0033)\",\"frames\":[{\"t\":\"translate(0px, 0px) scale(1)\",\"o\":\"1\"}]},\"resetB\":{\"canvas\":\"translate(0%, 0%) scale(1.0033)\",\"frames\":[{\"t\":\"translate(0px, 0px) scale(1)\",\"o\":\"1\"}]}}"
+    },
+    "清除区间后恢复整段播放范围": {
+      "ok": true,
+      "detail": "null"
+    },
+    "播放期间编辑动作：停止旧计划、不写半完成状态": {
+      "ok": true,
+      "detail": "{\"state\":\"stopped\",\"generation\":13,\"activeRaf\":0}"
+    },
+    "播放期间切换节点：不再播放旧节点": {
+      "ok": true,
+      "detail": "{\"state\":\"stopped\",\"activeRaf\":0}"
+    },
+    "Space 播放/暂停、Esc 停止预览": {
+      "ok": true,
+      "detail": "{\"space\":\"playing\",\"pause\":\"paused\",\"esc\":\"stopped\"}"
+    },
+    "文本输入框聚焦时不拦截空格/删除": {
+      "ok": true,
+      "detail": "{\"n\":2,\"state\":\"stopped\"}"
+    },
+    "M1B 回归：片段拉伸与一次撤销": {
+      "ok": true,
+      "detail": "{\"before\":0.7,\"after\":1.2}"
+    },
+    "M1B 回归：时间吸附仍生效": {
+      "ok": true,
+      "detail": "{\"snapped\":2.5,\"pps0\":120.6}"
+    },
+    "M1B 回归：撤销重做与片段移动写回": {
+      "ok": true,
+      "detail": "{\"keptStart\":1.35,\"state\":\"stopped\"}"
+    },
+    "时间长度覆盖 0.5s / 10s / 300s+ 与 100 动作": {
+      "ok": true,
+      "detail": "{\"hundred\":100,\"total100\":10,\"long\":300,\"short\":0.5}"
+    },
+    "100 动作节点渲染不冻结、监听器不重复注册": {
+      "ok": true,
+      "detail": "{\"clipDom\":100,\"clipCount\":100,\"listeners\":7,\"ms\":18.6,\"dom\":2761}"
+    },
+    "连续启动/停止预览 100 次不产生重复 rAF 或 DOM 增长": {
+      "ok": true,
+      "detail": "{\"maxRaf\":0,\"state\":\"stopped\",\"dom\":1498}"
+    },
+    "连续播放 5 分钟以上（真实单调时钟）": {
+      "ok": true,
+      "detail": "{\"actualMs\":300193,\"loops\":161,\"maxFrameMs\":12.2,\"minFps\":100,\"domDelta\":0,\"samples\":20}"
+    },
+    "长播放期间 DOM 不增长、rAF 不叠加、波形缓存受控": {
+      "ok": true,
+      "detail": "{\"domDelta\":0,\"waveBytes\":2328,\"decodeCalls\":3}"
+    },
+    "会话 1 无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    },
+    "关闭重开：磁盘工程未被压测数据污染": {
+      "ok": true,
+      "detail": "{\"n\":2}"
+    },
+    "关闭重开：波形与播放控件按真实数据重建、0s 刻度完整、无残留播放任务": {
+      "ok": true,
+      "detail": "{\"clips\":2,\"waveCanvases\":1,\"waveDrawn\":1,\"firstTick\":\"0s\",\"state\":\"stopped\",\"activeRaf\":0,\"badge\":\"当前为视觉连续预览，完整音频同步将在 M2B 接入\"}"
+    },
+    "旧工程兼容 + 保存重开保留时间轴编辑": {
+      "ok": true,
+      "detail": "{\"compat\":{\"withStart\":1,\"total\":66,\"nodes\":40,\"node0Start\":1.35},\"keptStart\":1.35}"
+    },
+    "会话 2 无渲染进程异常": {
+      "ok": true,
+      "detail": "[]"
+    }
+  },
+  "problems": [],
+  "evidence": {
+    "waveform": {
+      "pixels": {
+        "w": 628,
+        "h": 40,
+        "nonZero": 25056,
+        "ratio": 0.997
+      },
+      "summaryDuration": 41.4,
+      "assetDuration": 41.4,
+      "waves": {
+        "requests": 8,
+        "decodeCalls": 2,
+        "cacheHits": 3,
+        "cacheMisses": 2,
+        "failures": 0,
+        "staleDiscarded": 1,
+        "budgetRejected": 0,
+        "scopeChanges": 2,
+        "lastMs": 6.3,
+        "peakBytes": 1448,
+        "evictions": 0,
+        "entries": 1,
+        "bytes": 1448,
+        "pending": 0,
+        "maxEntries": 24,
+        "maxBytes": 2097152,
+        "maxBins": 2000,
+        "maxAssetBytes": 67108864,
+        "epoch": 2,
+        "keys": [
+          "f5cf8059444693528ced6d318fe092a57cd3ab0b2a4c8aa20c19848a74238a9b"
+        ]
+      }
+    },
+    "keptStart": 1.35,
+    "longPlay": {
+      "plannedMs": 305000,
+      "actualMs": 300193,
+      "samples": 20,
+      "first": {
+        "at": 1795695313198,
+        "t": 0.99,
+        "state": "playing",
+        "loops": 19,
+        "frames": {
+          "count": 1502,
+          "worstMs": 10.8,
+          "avgMs": 9.99,
+          "fps": 100.1
+        },
+        "activeRaf": 1,
+        "dom": 1498,
+        "heap": 11492933,
+        "waves": {
+          "entries": 2,
+          "bytes": 2328,
+          "decodeCalls": 3
+        },
+        "clipDom": 2,
+        "renderCount": 58,
+        "relayoutCount": 7
+      },
+      "last": {
+        "at": 1795695598383,
+        "t": 1.69,
+        "state": "playing",
+        "loops": 161,
+        "frames": {
+          "count": 30020,
+          "worstMs": 12.2,
+          "avgMs": 10,
+          "fps": 100
+        },
+        "activeRaf": 1,
+        "dom": 1498,
+        "heap": 11630999,
+        "waves": {
+          "entries": 2,
+          "bytes": 2328,
+          "decodeCalls": 3
+        },
+        "clipDom": 2,
+        "renderCount": 58,
+        "relayoutCount": 7
+      },
+      "maxFrameMs": 12.2,
+      "minFps": 100,
+      "maxDom": 1498,
+      "minDom": 1498,
+      "heapStart": 11492933,
+      "heapEnd": 11630999,
+      "loops": 161,
+      "waveDecodeCalls": 3,
+      "waveCacheBytes": 2328,
+      "finalActiveRaf": 0
+    },
+    "performance": {
+      "waveform": {
+        "lastMs": 50.9,
+        "decodeCalls": 3,
+        "cacheHits": 32,
+        "entries": 2,
+        "bytes": 2328,
+        "failures": 0,
+        "staleDiscarded": 1
+      },
+      "preview": {
+        "frames": {
+          "count": 30020,
+          "worstMs": 12.2,
+          "avgMs": 10,
+          "fps": 100
+        },
+        "activeRaf": 0
+      },
+      "dom": 1498,
+      "heap": 11630999
+    }
+  },
+  "classification": {
+    "automation": [
+      "npm run check（M0 11 组 + M1A/M1B 28 组 + M2A 新增波形 10 组与预览/舞台 12 组，全部保留）",
+      "tests/timeline-waveform.test.cjs：真实 WAV 摘要、重复素材复用、失败、超预算、素材替换、过期请求、缩放 bins、容量上限、串行解码",
+      "tests/timeline-preview.test.cjs：播放/暂停/继续/停止/任意起点/自动结束/区间循环/幂等启动/失效释放/单调时钟/事件钩子 + 舞台终态一致、无漂移、循环复位、无历史音频副作用"
+    ],
+    "realUi": [
+      "旧工程打开 → 视觉预览按钮 → 保存 → 磁盘核对无 start",
+      "真实波形加载、缓存复用、缩放对齐、失败标记",
+      "播放/暂停/继续/停止/任意起点/自动结束 + 舞台 DOM 与单调时钟证据",
+      "局部区间高亮 + 循环预览 10 次以上 + 复位重算",
+      "播放中编辑/撤销/切节点、Space/Esc/Home 快捷键与输入框焦点规则",
+      "M1B 功能回归：拉伸、吸附、撤销、片段移动",
+      "100 动作 / 300s+ / 重复素材 / 多次切节点 / 连续启停 100 次",
+      "连续播放 5 分钟以上（真实单调时钟，逐段采样）"
+    ],
+    "notTested": [
+      "完整实时音频预览、音频事件执行、任意时间恢复 BGM、暂停/定位取消旧音频任务、AudioParam 调度与避免双 BGM —— 明确留待 M2B",
+      "音频裁剪/变速、高级关键帧、视频/Live2D 轨道、跨节点/跨章节时间轴 —— 本轮不做",
+      "1.47 GiB 全链与 900 秒音频浸泡 —— 本轮未改核心音频运行时与资源存储，按范围不重复",
+      "人工长时间使用体验与第二台机器验收 —— 由用户决定"
+    ]
+  },
+  "ok": true
+}

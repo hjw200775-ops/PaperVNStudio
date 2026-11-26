@@ -53,3 +53,4 @@ backups/
 !release/v081-final-verify.json
 !release/v082m1a-ui-verify.json
 !release/v082m1b-ui-verify.json
+!release/v082m2a-ui-verify.json

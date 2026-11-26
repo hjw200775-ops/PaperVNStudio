@@ -320,6 +320,23 @@ body.playing #stage img{-webkit-user-drag:none;user-drag:none}
 .tl-foot button{font-size:10px;padding:4px 8px;white-space:nowrap}
 .tl-hint{padding:7px 14px 0;font-size:10px;color:var(--muted);line-height:1.7}
 #tlDragHint{color:var(--accent);font-weight:600}
+
+/* ---- V0.8.2 M2-A · 播放控制、预览区间与真实音频波形 ---- */
+.tl-transport{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 14px;border-bottom:1px solid var(--line);font-size:10px;color:var(--muted);background:#fbfdf8}
+.tl-transport .tl-tool-group b{font-weight:600;color:var(--ink)}
+.tl-transport button{font-size:10px;padding:3px 7px}
+.tl-transport .tl-tool-inline{gap:4px}
+.tl-transport input[type=number]{width:62px;padding:2px 5px;font-size:10px}
+.tl-rangelabel{font:10px monospace;color:var(--accent)}
+.tl-state{font:10px monospace;padding:2px 7px;border-radius:9px;background:#e9f0e5;color:var(--accent)}
+.tl-panel[data-preview-state=playing] .tl-state{background:#d4e9d8;color:#255c39;font-weight:600}
+.tl-badge{margin-left:auto;font-size:9.5px;color:#96652f;background:#fdf3e2;border:1px solid #efddbd;border-radius:9px;padding:2px 8px}
+.tl-clip-audio{overflow:visible}
+.tl-clip-text{position:relative;z-index:2;text-shadow:0 1px 0 #ffffffa8}
+.tl-wave{position:absolute;left:0;top:0;pointer-events:none;z-index:1;border-radius:4px}
+.tl-clip-zero .tl-wave{display:none}
+.tl-range{position:absolute;top:20px;bottom:0;background:#7ec8a31f;border-left:2px solid #3f6753;border-right:2px solid #3f6753;z-index:2;pointer-events:none;display:none}
+.tl-range.shown{display:block}
 .perf-timing{margin:10px 0;padding:9px 8px;border:1px solid var(--line);border-radius:6px;background:#f7f9f3}
 .perf-timing.is-absolute{border-color:var(--accent);background:#eef4ec}
 .perf-timing label{font-size:10px;margin:8px 0 0}

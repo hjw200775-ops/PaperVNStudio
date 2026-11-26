@@ -2393,11 +2393,36 @@ function timelineRefreshHead(info) {
   const n = node(), lbl = $('#tlNodeLabel');
   if (lbl) lbl.textContent = n ? '· 第 ' + (p.nodes.indexOf(n) + 1) + ' 句 · ' + info.clips + ' 个片段 / ' + info.tracks + ' 条轨道' : '—';
 }
+/* ================= V0.8.2 M2-A · 波形解码器与预览事件钩子 =================
+   波形复用 V0.8.1 的 runtime().decodeWaveform（同一 AudioBuffer 解码与 64 MiB 缓存），
+   这里只注入资源读取与缓存策略，不重写音频引擎。
+   预览事件只作记录，供 M2B 接入音频调度时对齐时间语义；M2A 绝不触发正式音频演出。 */
+var timelinePreviewEvents = [];
+function timelinePreviewEvent(name, e) {
+  timelinePreviewEvents.push({ name, t: e && e.t, at: Date.now(), reason: e && e.reason, generation: e && e.generation });
+  if (timelinePreviewEvents.length > 120) timelinePreviewEvents.shift();
+}
+if (typeof window !== 'undefined') window.paperTimelineEvents = () => timelinePreviewEvents.slice(-60);
+function timelineWaveDecode(audioId, bins) {
+  try {
+    const rt = runtime();
+    if (!rt || typeof rt.decodeWaveform !== 'function') return Promise.resolve({ ok: false, reason: 'no-decoder' });
+    return Promise.resolve(rt.decodeWaveform(audioId, bins));
+  } catch (e) {
+    return Promise.resolve({ ok: false, reason: String((e && e.message) || e) });
+  }
+}
 function initTimelinePanel() {
   const lanes = $('#tlLanes');
   if (!lanes || typeof createTimelinePanel !== 'function') return;
+  const waves = createWaveformCache({
+    decode: (id, bins) => timelineWaveDecode(id, bins),
+    assetOf: id => C.audioAsset(p, id)
+  });
+  if (typeof window !== 'undefined') window.paperWaveformCache = waves;
   timelinePanel = createTimelinePanel({
-    TL, PF, lanes, panel: $('#timelinePanel'),
+    TL, PF, lanes, panel: $('#timelinePanel'), waves,
+    onPreviewEvent: (name, e) => timelinePreviewEvent(name, e),
     getActions: () => perfList(),
     getSelectedId: () => perfId,
     setSelectedId: (id, fromClipDrag) => timelineSetSelectedId(id, fromClipDrag),
